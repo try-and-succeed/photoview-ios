@@ -1,0 +1,43 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: de-DE
+
+reviews:
+  profile: chill
+  high_level_summary: true
+  review_status: true
+  poem: false
+  auto_review:
+    enabled: true
+    drafts: false
+
+  path_filters:
+    # Apollo-generated Swift; 87 KB of machine output, not worth reviewing.
+    - '!Photoview/API.swift'
+    - '!Photoview/schema.json'
+    - '!**/build/**'
+    - '!**/*.g.dart'
+    - '!**/ios/Runner.xcodeproj/**'
+    - '!**/android/gradle/**'
+
+  path_instructions:
+    - path: 'app_flutter/lib/**'
+      instructions: >-
+        A Flutter port of the SwiftUI client in Photoview/, which is kept for
+        reference. Where behaviour looks surprising, compare against the Swift
+        original before flagging it — the port is deliberately faithful.
+        Pay particular attention to Riverpod lifecycle rules: ref.watch is
+        only legal while a provider is building, and provider state must not
+        be written during a widget build.
+    - path: 'app_flutter/lib/api/queries.dart'
+      instructions: >-
+        These GraphQL documents are copied verbatim from the iOS client's
+        .graphql files so both clients hit the same server API. Do not suggest
+        reformatting or restructuring them; only flag an actual mismatch with
+        the server schema in Photoview/schema.json.
+    - path: 'Photoview/**'
+      instructions: >-
+        The original SwiftUI client, unmaintained since 2023 and kept only as
+        a reference for the port. Do not suggest changes here.
+
+chat:
+  auto_reply: true
