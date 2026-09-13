@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../api/capabilities.dart';
+import '../api/client.dart';
+import 'certificate_error.dart';
 
 class ErrorMessage extends StatelessWidget {
   final String message;
@@ -19,6 +21,15 @@ class ErrorMessage extends StatelessWidget {
       return EmptyMessage(
         message: error.message,
         icon: Icons.extension_off_outlined,
+      );
+    }
+
+    // Retrying an untrusted certificate fails identically every time. What the
+    // user needs is to see the certificate and decide about it.
+    if (error is CertificateNotTrustedException) {
+      return CertificateErrorMessage(
+        endpoint: error.endpoint,
+        onRetry: onRetry,
       );
     }
 

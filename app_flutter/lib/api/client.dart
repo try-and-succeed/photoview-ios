@@ -327,6 +327,15 @@ class PhotoviewClient {
 
       if (isPermissionDenied(exception)) throw const PermissionDeniedException();
 
+      // A pinned certificate can stop matching mid-session — Caddy's internal
+      // CA renews twice a day — and every request then fails. Raised as the
+      // typed exception rather than a sentence so the screen showing it can
+      // offer to look at the new certificate instead of only "Retry", which
+      // would fail exactly the same way for ever.
+      if (_causeOf(exception) is TlsException) {
+        throw CertificateNotTrustedException(session.endpoint);
+      }
+
       throw ApiException(_describe(exception));
     }
 

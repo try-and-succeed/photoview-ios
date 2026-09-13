@@ -68,8 +68,8 @@ class AlbumScreen extends ConsumerWidget {
       ),
       body: album.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => ErrorMessage(
-          message: '$error',
+        error: (error, _) => ErrorMessage.forError(
+          error,
           onRetry: () => ref.invalidate(albumProvider(albumId)),
         ),
         data: (data) {

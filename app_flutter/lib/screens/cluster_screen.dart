@@ -61,8 +61,8 @@ class _ClusterScreenState extends ConsumerState<ClusterScreen> {
       appBar: AppBar(title: Text(_locationName ?? 'Places Media')),
       body: media.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => ErrorMessage(
-          message: '$error',
+        error: (error, _) => ErrorMessage.forError(
+          error,
           onRetry: () => ref.invalidate(clusterMediaProvider(key)),
         ),
         data: (data) => data.isEmpty

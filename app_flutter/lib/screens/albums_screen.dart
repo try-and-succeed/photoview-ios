@@ -61,8 +61,8 @@ class AlbumsScreen extends ConsumerWidget {
               error: (error, _) => [
                 SliverFillRemaining(
                   hasScrollBody: false,
-                  child: ErrorMessage(
-                    message: '$error',
+                  child: ErrorMessage.forError(
+                    error,
                     onRetry: () => ref.invalidate(myAlbumsProvider),
                   ),
                 ),
