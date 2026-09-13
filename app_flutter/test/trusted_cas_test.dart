@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:photoview/api/trusted_cas.dart';
 
@@ -29,23 +31,113 @@ QQu2bQuKrlVPPJOJm9A/iCUp3xmnh5Gie6dMtTY1CASE+agjT0+zC1dIeb13OfoE
 const _opensslFingerprint =
     'eb74eace9512709bf569ead799ce9ba439c6cd59235e8b64f5b04f8a23711013';
 
+List<int> _der(String pem) =>
+    base64.decode(certificateBlocks(pem).single);
+
 void main() {
-  group('fingerprintOfPem', () {
-    test('matches the fingerprint openssl reports', () {
-      expect(fingerprintOfPem(_testCaPem), _opensslFingerprint);
+  group('singleCertificateFrom', () {
+    test('fingerprints a PEM the way openssl does', () {
+      final certificate = singleCertificateFrom(utf8.encode(_testCaPem));
+      expect(certificate.sha256Fingerprint, _opensslFingerprint);
     });
 
     test('ignores surrounding whitespace and blank lines', () {
-      final padded = '\n\n  $_testCaPem  \n\n';
-      expect(fingerprintOfPem(padded), _opensslFingerprint);
+      final padded = utf8.encode('\n\n  $_testCaPem  \n\n');
+      expect(
+        singleCertificateFrom(padded).sha256Fingerprint,
+        _opensslFingerprint,
+      );
     });
 
-    test('is stable for text that is not valid base64', () {
-      final first = fingerprintOfPem('not a certificate');
-      final second = fingerprintOfPem('not a certificate');
+    test('reads a DER file as the same certificate', () {
+      // Many tools — Windows' own export dialog included — write a .crt in
+      // DER form, and the user cannot tell by looking at it.
+      final certificate = singleCertificateFrom(_der(_testCaPem));
 
-      expect(first, second);
-      expect(first, isNot(_opensslFingerprint));
+      expect(certificate.sha256Fingerprint, _opensslFingerprint);
+      expect(certificate.pem.trim(), _testCaPem.trim());
+    });
+
+    test('normalises a PEM whose lines are wrapped differently', () {
+      final unwrapped =
+          '-----BEGIN CERTIFICATE-----\n'
+          '${certificateBlocks(_testCaPem).single}\n'
+          '-----END CERTIFICATE-----\n';
+
+      final certificate = singleCertificateFrom(utf8.encode(unwrapped));
+
+      expect(certificate.sha256Fingerprint, _opensslFingerprint);
+      expect(certificate.pem.trim(), _testCaPem.trim());
+    });
+
+    test('carries both encodings, DER being what Apple platforms need', () {
+      final certificate = singleCertificateFrom(utf8.encode(_testCaPem));
+
+      expect(certificate.der, _der(_testCaPem));
+      expect(utf8.decode(certificate.der, allowMalformed: true),
+          isNot(contains('BEGIN CERTIFICATE')));
+      expect(certificate.pem, contains('-----BEGIN CERTIFICATE-----'));
+    });
+
+    test('refuses a bundle of several certificates', () {
+      // The PEM path would trust every certificate in the file while the UI
+      // lists one, so the user could not see what they had granted — and the
+      // iOS path would silently trust only the first.
+      final bundle = utf8.encode('$_testCaPem\n$_testCaPem');
+
+      expect(
+        () => singleCertificateFrom(bundle),
+        throwsA(
+          isA<InvalidCertificateFile>().having(
+            (e) => e.message,
+            'message',
+            contains('2 certificates'),
+          ),
+        ),
+      );
+    });
+
+    test('rejects a certificate block that is not base64', () {
+      final broken = utf8.encode(
+        '-----BEGIN CERTIFICATE-----\nnot base64!!\n-----END CERTIFICATE-----',
+      );
+
+      expect(
+        () => singleCertificateFrom(broken),
+        throwsA(isA<InvalidCertificateFile>()),
+      );
+    });
+
+    test('gives arbitrary bytes a stable identity rather than throwing', () {
+      // Whether it is a certificate at all is settled by the TLS stack on
+      // import; the fingerprint only has to be reproducible.
+      final bytes = utf8.encode('not a certificate');
+
+      expect(
+        singleCertificateFrom(bytes).sha256Fingerprint,
+        singleCertificateFrom(bytes).sha256Fingerprint,
+      );
+      expect(
+        singleCertificateFrom(bytes).sha256Fingerprint,
+        isNot(_opensslFingerprint),
+      );
+    });
+  });
+
+  group('certificateBlocks', () {
+    test('finds every block in a bundle', () {
+      expect(certificateBlocks('$_testCaPem\n$_testCaPem'), hasLength(2));
+    });
+
+    test('ignores a block that was never closed', () {
+      expect(
+        certificateBlocks('-----BEGIN CERTIFICATE-----\nQUJD\n'),
+        isEmpty,
+      );
+    });
+
+    test('finds nothing in plain text', () {
+      expect(certificateBlocks('hello'), isEmpty);
     });
   });
 

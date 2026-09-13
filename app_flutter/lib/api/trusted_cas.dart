@@ -63,11 +63,13 @@ class TrustedCaStore {
         _certificates.add(
           TrustedCa(
             name: _baseName(file.path),
-            sha256: fingerprintOfPem(utf8.decode(bytes)),
+            sha256: singleCertificateFrom(bytes).sha256Fingerprint,
           ),
         );
       } catch (_) {
-        // Skip anything unreadable rather than failing startup.
+        // Skip anything unreadable rather than failing startup. The listing
+        // then matches what `_rebuildContext` actually trusts, which reads the
+        // same files through the same parser.
       }
     }
 
@@ -85,18 +87,22 @@ class TrustedCaStore {
     final bytes = await source.readAsBytes();
 
     // The authority on whether this is usable is the TLS stack itself.
+    // Refuses a bundle of several certificates, and accepts DER as well as
+    // PEM — plenty of tools export a .crt in DER form.
+    final certificate = singleCertificateFrom(bytes);
+
     try {
       SecurityContext(
         withTrustedRoots: false,
-      ).setTrustedCertificatesBytes(bytes);
+      ).setTrustedCertificatesBytes(certificate.forImport);
     } catch (error) {
-      throw InvalidCertificateFile(
-        'That file is not a PEM certificate the system can read. '
-        'Export your CA as a .pem or .crt file in PEM format.',
+      throw const InvalidCertificateFile(
+        'That file is not a certificate the system can read. Export your CA '
+        'as a .pem or .crt file.',
       );
     }
 
-    final fingerprint = fingerprintOfPem(utf8.decode(bytes));
+    final fingerprint = certificate.sha256Fingerprint;
     if (_certificates.any((c) => c.sha256 == fingerprint)) {
       throw const InvalidCertificateFile(
         'That certificate is already trusted.',
@@ -105,8 +111,11 @@ class TrustedCaStore {
 
     final directory = await _ensureDirectory();
     final name = _uniqueName(directory, _baseName(sourcePath));
-    await File('${directory.path}${Platform.pathSeparator}$name.pem')
-        .writeAsBytes(bytes);
+    // Stored normalised as PEM: it is the portable form, and the DER needed
+    // on Apple platforms is derived from it on the way into the context.
+    await File(
+      '${directory.path}${Platform.pathSeparator}$name.pem',
+    ).writeAsString(certificate.pem);
 
     final imported = TrustedCa(name: name, sha256: fingerprint);
     _certificates.add(imported);
@@ -143,7 +152,9 @@ class TrustedCaStore {
       if (!file.existsSync()) continue;
 
       try {
-        context.setTrustedCertificatesBytes(file.readAsBytesSync());
+        context.setTrustedCertificatesBytes(
+          singleCertificateFrom(file.readAsBytesSync()).forImport,
+        );
       } catch (_) {
         // Already validated on import; ignore a file that has since broken.
       }
@@ -191,22 +202,97 @@ class TrustedCaStore {
   }
 }
 
-/// SHA-256 over the certificate's DER bytes, recovered from the PEM body.
-///
-/// Matches what `openssl x509 -fingerprint -sha256` prints, so a user can
-/// check the imported CA against their server.
-String fingerprintOfPem(String pem) {
-  final body = pem
-      .split('\n')
-      .map((line) => line.trim())
-      .where((line) => line.isNotEmpty && !line.startsWith('-----'))
-      .join();
+const _pemBegin = '-----BEGIN CERTIFICATE-----';
+const _pemEnd = '-----END CERTIFICATE-----';
 
-  try {
-    return sha256.convert(base64.decode(body)).toString();
-  } catch (_) {
-    // Not decodable: fall back to hashing the text so the entry still has a
-    // stable identity.
-    return sha256.convert(utf8.encode(pem)).toString();
+/// One certificate in both encodings the TLS stack may ask for.
+class CertificateBytes {
+  /// A normalised single-certificate PEM document.
+  final String pem;
+
+  /// The same certificate as raw DER.
+  final List<int> der;
+
+  const CertificateBytes({required this.pem, required this.der});
+
+  /// What `SecurityContext.setTrustedCertificatesBytes` accepts here.
+  ///
+  /// The Dart SDK documents that on iOS the call takes the bytes of a single
+  /// DER certificate, while elsewhere it reads PEM or PKCS12. Getting this
+  /// wrong means the import silently does nothing on one platform.
+  List<int> get forImport =>
+      Platform.isIOS || Platform.isMacOS ? der : utf8.encode(pem);
+
+  String get sha256Fingerprint => sha256.convert(der).toString();
+}
+
+/// The base64 bodies of every CERTIFICATE block in [text].
+List<String> certificateBlocks(String text) {
+  final blocks = <String>[];
+  var from = 0;
+
+  while (true) {
+    final start = text.indexOf(_pemBegin, from);
+    if (start == -1) break;
+
+    final bodyStart = start + _pemBegin.length;
+    final end = text.indexOf(_pemEnd, bodyStart);
+    if (end == -1) break;
+
+    blocks.add(
+      text
+          .substring(bodyStart, end)
+          .replaceAll(RegExp(r'\s'), ''),
+    );
+    from = end + _pemEnd.length;
   }
+
+  return blocks;
+}
+
+/// Reads [bytes] as exactly one certificate, in PEM or DER form.
+///
+/// A file holding several PEM blocks is refused rather than imported: the
+/// non-iOS path would trust every certificate in it while the app lists only
+/// one, so the user could not see what they had actually granted.
+CertificateBytes singleCertificateFrom(List<int> bytes) {
+  String? text;
+  try {
+    text = utf8.decode(bytes);
+  } catch (_) {
+    text = null;
+  }
+
+  final blocks = text == null ? const <String>[] : certificateBlocks(text);
+
+  if (blocks.length > 1) {
+    throw InvalidCertificateFile(
+      'That file holds ${blocks.length} certificates. Import the single CA '
+      'certificate on its own, so you can see which one you are trusting.',
+    );
+  }
+
+  if (blocks.length == 1) {
+    final List<int> der;
+    try {
+      der = base64.decode(blocks.single);
+    } on FormatException {
+      throw const InvalidCertificateFile(
+        'That certificate block is not valid base64.',
+      );
+    }
+    return CertificateBytes(pem: _wrapPem(blocks.single), der: der);
+  }
+
+  // No PEM block: many tools, Windows included, export DER-encoded .crt.
+  return CertificateBytes(pem: _wrapPem(base64.encode(bytes)), der: bytes);
+}
+
+String _wrapPem(String body) {
+  final lines = <String>[];
+  for (var i = 0; i < body.length; i += 64) {
+    lines.add(body.substring(i, i + 64 > body.length ? body.length : i + 64));
+  }
+
+  return '$_pemBegin\n${lines.join('\n')}\n$_pemEnd\n';
 }
