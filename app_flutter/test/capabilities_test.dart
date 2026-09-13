@@ -166,6 +166,47 @@ void main() {
     });
   });
 
+  group('against a real upstream server', () {
+    /// The complete response `photoview/photoview:latest` gives to the batched
+    /// probe, captured from a live container. Validation fails, so there is no
+    /// data at all and every missing field is named in its own error.
+    const upstreamErrors = [
+      'Cannot query field "searchResultLimit" on type "UserPreferences".',
+      'Cannot query field "showAlbumTree" on type "UserPreferences".',
+      'Cannot query field "albumTreeChildren" on type "Query".',
+      'Cannot query field "scannerQueueStatus" on type "Query".',
+    ];
+
+    test('one round trip settles every capability', () {
+      final capabilities = ServerCapabilities(
+        readProbe(data: null, errorMessages: upstreamErrors),
+      );
+
+      for (final capability in Capability.values) {
+        expect(
+          capabilities[capability],
+          CapabilityState.unsupported,
+          reason: capability.name,
+        );
+      }
+
+      // Nothing left over means no follow-up probes are sent, which is the
+      // point of batching.
+      expect(capabilities.unresolved, isEmpty);
+    });
+
+    test('the preferences container itself is not mistaken for missing', () {
+      // Upstream does have myUserPreferences — only the two fields inside it
+      // are absent. An implementation that gave up at the container would
+      // report the wrong reason, and would also rule out the language
+      // preference the app may want later.
+      expect(
+        upstreamErrors.map(unsupportedFieldIn),
+        isNot(contains('myUserPreferences')),
+      );
+    });
+  });
+
   group('ServerCapabilities', () {
     test('treats an unrecorded capability as unknown, not absent', () {
       expect(
