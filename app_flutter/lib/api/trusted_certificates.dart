@@ -90,25 +90,33 @@ class TrustedCertificateStore {
   bool isTrusted(X509Certificate certificate, String host) =>
       _accepted[host] == certificateFingerprint(certificate);
 
-  Future<void> trust(TrustedCertificate certificate) async {
-    _accepted[certificate.host] = certificate.sha256;
-    await _persist();
-  }
+  Future<void> trust(TrustedCertificate certificate) =>
+      _commit({..._accepted, certificate.host: certificate.sha256});
 
-  Future<void> forget(String host) async {
-    _accepted.remove(host);
-    await _persist();
-  }
+  Future<void> forget(String host) =>
+      _commit({..._accepted}..remove(host));
 
   Map<String, String> get accepted => Map.unmodifiable(_accepted);
 
-  Future<void> _persist() async {
-    if (_accepted.isEmpty) {
+  /// Stores [next], and only adopts it in memory once that succeeded.
+  ///
+  /// Writing second would let a failed write leave the running app trusting a
+  /// certificate the store does not know about — or, worse, distrusting one it
+  /// still holds, so a revoked pin returns after a restart.
+  Future<void> _commit(Map<String, String> next) async {
+    await _persist(next);
+    _accepted
+      ..clear()
+      ..addAll(next);
+  }
+
+  Future<void> _persist(Map<String, String> accepted) async {
+    if (accepted.isEmpty) {
       await _storage.delete(key: _key);
       return;
     }
 
-    final raw = _accepted.entries.map((e) => '${e.key}=${e.value}').join(';');
+    final raw = accepted.entries.map((e) => '${e.key}=${e.value}').join(';');
     await _storage.write(key: _key, value: raw);
   }
 }

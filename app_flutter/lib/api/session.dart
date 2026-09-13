@@ -51,6 +51,19 @@ class Session {
   }
 }
 
+/// The secure store could not be read, as opposed to being empty.
+///
+/// The difference matters: treating an unreadable store as empty and then
+/// writing to it would replace every saved sign-in with whatever the caller
+/// happened to be adding.
+class StorageUnavailable implements Exception {
+  final Object? cause;
+  const StorageUnavailable(this.cause);
+
+  @override
+  String toString() => 'Secure storage is unavailable: $cause';
+}
+
 /// A server the user has signed into before, kept so it can be reopened with
 /// a tap. Only the auth token is stored — never the password.
 class SavedServer {
@@ -122,8 +135,24 @@ class SessionStore {
 
   /// Saved servers, most recently used first.
   ///
-  /// Always a modifiable list: callers add to and remove from it.
+  /// Always a modifiable list: callers add to and remove from it. An
+  /// unreadable store reads as empty here so the app falls back to the sign-in
+  /// screen; write paths use [_serversForWrite] instead, which refuses to
+  /// proceed on the same condition.
   Future<List<SavedServer>> servers() async {
+    try {
+      return await _serversForWrite();
+    } on StorageUnavailable {
+      return [];
+    }
+  }
+
+  /// Like [servers], but propagates a read failure.
+  ///
+  /// Rebuilding the stored list from a read that failed would persist a
+  /// truncated list and silently drop every other saved sign-in, so callers
+  /// that write must let this throw.
+  Future<List<SavedServer>> _serversForWrite() async {
     final raw = await _read(_serversKey);
 
     if (raw == null || raw.isEmpty) {
@@ -156,7 +185,7 @@ class SessionStore {
   /// Adds the server, or replaces the entry for the same account, and marks it
   /// as the most recently used.
   Future<void> remember(SavedServer server) async {
-    final saved = await servers();
+    final saved = await _serversForWrite();
     saved.removeWhere((s) => s.id == server.id);
     saved.insert(0, server);
 
@@ -171,7 +200,7 @@ class SessionStore {
   }
 
   Future<void> forget(String id) async {
-    final saved = await servers();
+    final saved = await _serversForWrite();
     saved.removeWhere((s) => s.id == id);
     await _write(saved);
   }
@@ -192,24 +221,28 @@ class SessionStore {
     );
   }
 
-  /// Reads a key, retrying once.
+  /// Reads a key, retrying once, and throws [StorageUnavailable] if both
+  /// attempts fail.
   ///
   /// The Android Keystore can be briefly unavailable — shortly after boot, for
   /// instance — and a failed read must not be mistaken for a missing value.
   /// Nothing is written on failure, so the stored data stays recoverable on a
   /// later launch.
   Future<String?> _read(String key) async {
+    Object? lastError;
+
     for (var attempt = 0; attempt < 2; attempt++) {
       try {
         return await _storage.read(key: key);
-      } catch (_) {
+      } catch (error) {
+        lastError = error;
         if (attempt == 0) {
           await Future<void>.delayed(const Duration(milliseconds: 300));
         }
       }
     }
 
-    return null;
+    throw StorageUnavailable(lastError);
   }
 
   Future<SavedServer?> _migrateLegacySession() async {

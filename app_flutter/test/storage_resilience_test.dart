@@ -71,6 +71,27 @@ void main() {
       expect(data['saved-servers'], _storedServer);
     });
 
+    test('refuses to write rather than replace unreadable data', () async {
+      // The dangerous case: a read fails, the list looks empty, and saving a
+      // new sign-in would persist that one entry over all the others.
+      final data = {'saved-servers': _storedServer};
+      FlutterSecureStoragePlatform.instance = _FlakyStorage(data, failures: 99);
+
+      await expectLater(
+        SessionStore().remember(
+          SavedServer(
+            endpoint: Uri.parse('http://other/api/graphql'),
+            username: 'bob',
+            token: 'new',
+            lastUsed: DateTime(2026, 9, 13),
+          ),
+        ),
+        throwsA(isA<StorageUnavailable>()),
+      );
+
+      expect(data['saved-servers'], _storedServer);
+    });
+
     test('recovers on the next attempt once the keystore works', () async {
       final data = {'saved-servers': _storedServer};
       final platform = _FlakyStorage(data, failures: 2);

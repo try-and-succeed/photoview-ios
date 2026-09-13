@@ -8,6 +8,14 @@ import '../util/image_cache.dart';
 
 final sessionStoreProvider = Provider<SessionStore>((ref) => SessionStore());
 
+/// Clearing cached thumbnails, behind a provider so it can be replaced.
+///
+/// Signing out must not depend on a working cache manager — and a test should
+/// not need a real one just to exercise the sign-out paths.
+final imageCacheCleanerProvider = Provider<Future<void> Function()>(
+  (ref) => clearImageCache,
+);
+
 /// Overridden in `main` with the stores the global [HttpOverrides] consults,
 /// so the UI and the TLS check agree on what has been accepted.
 final trustedCertificatesProvider = Provider<TrustedCertificateStore>(
@@ -62,10 +70,7 @@ class AuthNotifier extends AsyncNotifier<Session?> {
 
   /// Returns to the server list, keeping every saved server so one tap gets
   /// back in.
-  Future<void> switchServer() async {
-    await clearImageCache();
-    state = const AsyncData(null);
-  }
+  Future<void> switchServer() => _signOut();
 
   /// Drops the current server's saved token, so signing in needs the password
   /// again.
@@ -73,8 +78,7 @@ class AuthNotifier extends AsyncNotifier<Session?> {
     final active = state.valueOrNull;
     if (active != null) await _forgetSession(active);
 
-    await clearImageCache();
-    state = const AsyncData(null);
+    await _signOut();
   }
 
   /// Removes one remembered server from the list.
@@ -82,30 +86,45 @@ class AuthNotifier extends AsyncNotifier<Session?> {
     await ref.read(sessionStoreProvider).forget(server.id);
     ref.invalidate(savedServersProvider);
 
-    final active = state.valueOrNull;
-    final isActive =
-        active != null &&
-        active.endpoint == server.endpoint &&
-        active.username == server.username;
-
-    if (isActive) {
-      await clearImageCache();
-      state = const AsyncData(null);
-    }
+    if (_isActive(server.endpoint, server.username)) await _signOut();
   }
 
-  /// The server rejected the stored token. Forget it rather than leave an
-  /// entry that fails every time it is tapped, and remember which server it
-  /// was so the user can sign back in without retyping the address.
-  Future<void> sessionExpired() async {
-    final active = state.valueOrNull;
-    if (active != null) {
-      await _forgetSession(active);
-      ref.read(expiredSessionProvider.notifier).state = active;
-    }
+  /// The server rejected the token used by [failed]. Forget that entry rather
+  /// than leave one that fails every time it is tapped.
+  ///
+  /// [failed] is the session whose request actually failed, which is not
+  /// necessarily the active one: a late response from a server the user has
+  /// since switched away from must not sign them out of the server they are
+  /// now looking at.
+  Future<void> sessionExpired(Session failed) async {
+    await _forgetSession(failed);
 
-    await clearImageCache();
-    state = const AsyncData(null);
+    if (!_isActive(failed.endpoint, failed.username)) return;
+
+    ref.read(expiredSessionProvider.notifier).state = failed;
+    await _signOut();
+  }
+
+  bool _isActive(Uri endpoint, String username) {
+    final active = state.valueOrNull;
+    return active != null &&
+        active.endpoint == endpoint &&
+        active.username == username;
+  }
+
+  /// Clears the session, whatever else fails.
+  ///
+  /// Dropping the cached images is housekeeping, not part of signing out — if
+  /// it throws, the user must still end up signed out rather than stuck with a
+  /// session the caller believes is gone.
+  Future<void> _signOut() async {
+    try {
+      await ref.read(imageCacheCleanerProvider)();
+    } catch (_) {
+      // Stale thumbnails are preferable to a sign-out that did not happen.
+    } finally {
+      state = const AsyncData(null);
+    }
   }
 
   Future<void> _activate(SavedServer server, {bool touchOnly = false}) async {
@@ -171,7 +190,9 @@ extension ClientRef on Ref {
     try {
       return await run(client);
     } on UnauthorizedException {
-      await read(authProvider.notifier).sessionExpired();
+      // Hand over the session that actually failed: by the time a slow request
+      // errors, the user may already be on a different server.
+      await read(authProvider.notifier).sessionExpired(client.session);
       rethrow;
     }
   }

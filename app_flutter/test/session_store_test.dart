@@ -2,11 +2,18 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:photoview/api/session.dart';
 
-SavedServer _server(String url, String username, String token) => SavedServer(
+SavedServer _server(
+  String url,
+  String username,
+  String token, {
+  DateTime? lastUsed,
+}) => SavedServer(
   endpoint: Uri.parse(url),
   username: username,
   token: token,
-  lastUsed: DateTime.now(),
+  // Ordering tests must pass distinct values: two calls in the same tick would
+  // compare equal and the assertion could pass on insertion order alone.
+  lastUsed: lastUsed ?? DateTime.now(),
 );
 
 void main() {
@@ -35,13 +42,21 @@ void main() {
 
     test('keeps the most recently used server first', () async {
       final store = SessionStore();
-      await store.remember(_server('http://a/api/graphql', 'u', 't1'));
-      await store.remember(_server('http://b/api/graphql', 'u', 't2'));
+      final early = DateTime(2026, 1, 1);
+      final later = DateTime(2026, 6, 1);
 
-      expect((await store.servers()).map((s) => s.endpoint.host), ['b', 'a']);
+      // Written oldest-last so insertion order cannot stand in for sorting.
+      await store.remember(
+        _server('http://a/api/graphql', 'u', 't1', lastUsed: later),
+      );
+      await store.remember(
+        _server('http://b/api/graphql', 'u', 't2', lastUsed: early),
+      );
 
-      await store.touch(_server('http://a/api/graphql', 'u', 't1'));
       expect((await store.servers()).map((s) => s.endpoint.host), ['a', 'b']);
+
+      await store.touch(_server('http://b/api/graphql', 'u', 't2'));
+      expect((await store.servers()).map((s) => s.endpoint.host), ['b', 'a']);
     });
 
     test('replaces the entry for the same account rather than duplicating', () async {
