@@ -17,6 +17,9 @@ class AlbumsScreen extends ConsumerWidget {
       body: RefreshIndicator(
         onRefresh: () async => ref.invalidate(myAlbumsProvider),
         child: CustomScrollView(
+          // See the note in timeline_screen.dart: a short list would otherwise
+          // refuse the pull-to-refresh gesture.
+          physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             SliverAppBar(
               title: const Text('My albums'),

@@ -16,6 +16,9 @@ class PeopleScreen extends ConsumerWidget {
       body: RefreshIndicator(
         onRefresh: () async => ref.invalidate(faceGroupsProvider),
         child: CustomScrollView(
+          // See the note in timeline_screen.dart: a short list would otherwise
+          // refuse the pull-to-refresh gesture.
+          physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             const SliverAppBar(
               title: Text('People'),

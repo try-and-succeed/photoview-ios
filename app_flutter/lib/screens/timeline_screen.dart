@@ -23,6 +23,10 @@ class TimelineScreen extends ConsumerWidget {
           await ref.read(timelineProvider.future);
         },
         child: CustomScrollView(
+          // Without this, a timeline that fits on screen — empty, still
+          // loading, or showing an error — cannot be overscrolled, so the
+          // pull-to-refresh gesture never fires exactly when it is wanted most.
+          physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             SliverAppBar(
               title: const Text('Timeline'),
