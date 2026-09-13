@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../api/capabilities.dart';
+import '../state/capabilities.dart';
 import '../state/library.dart';
+import '../state/scanner.dart';
 import '../widgets/album_grid.dart';
 import '../widgets/async_states.dart';
 import '../widgets/media_grid.dart';
+import 'scanner_screen.dart';
 
 class AlbumScreen extends ConsumerWidget {
   final String albumId;
@@ -12,12 +16,50 @@ class AlbumScreen extends ConsumerWidget {
 
   const AlbumScreen({super.key, required this.albumId, required this.title});
 
+  /// Starts a scan and points the user at the queue.
+  ///
+  /// What gets queued are this album's sub-albums, so the queue will usually
+  /// not list this album by name — the message says so rather than leaving the
+  /// user to wonder whether anything happened.
+  Future<void> _scan(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+
+    try {
+      await ref.read(scannerProvider.notifier).scanAlbum(albumId);
+      messenger.showSnackBar(
+        SnackBar(
+          content: const Text('Scanning this album and its sub-albums.'),
+          action: SnackBarAction(
+            label: 'Show',
+            onPressed: () => showScanner(context),
+          ),
+        ),
+      );
+    } catch (error) {
+      // Deliberately not retried: the server may already have accepted the
+      // request, and a second one would run all the same.
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not start the scan: $error')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final album = ref.watch(albumProvider(albumId));
 
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      appBar: AppBar(
+        title: Text(title),
+        actions: [
+          if (ref.watch(hasCapabilityProvider(Capability.scanner)))
+            IconButton(
+              icon: const Icon(Icons.radar),
+              tooltip: 'Scan for new media',
+              onPressed: () => _scan(context, ref),
+            ),
+        ],
+      ),
       body: album.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => ErrorMessage(

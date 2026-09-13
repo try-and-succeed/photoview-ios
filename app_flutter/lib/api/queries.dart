@@ -228,6 +228,52 @@ query albumTreeChildren(\$albumIds: [ID!]!) {
 $_albumItemFragment
 ''';
 
+/// What the scanner is working on right now.
+///
+/// A snapshot, not a stream: there is no subscription for it, so the app polls
+/// while anything is running. Admins see every job, everyone else only jobs for
+/// albums they own — so an empty queue can also mean "nothing of yours".
+const scannerQueueStatusQuery = r'''
+query scannerQueueStatus {
+  scannerQueueStatus {
+    album {
+      id
+      title
+    }
+    status
+  }
+}
+''';
+
+/// Queues an album and its sub-albums for scanning.
+///
+/// Returns as soon as the work is queued — measured at about 100 ms against a
+/// live instance — so this needs no special timeout. What lands in the queue
+/// are the *sub-albums*, which is why the queue may never show the album that
+/// was asked for.
+const scanAlbumMutation = r'''
+mutation scanAlbum($albumId: ID!) {
+  scanAlbum(albumId: $albumId) {
+    success
+    message
+  }
+}
+''';
+
+/// Cancels one album's job. False means there was no job for that album.
+const cancelScanJobMutation = r'''
+mutation cancelScanJob($albumId: ID!) {
+  cancelScanJob(albumId: $albumId)
+}
+''';
+
+/// Cancels everything the caller is allowed to cancel, returning how many.
+const cancelAllScanJobsMutation = r'''
+mutation cancelAllScanJobs {
+  cancelAllScanJobs
+}
+''';
+
 /// Reads the preferences the app cares about.
 ///
 /// `language` is read even though the app does not use it, because it has to

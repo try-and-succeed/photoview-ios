@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../state/auth.dart';
 import '../state/search_limit.dart';
 
 /// Lets the user cap how many search hits are fetched.
@@ -19,12 +20,15 @@ class SearchLimitField extends ConsumerStatefulWidget {
 class _SearchLimitFieldState extends ConsumerState<SearchLimitField> {
   final _controller = TextEditingController();
 
-  /// Whether the field has taken its starting value yet.
+  /// The account whose stored limit the field is currently showing.
   ///
-  /// The controller is filled from the stored limit exactly once. Assigning it
-  /// on every build would let a slow response, or the invalidation that
-  /// follows a save, overwrite whatever the user is in the middle of typing.
-  bool _initialised = false;
+  /// The controller is filled from the stored limit once *per account*, not
+  /// once per lifetime. Assigning on every build would let a slow response, or
+  /// the reload after saving, overwrite what the user is typing — but a plain
+  /// "only ever once" latched onto the signed-out moment during a server
+  /// switch, when the limit legitimately reads as unset, and then never
+  /// corrected itself. The field sat empty over a value that was still there.
+  String? _initialisedFor;
 
   String? _error;
   bool _saving = false;
@@ -72,10 +76,11 @@ class _SearchLimitFieldState extends ConsumerState<SearchLimitField> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final limit = ref.watch(searchLimitProvider);
+    final serverId = ref.watch(sessionProvider)?.serverId;
 
     final stored = limit.valueOrNull;
-    if (stored != null && !_initialised) {
-      _initialised = true;
+    if (stored != null && serverId != null && _initialisedFor != serverId) {
+      _initialisedFor = serverId;
       _controller.text = stored.asText;
     }
 

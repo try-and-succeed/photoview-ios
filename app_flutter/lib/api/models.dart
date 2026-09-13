@@ -305,6 +305,40 @@ class MediaDetails {
   }
 }
 
+/// What the scanner is doing with one album.
+///
+/// The server has exactly two states. [unknown] is the app's own, for a value
+/// added to the enum later — an unrecognised status must render as "busy",
+/// not crash the screen.
+enum ScannerJobStatus { running, queued, unknown }
+
+/// One album in the scanner queue.
+class ScannerJob {
+  final String albumId;
+  final String albumTitle;
+  final ScannerJobStatus status;
+
+  const ScannerJob({
+    required this.albumId,
+    required this.albumTitle,
+    required this.status,
+  });
+
+  factory ScannerJob.fromJson(Map<String, dynamic> json) {
+    final album = json['album'] as Map<String, dynamic>? ?? const {};
+
+    return ScannerJob(
+      albumId: album['id']?.toString() ?? '',
+      albumTitle: album['title'] as String? ?? '',
+      status: switch ((json['status'] as String?)?.toUpperCase()) {
+        'RUNNING' => ScannerJobStatus.running,
+        'QUEUED' => ScannerJobStatus.queued,
+        _ => ScannerJobStatus.unknown,
+      },
+    );
+  }
+}
+
 /// The server-side user preferences the app reads.
 ///
 /// [language] is carried even though the app never shows it: the mutation that

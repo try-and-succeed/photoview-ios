@@ -608,6 +608,47 @@ class PhotoviewClient {
     return result;
   }
 
+  Future<List<ScannerJob>> scannerQueue() async {
+    final data = await _query(scannerQueueStatusQuery);
+
+    return (data['scannerQueueStatus'] as List<dynamic>? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .map(ScannerJob.fromJson)
+        .toList();
+  }
+
+  /// Queues [albumId] and its sub-albums, returning the server's message.
+  ///
+  /// Goes through [_mutate], so it is never retried automatically: the server
+  /// deduplicates queued albums, but a repeated request still runs to
+  /// completion, and a timeout says nothing about whether the first one was
+  /// accepted.
+  Future<String?> scanAlbum(String albumId) async {
+    final data = await _mutate(scanAlbumMutation, {'albumId': albumId});
+    final result = data['scanAlbum'] as Map<String, dynamic>?;
+
+    if (result?['success'] != true) {
+      throw ApiException(
+        result?['message'] as String? ?? 'The server refused to start a scan',
+      );
+    }
+
+    return result?['message'] as String?;
+  }
+
+  /// Cancels one album's job. False means there was nothing to cancel — which
+  /// is the normal answer for an album whose sub-albums are the queued ones.
+  Future<bool> cancelScanJob(String albumId) async {
+    final data = await _mutate(cancelScanJobMutation, {'albumId': albumId});
+    return data['cancelScanJob'] as bool? ?? false;
+  }
+
+  /// Cancels everything the user may cancel, returning how many jobs that was.
+  Future<int> cancelAllScanJobs() async {
+    final data = await _mutate(cancelAllScanJobsMutation);
+    return data['cancelAllScanJobs'] as int? ?? 0;
+  }
+
   Future<UserPreferences> userPreferences() async {
     final data = await _query(userPreferencesQuery);
     final preferences = data['myUserPreferences'] as Map<String, dynamic>?;
