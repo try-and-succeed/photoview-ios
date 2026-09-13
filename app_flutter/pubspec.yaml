@@ -1,0 +1,55 @@
+name: photoview
+description: "Photoview client — browse a self-hosted Photoview media gallery."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.3
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # State management
+  flutter_riverpod: ^2.6.1
+
+  # API + credentials
+  graphql: ^5.2.1
+  flutter_secure_storage: ^11.1.1
+  http: ^1.6.0
+  crypto: ^3.0.7
+  file_picker: ^12.3.0
+
+  # Media rendering
+  cached_network_image: ^3.4.1
+  flutter_cache_manager: ^3.4.1
+  flutter_blurhash: ^0.9.1
+  photo_view: ^0.15.0
+  video_player: ^2.9.5
+  chewie: ^1.16.3
+
+  # Places map
+  flutter_map: ^8.1.1
+  latlong2: ^0.9.1
+  geocoding: ^5.0.0
+
+  # Downloads / sharing
+  share_plus: ^13.3.0
+  path_provider: ^2.1.5
+
+  intl: ^0.20.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+
+  # Lets tests swap in a secure storage that fails, to check that saved
+  # sign-ins are not erased when the keystore misbehaves.
+  flutter_secure_storage_platform_interface: ^2.1.0
+
+flutter:
+  uses-material-design: true

@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter analyze*)",
+      "Bash(flutter test*)",
+      "Bash(adb devices*)",
+      "Bash(adb logcat*)",
+      "Bash(adb exec-out screencap*)",
+      "Bash(openssl x509 *)",
+      "Bash(openssl s_client *)"
+    ]
+  }
+}

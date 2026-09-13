@@ -1,0 +1,86 @@
+name: Flutter client
+
+# Only the Flutter port is checked here. The Swift client in Photoview/ has no
+# build set up and is left untouched.
+on:
+  push:
+    branches: [master, flutter-port]
+    paths:
+      - 'app_flutter/**'
+      - '.github/workflows/flutter.yml'
+  pull_request:
+    paths:
+      - 'app_flutter/**'
+      - '.github/workflows/flutter.yml'
+  workflow_dispatch:
+
+# Read-only by default, and the checkout steps below drop the token from
+# .git/config as well: a pull request build runs code from the branch being
+# built, which could otherwise read the token back out and push with it.
+permissions:
+  contents: read
+
+env:
+  FLUTTER_VERSION: 3.47.4
+
+defaults:
+  run:
+    working-directory: app_flutter
+
+jobs:
+  analyze:
+    name: Analyze and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+
+  android:
+    name: Build Android
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter build apk --debug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: app_flutter/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+
+  ios:
+    name: Build iOS
+    # The iOS build cannot be run on the development machine (Windows), so this
+    # job is the only thing that checks it. Unsigned: no certificates needed.
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter build ios --debug --no-codesign
