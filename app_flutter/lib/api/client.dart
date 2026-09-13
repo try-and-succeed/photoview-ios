@@ -572,6 +572,42 @@ class PhotoviewClient {
     return SearchResults.fromJson(search);
   }
 
+  /// Children of each album in [albumIds], keyed by album id.
+  ///
+  /// Ids are deduplicated before asking: a live instance echoes a repeated id
+  /// as a repeated entry, so sending duplicates would pay for the same album
+  /// twice and then overwrite one answer with the other.
+  ///
+  /// An album that is missing from the answer, or present with no children,
+  /// both mean the same thing to the caller — the server filters out ids the
+  /// user may not see, and a leaf simply has none. Both come back as an empty
+  /// list rather than as an error.
+  Future<Map<String, List<AlbumItem>>> albumTreeChildren(
+    List<String> albumIds,
+  ) async {
+    final unique = albumIds.toSet().toList();
+    if (unique.isEmpty) return {};
+
+    final data = await _query(albumTreeChildrenQuery, {'albumIds': unique});
+    final entries = data['albumTreeChildren'] as List<dynamic>? ?? const [];
+
+    final result = {for (final id in unique) id: <AlbumItem>[]};
+
+    for (final entry in entries) {
+      if (entry is! Map<String, dynamic>) continue;
+
+      final id = entry['albumId']?.toString();
+      if (id == null) continue;
+
+      result[id] = (entry['children'] as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(AlbumItem.fromJson)
+          .toList();
+    }
+
+    return result;
+  }
+
   Future<UserPreferences> userPreferences() async {
     final data = await _query(userPreferencesQuery);
     final preferences = data['myUserPreferences'] as Map<String, dynamic>?;

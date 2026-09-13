@@ -210,6 +210,24 @@ $_albumItemFragment
 $_mediaItemFragment
 ''';
 
+/// Children of many albums in one round trip.
+///
+/// `Album` has no `children` field of its own — verified against a live
+/// instance — so a tree is built one level at a time. That is what this query
+/// is for: asking about a whole level at once instead of one request per node.
+const albumTreeChildrenQuery =
+    '''
+query albumTreeChildren(\$albumIds: [ID!]!) {
+  albumTreeChildren(albumIds: \$albumIds) {
+    albumId
+    children {
+      ...AlbumItem
+    }
+  }
+}
+$_albumItemFragment
+''';
+
 /// Reads the preferences the app cares about.
 ///
 /// `language` is read even though the app does not use it, because it has to
