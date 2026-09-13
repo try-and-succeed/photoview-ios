@@ -60,24 +60,34 @@ final searchLimitProvider = FutureProvider<SearchLimit>((ref) async {
     return const SearchLimit(value: null, source: SearchLimitSource.device);
   }
 
+  // Read before any await: watching afterwards would register against a build
+  // that may already be gone. This matters here because the server path can
+  // fall through to the device path, which means an await now sits between the
+  // top of the provider and the store.
   final onServer = ref.watch(
     hasCapabilityProvider(Capability.searchLimitPreference),
   );
+  final client = ref.watch(clientProvider);
+  final store = ref.watch(settingsStoreProvider);
 
-  if (onServer) {
-    final client = ref.watch(clientProvider);
-    if (client != null) {
+  if (onServer && client != null) {
+    try {
       final preferences = await client.userPreferences();
       return SearchLimit(
         value: preferences.searchResultLimit,
         source: SearchLimitSource.server,
       );
+    } on UnsupportedFieldException catch (failure) {
+      // The cache said the server could store this and it turns out it cannot
+      // — a server that was downgraded, or an answer that was wrong. Record
+      // the correction so it heals itself, then carry on to the device store
+      // instead of failing: this provider is awaited by the search itself, so
+      // throwing here would break searching altogether over a setting.
+      await ref.read(capabilityDowngradeProvider)(failure);
     }
   }
 
-  final stored = await ref
-      .watch(settingsStoreProvider)
-      .searchResultLimit(session.serverId);
+  final stored = await store.searchResultLimit(session.serverId);
 
   return SearchLimit(value: stored, source: SearchLimitSource.device);
 });
@@ -93,15 +103,19 @@ final setSearchLimitProvider = Provider<Future<void> Function(int?)>((ref) {
     final session = ref.read(sessionProvider);
     if (session == null) return;
 
-    final clamped = limit?.clamp(0, maxSearchResultLimit);
+    // Annotated rather than inferred: `clamp` is declared on num, and only a
+    // special case in the analyser narrows it to int for int arguments. Saying
+    // int? here makes the guarantee explicit and fails loudly if that ever
+    // stops holding, instead of silently widening to num.
+    final int? clamped = limit?.clamp(0, maxSearchResultLimit);
 
     final onServer = ref.read(
       hasCapabilityProvider(Capability.searchLimitPreference),
     );
+    final client = ref.read(clientProvider);
 
-    if (onServer) {
-      final client = ref.read(clientProvider);
-      if (client != null) {
+    if (onServer && client != null) {
+      try {
         // Read first, then write both fields back. The mutation replaces the
         // record, so writing the limit alone would erase the language the user
         // picked in the web interface.
@@ -112,6 +126,10 @@ final setSearchLimitProvider = Provider<Future<void> Function(int?)>((ref) {
         );
         ref.invalidate(searchLimitProvider);
         return;
+      } on UnsupportedFieldException catch (failure) {
+        // Same correction as on the read path, so a wrong "supported" does not
+        // make the setting unsavable — it moves to the device instead.
+        await ref.read(capabilityDowngradeProvider)(failure);
       }
     }
 

@@ -21,13 +21,16 @@ final serverCapabilitiesProvider = FutureProvider<ServerCapabilities>((
   final session = ref.watch(sessionProvider);
   if (session == null) return ServerCapabilities.unknownToAll;
 
+  // Everything watched is read here, before the first await. Watching after
+  // an await is not allowed: by then the provider may already have been
+  // rebuilt or disposed, so the dependency would either fail to register or
+  // register against a build that no longer exists.
   final store = ref.watch(capabilityStoreProvider);
+  final client = ref.watch(clientProvider);
   final serverId = session.serverId;
 
   final remembered = await store.read(serverId);
   if (remembered.unresolved.isEmpty) return remembered;
-
-  final client = ref.watch(clientProvider);
   if (client == null) return remembered;
 
   try {
@@ -52,6 +55,14 @@ final capabilityProvider = Provider.family<CapabilityState, Capability>((
   capability,
 ) {
   final capabilities = ref.watch(serverCapabilitiesProvider);
+
+  // A reload keeps the previous value available, and this provider is keyed on
+  // the capability rather than on the server — so after switching servers the
+  // old server's answers would be handed out until the new probe lands. An
+  // answer for the wrong server is worse than no answer: unknown merely hides
+  // a feature, while a stale "supported" offers one that is not there.
+  if (capabilities.isLoading) return CapabilityState.unknown;
+
   return capabilities.valueOrNull?[capability] ?? CapabilityState.unknown;
 });
 
