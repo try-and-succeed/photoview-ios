@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:photoview/api/capabilities.dart';
 import 'package:photoview/api/client.dart';
 import 'package:photoview/api/models.dart';
 import 'package:photoview/api/session.dart';
@@ -77,6 +79,9 @@ ScannerJob _job(
 void main() {
   // The notifier installs an AppLifecycleListener, which needs a binding.
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  // Recording a capability downgrade writes to secure storage.
+  setUp(() => FlutterSecureStorage.setMockInitialValues({}));
 
   group('ScannerJob.fromJson', () {
     test('reads the two statuses the server sends', () {
@@ -243,6 +248,24 @@ void main() {
       // either way the user must not be left with a stuck "stopping" row.
       await container.read(scannerProvider.notifier).cancel('8');
 
+      expect(container.read(scannerProvider).error, isNotNull);
+    });
+
+    test('a server without the scanner stops the polling', () async {
+      // A stale "supported" would otherwise have the screen repeat the same
+      // impossible request every few seconds, for ever.
+      await start([_job('8', 'Berge')]);
+      client.failWith = UnsupportedFieldException(
+        field: 'scannerQueueStatus',
+        type: 'Query',
+      );
+
+      await container.read(scannerProvider.notifier).refresh();
+      final reads = client.queueReads;
+
+      await Future<void>.delayed(scannerPollInterval * 2);
+
+      expect(client.queueReads, reads);
       expect(container.read(scannerProvider).error, isNotNull);
     });
 

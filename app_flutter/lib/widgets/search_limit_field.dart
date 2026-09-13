@@ -84,12 +84,19 @@ class _SearchLimitFieldState extends ConsumerState<SearchLimitField> {
       _controller.text = stored.asText;
     }
 
+    // A failure leaves the value null just as loading does, so without this
+    // the row would sit on "Loading…" for ever with the field disabled and no
+    // way to find out why or try again.
+    final failed = limit.hasError;
+
     final subtitle = switch (stored?.source) {
       SearchLimitSource.server =>
         'Stored on the server, so it applies in the web interface too.',
       SearchLimitSource.device =>
         'Stored on this device: your server is too old to keep this setting.',
-      null => 'Loading…',
+      null => failed
+          ? 'Could not read this setting: ${limit.error}'
+          : 'Loading…',
     };
 
     return Padding(
@@ -121,16 +128,22 @@ class _SearchLimitFieldState extends ConsumerState<SearchLimitField> {
                 ),
               ),
               const SizedBox(width: 8),
-              _saving
-                  ? const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : TextButton(
-                      onPressed: stored == null ? null : _save,
-                      child: const Text('Save'),
-                    ),
+              if (_saving)
+                const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              else if (failed)
+                TextButton(
+                  onPressed: () => ref.invalidate(searchLimitProvider),
+                  child: const Text('Retry'),
+                )
+              else
+                TextButton(
+                  onPressed: stored == null ? null : _save,
+                  child: const Text('Save'),
+                ),
             ],
           ),
           const SizedBox(height: 4),
@@ -139,7 +152,9 @@ class _SearchLimitFieldState extends ConsumerState<SearchLimitField> {
             child: Text(
               subtitle,
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+                color: failed
+                    ? theme.colorScheme.error
+                    : theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ),

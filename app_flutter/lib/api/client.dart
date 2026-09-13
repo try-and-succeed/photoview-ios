@@ -354,10 +354,27 @@ class PhotoviewClient {
   /// A timeout, a socket error, a 5xx and a permission refusal all fall
   /// through and leave the session alone.
   @visibleForTesting
-  static bool isUnauthorized(OperationException exception) {
+  static bool isUnauthorized(OperationException exception) =>
+      httpStatusOf(exception) == 401;
+
+  /// The HTTP status behind [exception], whichever shape it arrived in.
+  ///
+  /// Necessary because this server's 401 body is the plain text `invalid
+  /// authorization token`, not GraphQL. The library cannot parse that, so it
+  /// raises `HttpLinkParserException` — a sibling of [ServerException] with no
+  /// `statusCode` of its own, only the raw response. Reading only
+  /// `ServerException.statusCode` meant the single signal that ends a session
+  /// never fired at all: an expired sign-in would have left the user stuck
+  /// with a parser error and no prompt to sign in again.
+  @visibleForTesting
+  static int? httpStatusOf(OperationException exception) {
     final link = exception.linkException;
 
-    return link is ServerException && link.statusCode == 401;
+    if (link is HttpLinkParserException) return link.response.statusCode;
+    if (link is HttpLinkServerException) return link.response.statusCode;
+    if (link is ServerException) return link.statusCode;
+
+    return null;
   }
 
   /// Whether the server refused this particular request to this user.
@@ -414,10 +431,18 @@ class PhotoviewClient {
     final batch = await _probe(capabilityProbeDocument);
     var found = readProbe(data: batch.data, errorMessages: batch.messages);
 
+    // A server that never answered will not answer the follow-ups either, and
+    // each of those waits out the full request timeout: four more in sequence
+    // turn one unreachable server into minutes of every capability-gated
+    // control staying hidden. Everything simply stays unknown.
+    if (!batch.answered) return found;
+
     // Whatever the batch could not settle is asked again on its own, so one
     // suppressed or truncated error cannot leave a whole group unknown.
     for (final capability in ServerCapabilities(found).unresolved) {
       final single = await _probe(singleCapabilityProbeDocument(capability));
+      if (!single.answered) break;
+
       found = {
         ...found,
         ...readProbe(data: single.data, errorMessages: single.messages),
@@ -427,9 +452,15 @@ class PhotoviewClient {
     return found;
   }
 
-  Future<({Map<String, dynamic>? data, List<String> messages})> _probe(
-    String document,
-  ) async {
+  /// Runs one probe.
+  ///
+  /// [answered] distinguishes "the server said something" — data, GraphQL
+  /// errors, or both — from "nothing came back", which is what a timeout or an
+  /// unreachable host looks like.
+  Future<
+    ({Map<String, dynamic>? data, List<String> messages, bool answered})
+  >
+  _probe(String document) async {
     final result = await _client.query(
       QueryOptions(
         document: gql(document),
@@ -438,12 +469,14 @@ class PhotoviewClient {
     );
 
     final exception = result.exception;
+    final messages = exception == null
+        ? const <String>[]
+        : graphqlErrorsOf(exception).map((e) => e.message).toList();
 
     return (
       data: result.data,
-      messages: exception == null
-          ? const <String>[]
-          : graphqlErrorsOf(exception).map((e) => e.message).toList(),
+      messages: messages,
+      answered: result.data != null || messages.isNotEmpty,
     );
   }
 

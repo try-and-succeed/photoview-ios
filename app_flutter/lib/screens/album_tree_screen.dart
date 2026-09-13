@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -24,6 +26,7 @@ class AlbumTreeScreen extends ConsumerStatefulWidget {
 
 class _AlbumTreeScreenState extends ConsumerState<AlbumTreeScreen> {
   final _controller = TextEditingController();
+  Timer? _debounce;
 
   /// What the user is filtering by, right now.
   ///
@@ -33,8 +36,22 @@ class _AlbumTreeScreenState extends ConsumerState<AlbumTreeScreen> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _controller.dispose();
     super.dispose();
+  }
+
+  /// Waits for a pause in typing before re-flattening the tree.
+  ///
+  /// Filtering shows every loaded branch open, so each keystroke rebuilds a
+  /// row for every album fetched so far — on a library of a couple of thousand
+  /// that is real work to repeat six times a second. Same pause the search
+  /// field uses.
+  void _onFilterChanged(String value) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 250), () {
+      if (mounted) setState(() => _filter = value);
+    });
   }
 
   @override
@@ -51,13 +68,14 @@ class _AlbumTreeScreenState extends ConsumerState<AlbumTreeScreen> {
             border: InputBorder.none,
           ),
           autocorrect: false,
-          onChanged: (value) => setState(() => _filter = value),
+          onChanged: _onFilterChanged,
         ),
         actions: [
           if (_filter.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.clear),
               onPressed: () {
+                _debounce?.cancel();
                 _controller.clear();
                 setState(() => _filter = '');
               },
@@ -92,11 +110,19 @@ class _AlbumTreeScreenState extends ConsumerState<AlbumTreeScreen> {
       );
     }
 
+    // While filtering, every loaded branch is shown open regardless of what
+    // the user expanded, so the arrow would say "Collapse" while quietly
+    // marking the branch as expanded — and it would stay open once the filter
+    // was cleared. No toggle is offered instead of one that lies.
+    final canToggle = _filter.isEmpty;
+
     return ListView.builder(
       itemCount: rows.length,
       itemBuilder: (context, index) => _AlbumTreeTile(
         row: rows[index],
-        onToggle: () => notifier.toggle(rows[index].album.id),
+        onToggle: canToggle
+            ? () => notifier.toggle(rows[index].album.id)
+            : null,
         onRetry: () => notifier.retry(rows[index].album.id),
       ),
     );
@@ -105,7 +131,9 @@ class _AlbumTreeScreenState extends ConsumerState<AlbumTreeScreen> {
 
 class _AlbumTreeTile extends StatelessWidget {
   final AlbumTreeRow row;
-  final VoidCallback onToggle;
+
+  /// Null while a filter is active, when expanding means nothing.
+  final VoidCallback? onToggle;
   final VoidCallback onRetry;
 
   const _AlbumTreeTile({
@@ -177,8 +205,21 @@ class _AlbumTreeTile extends StatelessWidget {
       );
     }
 
+    final icon = Icon(
+      row.isExpanded ? Icons.expand_more : Icons.chevron_right,
+    );
+
+    // Filtering: the arrow still shows where the branch sits, but it is not a
+    // button, because there is nothing meaningful for it to do.
+    if (onToggle == null) {
+      return IconTheme.merge(
+        data: IconThemeData(color: theme.colorScheme.onSurfaceVariant),
+        child: icon,
+      );
+    }
+
     return IconButton(
-      icon: Icon(row.isExpanded ? Icons.expand_more : Icons.chevron_right),
+      icon: icon,
       tooltip: row.isExpanded ? 'Collapse' : 'Expand',
       onPressed: onToggle,
     );

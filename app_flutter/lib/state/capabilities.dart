@@ -36,7 +36,16 @@ final serverCapabilitiesProvider = FutureProvider<ServerCapabilities>((
   try {
     final probed = await client.probeCapabilities();
     final merged = remembered.merge(probed);
-    await store.write(serverId, merged);
+
+    try {
+      await store.write(serverId, merged);
+    } catch (_) {
+      // An answer that cannot be cached is still an answer. Letting the write
+      // failure reach the outer catch would hide every feature the server
+      // actually has, on a device whose secure storage happens to be
+      // unwritable.
+    }
+
     return merged;
   } catch (_) {
     // Deliberately swallowed. A probe is the app asking after optional

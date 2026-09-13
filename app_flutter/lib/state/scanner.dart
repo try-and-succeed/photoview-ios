@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../api/capabilities.dart';
 import '../api/models.dart';
 import 'auth.dart';
+import 'capabilities.dart';
 import 'stale_response_guard.dart';
 
 /// How often the queue is re-read while something is in it.
@@ -101,6 +103,7 @@ class ScannerNotifier extends AutoDisposeNotifier<ScannerState>
 
   Future<void> refresh() async {
     final generation = this.generation;
+    final serverId = ref.read(sessionProvider)?.serverId;
 
     try {
       final jobs = await ref.guardedRead((c) => c.scannerQueue());
@@ -116,6 +119,23 @@ class ScannerNotifier extends AutoDisposeNotifier<ScannerState>
         isLoading: false,
         clearError: true,
       );
+    } on UnsupportedFieldException catch (failure) {
+      // This server does not have the scanner after all. Record it so the
+      // entry points disappear, and stop polling: a field that does not exist
+      // will not start existing, so repeating the request every few seconds
+      // only burns battery.
+      //
+      // Cancelled, not merely left unscheduled — a poll queued by an earlier
+      // successful refresh is still pending and would fire regardless.
+      _timer?.cancel();
+
+      if (serverId != null) {
+        await ref.read(capabilityDowngradeProvider)(serverId, failure);
+      }
+
+      if (movedOn(generation)) return;
+      state = state.copyWith(isLoading: false, error: '$failure');
+      return;
     } catch (error) {
       if (movedOn(generation)) return;
       state = state.copyWith(isLoading: false, error: '$error');

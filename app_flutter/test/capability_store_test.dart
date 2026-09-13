@@ -118,6 +118,60 @@ void main() {
       );
     });
 
+    test('rewriting keeps when an absent feature was first seen absent', () async {
+      // Every write stores the whole record, so re-stamping would push the
+      // expiry forward each time anything else was written, and a server that
+      // gained the feature would never be noticed.
+      final s = store();
+      await s.write(
+        serverA,
+        const ServerCapabilities({
+          Capability.albumTree: CapabilityState.unsupported,
+        }),
+      );
+
+      now = now.add(const Duration(days: 6));
+      await s.write(
+        serverA,
+        const ServerCapabilities({
+          Capability.albumTree: CapabilityState.unsupported,
+          Capability.scanner: CapabilityState.supported,
+        }),
+      );
+
+      // Two days on, the original seven-day window has closed.
+      now = now.add(const Duration(days: 2));
+      expect(
+        (await s.read(serverA))[Capability.albumTree],
+        CapabilityState.unknown,
+      );
+    });
+
+    test('a newly absent feature is stamped now', () async {
+      final s = store();
+      await s.write(
+        serverA,
+        const ServerCapabilities({
+          Capability.scanner: CapabilityState.supported,
+        }),
+      );
+
+      now = now.add(const Duration(days: 6));
+      await s.write(
+        serverA,
+        const ServerCapabilities({
+          Capability.scanner: CapabilityState.unsupported,
+        }),
+      );
+
+      now = now.add(const Duration(days: 2));
+      expect(
+        (await s.read(serverA))[Capability.scanner],
+        CapabilityState.unsupported,
+        reason: 'its own week has not run out yet',
+      );
+    });
+
     test('a changed probe revision discards the entry', () async {
       await store().write(
         serverA,

@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../api/capabilities.dart';
 import '../api/models.dart';
 import 'auth.dart';
+import 'capabilities.dart';
 import 'stale_response_guard.dart';
 
 /// One row of the flattened tree, ready to render.
@@ -91,24 +93,25 @@ class AlbumTreeState {
     if (all == null) return const [];
 
     final needle = filter.trim().toLowerCase();
-    final rows = <AlbumTreeRow>[];
     final filtering = needle.isNotEmpty;
 
-    void visit(List<AlbumItem> albums, int depth) {
+    // Each level builds its own list and hands it up. The earlier version
+    // appended into one shared list and then copied each subtree out of it and
+    // back again per node, which is quadratic: on a library of a couple of
+    // thousand albums it froze the app on every keystroke.
+    List<AlbumTreeRow> visit(List<AlbumItem> albums, int depth) {
+      final rows = <AlbumTreeRow>[];
+
       for (final album in albums) {
         final kids = children[album.id] ?? const <AlbumItem>[];
         final open = filtering ? kids.isNotEmpty : expanded.contains(album.id);
 
+        final subtree = open
+            ? visit(kids, depth + 1)
+            : const <AlbumTreeRow>[];
+
         // A row survives the filter if it matches, or if anything under it
         // does — otherwise a match would be unreachable.
-        final subtree = <AlbumTreeRow>[];
-        if (open) {
-          final before = rows.length;
-          visit(kids, depth + 1);
-          subtree.addAll(rows.sublist(before));
-          rows.removeRange(before, rows.length);
-        }
-
         final matches =
             !filtering || album.title.toLowerCase().contains(needle);
 
@@ -126,10 +129,11 @@ class AlbumTreeState {
           rows.addAll(subtree);
         }
       }
+
+      return rows;
     }
 
-    visit(all, 0);
-    return rows;
+    return visit(all, 0);
   }
 }
 
@@ -213,6 +217,8 @@ class AlbumTreeNotifier extends Notifier<AlbumTreeState>
     if (wanted.isEmpty) return;
 
     final generation = this.generation;
+    final serverId = ref.read(sessionProvider)?.serverId;
+
     state = state.copyWith(
       loading: {...state.loading, ...wanted},
       errors: {...state.errors}..removeWhere((id, _) => wanted.contains(id)),
@@ -238,6 +244,23 @@ class AlbumTreeNotifier extends Notifier<AlbumTreeState>
       if (grandchildren.isNotEmpty) {
         await _fetchChildrenOf(grandchildren, lookAhead: false);
       }
+    } on UnsupportedFieldException catch (failure) {
+      // The cache said this server has the tree and it does not — an entry
+      // that was wrong, or a server that was rolled back. Record the
+      // correction so the entry point disappears instead of offering a screen
+      // whose every retry sends the same doomed request.
+      if (serverId != null) {
+        await ref.read(capabilityDowngradeProvider)(serverId, failure);
+      }
+
+      if (movedOn(generation)) return;
+      state = state.copyWith(
+        loading: {...state.loading}..removeAll(wanted),
+        errors: {
+          ...state.errors,
+          for (final id in wanted) id: '$failure',
+        },
+      );
     } catch (error) {
       if (movedOn(generation)) return;
       state = state.copyWith(

@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:graphql/client.dart';
+import 'package:http/http.dart' as http;
 import 'package:photoview/api/client.dart';
 
 OperationException _serverException({
@@ -38,6 +39,37 @@ void main() {
         PhotoviewClient.isUnauthorized(_serverException(statusCode: 401)),
         isTrue,
       );
+    });
+
+    test('a 401 whose body is not GraphQL still ends the session', () {
+      // The shape this server actually produces. Its 401 body is the plain
+      // text `invalid authorization token`, which the library cannot parse as
+      // GraphQL, so it raises HttpLinkParserException — a sibling of
+      // ServerException carrying no statusCode of its own. Reading only
+      // ServerException.statusCode meant an expired sign-in was never
+      // recognised at all, leaving the user with a parser error and no prompt.
+      final exception = OperationException(
+        linkException: HttpLinkParserException(
+          originalException: const FormatException('not json'),
+          originalStackTrace: StackTrace.empty,
+          response: http.Response('invalid authorization token', 401),
+        ),
+      );
+
+      expect(PhotoviewClient.httpStatusOf(exception), 401);
+      expect(PhotoviewClient.isUnauthorized(exception), isTrue);
+    });
+
+    test('a parser error that is not a 401 leaves the session alone', () {
+      final exception = OperationException(
+        linkException: HttpLinkParserException(
+          originalException: const FormatException('not json'),
+          originalStackTrace: StackTrace.empty,
+          response: http.Response('<html>gateway timeout</html>', 504),
+        ),
+      );
+
+      expect(PhotoviewClient.isUnauthorized(exception), isFalse);
     });
 
     test('403 does not end the session', () {

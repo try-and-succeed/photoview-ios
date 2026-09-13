@@ -143,6 +143,75 @@ void main() {
     });
   });
 
+  group('AlbumTreeState.rows on a real-sized library', () {
+    /// Roughly the shape of the test server's benchmark library: a few roots,
+    /// then years, then months — 2 200-odd albums over four levels.
+    late AlbumTreeState big;
+
+    setUpAll(() {
+      final children = <String, List<AlbumItem>>{};
+      final roots = <AlbumItem>[];
+
+      var next = 0;
+      String id() => 'a${next++}';
+
+      for (var r = 0; r < 5; r++) {
+        final root = _album(id(), 'Root $r');
+        roots.add(root);
+
+        final years = <AlbumItem>[];
+        for (var y = 0; y < 6; y++) {
+          final year = _album(id(), '200$y');
+          years.add(year);
+
+          final months = <AlbumItem>[];
+          for (var m = 0; m < 12; m++) {
+            final month = _album(id(), 'Month $m');
+            months.add(month);
+
+            final days = <AlbumItem>[];
+            for (var d = 0; d < 8; d++) {
+              final day = _album(id(), 'Day $d');
+              days.add(day);
+              children[day.id] = const [];
+            }
+            children[month.id] = days;
+          }
+          children[year.id] = months;
+        }
+        children[root.id] = years;
+      }
+
+      big = AlbumTreeState(
+        roots: roots,
+        children: children,
+        expanded: children.keys.toSet(),
+      );
+    });
+
+    test('flattens a few thousand albums without stalling', () {
+      // The first implementation copied each node's subtree out of a shared
+      // list and back, which is quadratic — on this many albums it froze the
+      // app on every keystroke. The budget is deliberately loose; the point is
+      // that quadratic behaviour blows past it by orders of magnitude.
+      final clock = Stopwatch()..start();
+      final rows = big.rowsFor('');
+      clock.stop();
+
+      expect(rows, hasLength(5 + 5 * 6 + 5 * 6 * 12 + 5 * 6 * 12 * 8));
+      expect(clock.elapsedMilliseconds, lessThan(500));
+    });
+
+    test('filters a few thousand albums without stalling', () {
+      final clock = Stopwatch()..start();
+      final rows = big.rowsFor('month 3');
+      clock.stop();
+
+      expect(rows, isNotEmpty);
+      expect(clock.elapsedMilliseconds, lessThan(500));
+    });
+  });
+
   group('AlbumTreeNotifier fetching', () {
     /// Records every batch of ids the notifier asks for, so the shape of the
     /// traffic can be asserted rather than just the end state.

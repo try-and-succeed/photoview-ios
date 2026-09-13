@@ -82,6 +82,16 @@ class CapabilityStore {
   /// probe that could finally settle it.
   Future<void> write(String serverId, ServerCapabilities capabilities) async {
     final stamp = _now().toUtc().toIso8601String();
+    final all = await _readAll();
+
+    // Keep the date an absent feature was first seen absent. Every write
+    // stores the whole record, so re-stamping would push the seven-day expiry
+    // forward each time anything else was written — and the app would never
+    // notice a server that gained the feature.
+    final previous = all[serverId];
+    final previousMisses = previous is Map<String, dynamic>
+        ? previous['unsupported']
+        : null;
 
     final supported = <String>[];
     final unsupported = <String, String>{};
@@ -90,13 +100,16 @@ class CapabilityStore {
         case CapabilityState.supported:
           supported.add(capability.name);
         case CapabilityState.unsupported:
-          unsupported[capability.name] = stamp;
+          final seenBefore = previousMisses is Map<String, dynamic>
+              ? previousMisses[capability.name]
+              : null;
+          unsupported[capability.name] = seenBefore is String
+              ? seenBefore
+              : stamp;
         case CapabilityState.unknown:
           break;
       }
     }
-
-    final all = await _readAll();
     all[serverId] = {
       'revision': capabilityProbeRevision,
       'supported': supported,
