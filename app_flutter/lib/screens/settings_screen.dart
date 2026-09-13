@@ -52,7 +52,7 @@ class SettingsScreen extends ConsumerWidget {
               leading: const Icon(Icons.radar),
               title: const Text('Scanner'),
               subtitle: const Text('What the server is indexing right now'),
-              onTap: () => showScanner(context),
+              onTap: () => showScanner(Navigator.of(context)),
             ),
           ],
           if (session != null) ...[

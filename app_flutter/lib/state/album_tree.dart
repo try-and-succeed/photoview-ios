@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/models.dart';
 import 'auth.dart';
+import 'stale_response_guard.dart';
 
 /// One row of the flattened tree, ready to render.
 class AlbumTreeRow {
@@ -132,28 +133,38 @@ class AlbumTreeState {
   }
 }
 
-class AlbumTreeNotifier extends Notifier<AlbumTreeState> {
+class AlbumTreeNotifier extends Notifier<AlbumTreeState>
+    with StaleResponseGuard {
   @override
   AlbumTreeState build() {
     // Watched here, while the provider is building, so the tree is rebuilt
     // from scratch when the session changes rather than mixing two servers.
     ref.watch(sessionProvider);
 
+    // Rebuilding resets the state but keeps this notifier, so a request that
+    // was already in flight against the previous server would write its albums
+    // into the new one's tree. Every write past an await checks the generation.
+    beginGeneration(ref);
+
     Future.microtask(loadRoots);
     return const AlbumTreeState();
   }
 
   Future<void> loadRoots() async {
+    final generation = this.generation;
     state = state.copyWith(clearRootsError: true);
 
     try {
       final roots = await ref.guardedRead((c) => c.myAlbums());
+      if (movedOn(generation)) return;
+
       state = state.copyWith(roots: roots);
 
       // One level ahead, in a single request: without it every root would show
       // a disclosure arrow that might reveal nothing.
       await _fetchChildrenOf(roots.map((a) => a.id).toList());
     } catch (error) {
+      if (movedOn(generation)) return;
       state = state.copyWith(rootsError: '$error');
     }
   }
@@ -201,6 +212,7 @@ class AlbumTreeNotifier extends Notifier<AlbumTreeState> {
         .toList();
     if (wanted.isEmpty) return;
 
+    final generation = this.generation;
     state = state.copyWith(
       loading: {...state.loading, ...wanted},
       errors: {...state.errors}..removeWhere((id, _) => wanted.contains(id)),
@@ -211,6 +223,7 @@ class AlbumTreeNotifier extends Notifier<AlbumTreeState> {
         (c) => c.albumTreeChildren(wanted),
       );
 
+      if (movedOn(generation)) return;
       state = state.copyWith(
         children: {...state.children, ...fetched},
         loading: {...state.loading}..removeAll(wanted),
@@ -226,6 +239,7 @@ class AlbumTreeNotifier extends Notifier<AlbumTreeState> {
         await _fetchChildrenOf(grandchildren, lookAhead: false);
       }
     } catch (error) {
+      if (movedOn(generation)) return;
       state = state.copyWith(
         loading: {...state.loading}..removeAll(wanted),
         errors: {

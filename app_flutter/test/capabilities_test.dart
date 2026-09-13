@@ -291,15 +291,28 @@ void main() {
 
     test('a rejected sign-in is decided before a missing field', () {
       // Both classifications could match one response; the order matters
-      // because only one of them ends the session.
+      // because only one of them ends the session. A rejected sign-in is a
+      // 401 from the middleware, which never carries a GraphQL body of its
+      // own — so this is the shape to check.
       final exception = OperationException(
-        graphqlErrors: [
-          GraphQLError(message: 'unauthorized'),
-          GraphQLError(message: _missingField),
-        ],
+        linkException: ServerException(statusCode: 401),
+        graphqlErrors: [GraphQLError(message: _missingField)],
       );
 
       expect(PhotoviewClient.isUnauthorized(exception), isTrue);
+    });
+
+    test('being refused a field is not the same as a missing field', () {
+      // A server that has the feature but will not let this user use it says
+      // "unauthorized"; one that does not have it names the field. Only the
+      // second is worth remembering about the server.
+      final refused = OperationException(
+        graphqlErrors: [GraphQLError(message: 'unauthorized')],
+      );
+
+      expect(PhotoviewClient.unsupportedFieldException(refused), isNull);
+      expect(PhotoviewClient.isPermissionDenied(refused), isTrue);
+      expect(readProbe(errorMessages: const ['unauthorized']), isEmpty);
     });
   });
 

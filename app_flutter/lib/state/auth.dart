@@ -55,21 +55,25 @@ class AuthNotifier extends AsyncNotifier<Session?> {
       password: password,
     );
 
-    await _activate(
-      SavedServer(
-        endpoint: session.endpoint,
-        username: username,
-        token: session.token,
-        lastUsed: DateTime.now(),
-      ),
+    final server = SavedServer(
+      endpoint: session.endpoint,
+      username: username,
+      token: session.token,
+      lastUsed: DateTime.now(),
     );
+
+    await _activate(server);
 
     // A password sign-in is the moment the user is most likely to have just
     // updated their server, so it is the cheapest place to stop trusting what
     // was remembered about it. Reopening a saved server deliberately does not
     // do this — that path exists to be instant.
+    //
+    // Keyed on the saved server, not on the session the login returned: that
+    // session carries no user name, so its id is `endpoint|` and the clear
+    // would miss the account's own entry entirely.
     try {
-      await ref.read(capabilityStoreProvider).clear(session.serverId);
+      await ref.read(capabilityStoreProvider).clear(server.id);
       ref.invalidate(serverCapabilitiesProvider);
     } catch (_) {
       // Only costs a stale capability answer; never worth failing a login.

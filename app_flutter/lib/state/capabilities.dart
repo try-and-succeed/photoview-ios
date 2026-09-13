@@ -72,19 +72,21 @@ final hasCapabilityProvider = Provider.family<bool, Capability>(
       ref.watch(capabilityProvider(capability)) == CapabilityState.supported,
 );
 
-/// Records that a real call proved [capability] is not there after all, so a
+/// Records that a real call proved a capability is not there after all, so a
 /// stale "supported" corrects itself instead of failing every time.
+///
+/// Takes the [serverId] the failing request was made against rather than
+/// reading the current session: by the time the failure comes back the user
+/// may be on another server, and the correction would then be filed against
+/// the wrong account — teaching the app something untrue about a server that
+/// never said it.
 final capabilityDowngradeProvider =
-    Provider<Future<void> Function(UnsupportedFieldException)>((ref) {
-      return (failure) async {
-        final session = ref.read(sessionProvider);
-        if (session == null) return;
-
+    Provider<Future<void> Function(String, UnsupportedFieldException)>((ref) {
+      return (serverId, failure) async {
         final ruledOut = failure.ruledOut;
         if (ruledOut.isEmpty) return;
 
         final store = ref.read(capabilityStoreProvider);
-        final serverId = session.serverId;
 
         var updated = await store.read(serverId);
         for (final capability in ruledOut) {

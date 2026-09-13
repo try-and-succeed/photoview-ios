@@ -32,18 +32,21 @@ GraphQLError _error(String message) => GraphQLError(message: message);
 void main() {
   group('PhotoviewClient.isUnauthorized', () {
     test('401 means the sign-in was rejected', () {
+      // Measured: an invalid or expired token is turned away by the HTTP
+      // middleware with 401 and the body `invalid authorization token`.
       expect(
         PhotoviewClient.isUnauthorized(_serverException(statusCode: 401)),
         isTrue,
       );
     });
 
-    test('403 means the same', () {
-      // This server authorizes before it validates the query, so a stale
-      // token comes back as either status depending on how it is raised.
+    test('403 does not end the session', () {
+      // This server never answers 403 for authentication. A 403 from a proxy
+      // in front of it says nothing about whether the token is still good, so
+      // acting on it would throw away a working session on a guess.
       expect(
         PhotoviewClient.isUnauthorized(_serverException(statusCode: 403)),
-        isTrue,
+        isFalse,
       );
     });
 
@@ -93,32 +96,35 @@ void main() {
       );
     });
 
-    test('reads an auth error out of a non-200 body', () {
-      // graphqlErrors is empty for a non-200, so an unauthorized message in
-      // the body would be missed if only that list were consulted.
-      final exception = _serverException(
-        statusCode: 500,
-        bodyErrors: [_error('unauthorized')],
-      );
-
-      expect(PhotoviewClient.isUnauthorized(exception), isTrue);
-    });
-
-    test('recognises the wordings the server uses', () {
+    test('being refused one thing does not end the session', () {
+      // The decisive case. Measured against a live instance: refusing an
+      // album, a scan or a field comes back as HTTP 200 with the GraphQL error
+      // `unauthorized` — the very same word an unauthenticated request gets.
+      // Reading it as a rejected sign-in logged a perfectly valid user out the
+      // moment they touched an album they do not own, which is exactly what
+      // the scanner and the album tree invite them to do.
       for (final message in [
         'unauthorized',
         'Unauthorized',
         'user is not authorized to view this album',
-        'invalid token',
       ]) {
         expect(
           PhotoviewClient.isUnauthorized(
             OperationException(graphqlErrors: [_error(message)]),
           ),
-          isTrue,
+          isFalse,
           reason: message,
         );
       }
+    });
+
+    test('a permission message in a non-200 body is still not a rejection', () {
+      expect(
+        PhotoviewClient.isUnauthorized(
+          _serverException(statusCode: 500, bodyErrors: [_error('unauthorized')]),
+        ),
+        isFalse,
+      );
     });
 
     test('an unrelated GraphQL error is not a rejection', () {
@@ -134,9 +140,62 @@ void main() {
       );
     });
 
+    test('a 401 wins even when the body talks about permissions', () {
+      expect(
+        PhotoviewClient.isUnauthorized(
+          _serverException(statusCode: 401, bodyErrors: [_error('unauthorized')]),
+        ),
+        isTrue,
+      );
+    });
+
     test('a ServerException with no body at all is not a rejection', () {
       expect(
         PhotoviewClient.isUnauthorized(_serverException()),
+        isFalse,
+      );
+    });
+  });
+
+  group('PhotoviewClient.isPermissionDenied', () {
+    test('recognises the wordings the server uses for a refusal', () {
+      for (final message in [
+        'unauthorized',
+        'Unauthorized',
+        'user is not authorized to view this album',
+      ]) {
+        expect(
+          PhotoviewClient.isPermissionDenied(
+            OperationException(graphqlErrors: [_error(message)]),
+          ),
+          isTrue,
+          reason: message,
+        );
+      }
+    });
+
+    test('reads a refusal out of a non-200 body too', () {
+      // graphqlErrors is empty for a non-200, so a refusal carried there would
+      // be missed if only that list were consulted.
+      expect(
+        PhotoviewClient.isPermissionDenied(
+          _serverException(statusCode: 500, bodyErrors: [_error('unauthorized')]),
+        ),
+        isTrue,
+      );
+    });
+
+    test('an ordinary failure is not a refusal', () {
+      expect(
+        PhotoviewClient.isPermissionDenied(
+          _transport(TimeoutException('slow')),
+        ),
+        isFalse,
+      );
+      expect(
+        PhotoviewClient.isPermissionDenied(
+          OperationException(graphqlErrors: [_error('album not found')]),
+        ),
         isFalse,
       );
     });

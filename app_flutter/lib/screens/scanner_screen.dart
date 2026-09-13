@@ -5,10 +5,15 @@ import '../api/models.dart';
 import '../state/scanner.dart';
 import '../widgets/async_states.dart';
 
-void showScanner(BuildContext context) {
-  Navigator.of(
-    context,
-  ).push(MaterialPageRoute<void>(builder: (_) => const ScannerScreen()));
+/// Opens the scanner on [navigator].
+///
+/// Takes the navigator rather than a context because one caller is a SnackBar
+/// action: by the time it is tapped, the screen that showed it may be gone,
+/// and looking a Navigator up from its deactivated context would fail.
+void showScanner(NavigatorState navigator) {
+  navigator.push(
+    MaterialPageRoute<void>(builder: (_) => const ScannerScreen()),
+  );
 }
 
 /// What the scanner is working on, and a way to stop it.
@@ -71,13 +76,22 @@ class ScannerScreen extends ConsumerWidget {
       );
     }
 
+    // A failed refresh keeps the jobs it had, so the list alone would go on
+    // showing a snapshot that may be minutes old with nothing to say so.
+    final banner = error == null ? 0 : 1;
+
     return ListView.builder(
       physics: const AlwaysScrollableScrollPhysics(),
-      itemCount: scanner.jobs.length + 1,
+      itemCount: scanner.jobs.length + banner + 1,
       itemBuilder: (context, index) {
-        if (index == scanner.jobs.length) return const _ScannerNote();
+        if (banner == 1 && index == 0) {
+          return _StaleBanner(message: error!, onRetry: notifier.refresh);
+        }
 
-        final job = scanner.jobs[index];
+        final jobIndex = index - banner;
+        if (jobIndex == scanner.jobs.length) return const _ScannerNote();
+
+        final job = scanner.jobs[jobIndex];
         final stopping = scanner.stopping.contains(job.albumId);
 
         return ListTile(
@@ -148,6 +162,41 @@ class ScannerScreen extends ConsumerWidget {
     } catch (error) {
       messenger.showSnackBar(SnackBar(content: Text('$error')));
     }
+  }
+}
+
+/// Says that what is below it may be out of date, and offers to try again.
+class _StaleBanner extends StatelessWidget {
+  final String message;
+  final Future<void> Function() onRetry;
+
+  const _StaleBanner({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'Could not refresh: $message',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onErrorContainer,
+              ),
+            ),
+          ),
+          TextButton(onPressed: onRetry, child: const Text('Retry')),
+        ],
+      ),
+    );
   }
 }
 

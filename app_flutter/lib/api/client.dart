@@ -25,6 +25,18 @@ class ApiException implements Exception {
   String toString() => message;
 }
 
+/// The server refused this particular request for this user.
+///
+/// The sign-in is still good — an album someone else owns, a scan they may not
+/// start. A subclass of [ApiException] so existing handling keeps working, and
+/// deliberately *not* [UnauthorizedException]: signing out over it would throw
+/// away a working session for something that will be refused just as firmly
+/// after signing in again.
+class PermissionDeniedException extends ApiException {
+  const PermissionDeniedException()
+    : super('Your account is not allowed to do that.');
+}
+
 class LoginFailure implements Exception {
   final String message;
   const LoginFailure(this.message);
@@ -306,11 +318,14 @@ class PhotoviewClient {
       // Order matters. A rejected sign-in is decided first, because it is the
       // only outcome that ends the session; a missing field is decided next,
       // so a schema mismatch is reported as such instead of reaching the user
-      // as a raw `Cannot query field …`; anything else is generic.
+      // as a raw `Cannot query field …`; a refusal of this one request is
+      // reported as such; anything else is generic.
       if (isUnauthorized(exception)) throw const UnauthorizedException();
 
       final unsupported = unsupportedFieldException(exception);
       if (unsupported != null) throw unsupported;
+
+      if (isPermissionDenied(exception)) throw const PermissionDeniedException();
 
       throw ApiException(_describe(exception));
     }
@@ -324,23 +339,34 @@ class PhotoviewClient {
   /// Whether [exception] means the sign-in is no longer accepted, as opposed to
   /// any other failure.
   ///
-  /// This is the decision that signs the user out, so the two cases it must
-  /// not confuse are a rejected token and a server that is merely unreachable
-  /// or broken. A timeout, a socket error and a 5xx all fall through to
-  /// [ApiException] and leave the session alone.
+  /// This is the decision that signs the user out, so it rests on the one
+  /// signal that actually means it. Measured against a live instance:
+  ///
+  ///   * an invalid or expired token is rejected by the HTTP middleware with
+  ///     **401** and the plain body `invalid authorization token`;
+  ///   * being refused a particular album, scan or field comes back as HTTP
+  ///     **200** with the GraphQL error `unauthorized`.
+  ///
+  /// So the message is not evidence of anything. Treating it as such signed a
+  /// perfectly valid user out the moment they touched an album they do not
+  /// own — which is exactly what the scanner and the album tree let them do.
+  ///
+  /// A timeout, a socket error, a 5xx and a permission refusal all fall
+  /// through and leave the session alone.
   @visibleForTesting
   static bool isUnauthorized(OperationException exception) {
     final link = exception.linkException;
-    if (link is ServerException) {
-      final status = link.statusCode;
-      // 403 counts as well as 401. This server checks authorization before it
-      // validates the query, so a request carrying a stale token comes back as
-      // either, depending on how the rejection is raised.
-      if (status == 401 || status == 403) return true;
-    }
 
-    return graphqlErrorsOf(exception).any(_isAuthError);
+    return link is ServerException && link.statusCode == 401;
   }
+
+  /// Whether the server refused this particular request to this user.
+  ///
+  /// Distinct from [isUnauthorized]: the sign-in is fine, this one thing is
+  /// not allowed. Signing out over it would be both wrong and useless.
+  @visibleForTesting
+  static bool isPermissionDenied(OperationException exception) =>
+      graphqlErrorsOf(exception).any(_isAuthError);
 
   /// Every GraphQL error in [exception], from both places they can hide.
   ///

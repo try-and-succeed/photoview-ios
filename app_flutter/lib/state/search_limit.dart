@@ -83,7 +83,7 @@ final searchLimitProvider = FutureProvider<SearchLimit>((ref) async {
       // the correction so it heals itself, then carry on to the device store
       // instead of failing: this provider is awaited by the search itself, so
       // throwing here would break searching altogether over a setting.
-      await ref.read(capabilityDowngradeProvider)(failure);
+      await ref.read(capabilityDowngradeProvider)(session.serverId, failure);
     }
   }
 
@@ -129,7 +129,7 @@ final setSearchLimitProvider = Provider<Future<void> Function(int?)>((ref) {
       } on UnsupportedFieldException catch (failure) {
         // Same correction as on the read path, so a wrong "supported" does not
         // make the setting unsavable — it moves to the device instead.
-        await ref.read(capabilityDowngradeProvider)(failure);
+        await ref.read(capabilityDowngradeProvider)(session.serverId, failure);
       }
     }
 

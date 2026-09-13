@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/models.dart';
 import 'auth.dart';
-import 'pagination_guard.dart';
+import 'stale_response_guard.dart';
 
 const _pageSize = 200;
 
@@ -65,7 +65,7 @@ List<TimelineGroup> groupTimeline(List<TimelineMedia> items) {
 }
 
 class TimelineNotifier extends AsyncNotifier<TimelineData>
-    with PaginationGuard {
+    with StaleResponseGuard {
   final List<TimelineMedia> _loaded = [];
 
   @override

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../api/client.dart';
 import '../api/models.dart';
 import 'auth.dart';
-import 'pagination_guard.dart';
+import 'stale_response_guard.dart';
 import 'search_limit.dart';
 
 const _albumPageSize = 200;
@@ -41,7 +41,7 @@ class FaceGroupsData {
 }
 
 class FaceGroupsNotifier extends AsyncNotifier<FaceGroupsData>
-    with PaginationGuard {
+    with StaleResponseGuard {
   @override
   Future<FaceGroupsData> build() async {
     beginGeneration(ref);
@@ -118,15 +118,21 @@ final searchProvider = FutureProvider.autoDispose
       // Waiting on the limit rather than firing without it: the limit resolves
       // from the cache on all but the first search, and starting with the
       // server default only to re-query would make results jump about.
-      final limit = await ref.watch(searchLimitProvider.future);
+      //
+      // The future is watched here and awaited inside the callback, because
+      // `ref.guarded` watches the client — awaiting first would put that watch
+      // after an await, against a build that may already be gone.
+      final limit = ref.watch(searchLimitProvider.future);
 
-      return ref.guarded(
-        (c) => c.search(
+      return ref.guarded((c) async {
+        final resolved = await limit;
+
+        return c.search(
           query,
-          limitMedia: limit.limitArgument,
-          limitAlbums: limit.limitArgument,
-        ),
-      );
+          limitMedia: resolved.limitArgument,
+          limitAlbums: resolved.limitArgument,
+        );
+      });
     });
 
 class AlbumData {
@@ -158,7 +164,7 @@ class AlbumData {
 }
 
 class AlbumNotifier extends FamilyAsyncNotifier<AlbumData, String>
-    with PaginationGuard {
+    with StaleResponseGuard {
   @override
   Future<AlbumData> build(String albumId) async {
     beginGeneration(ref);

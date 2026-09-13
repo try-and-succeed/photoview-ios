@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/models.dart';
 import 'auth.dart';
+import 'stale_response_guard.dart';
 
 /// How often the queue is re-read while something is in it.
 ///
@@ -58,7 +59,8 @@ class ScannerState {
   );
 }
 
-class ScannerNotifier extends AutoDisposeNotifier<ScannerState> {
+class ScannerNotifier extends AutoDisposeNotifier<ScannerState>
+    with StaleResponseGuard {
   Timer? _timer;
   AppLifecycleListener? _lifecycle;
   bool _foreground = true;
@@ -66,6 +68,11 @@ class ScannerNotifier extends AutoDisposeNotifier<ScannerState> {
   @override
   ScannerState build() {
     ref.watch(sessionProvider);
+
+    // A rebuild keeps this notifier, so a queue read already under way against
+    // the previous server would otherwise hand the new session that server's
+    // album names.
+    beginGeneration(ref);
 
     _lifecycle = AppLifecycleListener(
       onStateChange: (lifecycle) {
@@ -93,8 +100,11 @@ class ScannerNotifier extends AutoDisposeNotifier<ScannerState> {
   }
 
   Future<void> refresh() async {
+    final generation = this.generation;
+
     try {
       final jobs = await ref.guardedRead((c) => c.scannerQueue());
+      if (movedOn(generation)) return;
 
       // Forget a stop request once its album has left the queue, so the label
       // does not outlive the job it belonged to.
@@ -107,6 +117,7 @@ class ScannerNotifier extends AutoDisposeNotifier<ScannerState> {
         clearError: true,
       );
     } catch (error) {
+      if (movedOn(generation)) return;
       state = state.copyWith(isLoading: false, error: '$error');
     }
 
@@ -128,7 +139,19 @@ class ScannerNotifier extends AutoDisposeNotifier<ScannerState> {
     state = state.copyWith(stopping: {...state.stopping, albumId});
 
     try {
-      await ref.guardedRead((c) => c.cancelScanJob(albumId));
+      final accepted = await ref.guardedRead(
+        (c) => c.cancelScanJob(albumId),
+      );
+
+      // False means the server had no job under that album id — the usual
+      // answer once it has already finished, and the answer for an album whose
+      // sub-albums are the queued ones. Leaving the row marked "stopping"
+      // would claim a request the server never took.
+      if (!accepted) {
+        state = state.copyWith(
+          stopping: {...state.stopping}..remove(albumId),
+        );
+      }
     } catch (error) {
       state = state.copyWith(
         stopping: {...state.stopping}..remove(albumId),

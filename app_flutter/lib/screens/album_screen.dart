@@ -24,6 +24,11 @@ class AlbumScreen extends ConsumerWidget {
   Future<void> _scan(BuildContext context, WidgetRef ref) async {
     final messenger = ScaffoldMessenger.of(context);
 
+    // Captured before the await: the SnackBar outlives this screen, and its
+    // action must not look a Navigator up from a context that is by then
+    // deactivated.
+    final navigator = Navigator.of(context);
+
     try {
       await ref.read(scannerProvider.notifier).scanAlbum(albumId);
       messenger.showSnackBar(
@@ -31,7 +36,7 @@ class AlbumScreen extends ConsumerWidget {
           content: const Text('Scanning this album and its sub-albums.'),
           action: SnackBarAction(
             label: 'Show',
-            onPressed: () => showScanner(context),
+            onPressed: () => showScanner(navigator),
           ),
         ),
       );

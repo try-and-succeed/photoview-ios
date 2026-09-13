@@ -31,6 +31,9 @@ class _FakeScannerClient extends PhotoviewClient {
   /// finishes its current file, so it is still in the next snapshot.
   bool removeOnCancel = true;
 
+  /// What `cancelScanJob` answers: false when there was no such job.
+  bool acceptCancel = true;
+
   @override
   Future<List<ScannerJob>> scannerQueue() async {
     queueReads++;
@@ -48,6 +51,8 @@ class _FakeScannerClient extends PhotoviewClient {
   @override
   Future<bool> cancelScanJob(String albumId) async {
     cancelled.add(albumId);
+    if (!acceptCancel) return false;
+
     if (removeOnCancel) {
       queue = queue.where((j) => j.albumId != albumId).toList();
     }
@@ -204,6 +209,18 @@ void main() {
       final state = container.read(scannerProvider);
       expect(state.jobs, hasLength(1));
       expect(state.stopping, contains('8'));
+    });
+
+    test('a refused stop does not leave the row marked stopping', () async {
+      // False means the server had no job under that album id — the usual
+      // answer for an album whose sub-albums are the queued ones. Keeping the
+      // label would claim a request the server never took.
+      await start([_job('8', 'Berge')]);
+      client.acceptCancel = false;
+
+      await container.read(scannerProvider.notifier).cancel('8');
+
+      expect(container.read(scannerProvider).stopping, isEmpty);
     });
 
     test('stop all marks everything and reports the count', () async {
