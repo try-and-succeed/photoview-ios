@@ -7,12 +7,16 @@ import '../api/trusted_certificates.dart';
 /// it that the decision is informed rather than blind.
 Future<bool> showCertificateDialog(
   BuildContext context,
-  TrustedCertificate certificate,
-) async {
+  TrustedCertificate certificate, {
+  bool replacesTrusted = false,
+}) async {
   final accepted = await showDialog<bool>(
     context: context,
     barrierDismissible: false,
-    builder: (context) => _CertificateDialog(certificate: certificate),
+    builder: (context) => _CertificateDialog(
+      certificate: certificate,
+      replacesTrusted: replacesTrusted,
+    ),
   );
 
   return accepted ?? false;
@@ -21,7 +25,18 @@ Future<bool> showCertificateDialog(
 class _CertificateDialog extends StatelessWidget {
   final TrustedCertificate certificate;
 
-  const _CertificateDialog({required this.certificate});
+  /// True when a different certificate for this host was already accepted.
+  ///
+  /// Worth saying out loud rather than presenting as a first meeting: the
+  /// benign reason is a short-lived certificate being rotated, which Caddy's
+  /// internal CA does twice a day, and the other reason is someone else
+  /// answering for this host.
+  final bool replacesTrusted;
+
+  const _CertificateDialog({
+    required this.certificate,
+    required this.replacesTrusted,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -30,16 +45,25 @@ class _CertificateDialog extends StatelessWidget {
 
     return AlertDialog(
       icon: Icon(Icons.gpp_maybe, color: theme.colorScheme.error, size: 36),
-      title: const Text('Untrusted certificate'),
+      title: Text(
+        replacesTrusted ? 'Certificate has changed' : 'Untrusted certificate',
+      ),
       content: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              '${certificate.host} identifies itself with a certificate this '
-              'device cannot verify. That is normal for a self-hosted server '
-              'using its own certificate authority.',
+              replacesTrusted
+                  ? '${certificate.host} is now presenting a different '
+                        'certificate from the one you accepted. Short-lived '
+                        'certificates are renewed often, so this is usually '
+                        'routine — but it is also what it would look like if '
+                        'something else were answering for this address.'
+                  : '${certificate.host} identifies itself with a certificate '
+                        'this device cannot verify. That is normal for a '
+                        'self-hosted server using its own certificate '
+                        'authority.',
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),

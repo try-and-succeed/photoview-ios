@@ -77,12 +77,54 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
     });
 
     try {
+      // Checked before opening, not after. Reopening a saved server makes no
+      // request of its own, so a certificate problem would otherwise surface
+      // pages later as an error on the timeline — with no way to accept the
+      // certificate, because the only place that asks is this screen. Pinned
+      // certificates expire: Caddy's internal CA issues twelve-hour leaves, so
+      // a server that worked this morning presents a new one by evening.
+      if (!await _certificateAccepted(server.endpoint)) return;
+
       await ref.read(authProvider.notifier).openSaved(server);
     } catch (error) {
       if (mounted) setState(() => _error = '$error');
     } finally {
       if (mounted) setState(() => _connecting = false);
     }
+  }
+
+  /// Whether [endpoint] can be trusted, asking the user if it is new or has
+  /// changed.
+  Future<bool> _certificateAccepted(Uri endpoint) async {
+    if (endpoint.scheme != 'https') return true;
+
+    // Null means the certificate validates on its own — a public CA, or one
+    // the user imported — or that the host cannot be reached at all. Neither
+    // is a question for the user here; an unreachable host reports itself
+    // through the sign-in that follows.
+    final certificate = await probeCertificate(endpoint);
+    if (certificate == null || !mounted) return true;
+
+    final store = ref.read(trustedCertificatesProvider);
+    final pinned = store.accepted[certificate.host];
+    if (pinned == certificate.sha256) return true;
+
+    final accepted = await showCertificateDialog(
+      context,
+      certificate,
+      replacesTrusted: pinned != null,
+    );
+    if (!mounted) return false;
+
+    if (!accepted) {
+      setState(
+        () => _error = 'Certificate for ${certificate.host} was not accepted.',
+      );
+      return false;
+    }
+
+    await store.trust(certificate);
+    return true;
   }
 
   Future<void> _forget(SavedServer server) async {
