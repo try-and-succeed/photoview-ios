@@ -7,6 +7,7 @@ import '../state/library.dart';
 import '../widgets/album_grid.dart';
 import '../widgets/async_states.dart';
 import '../widgets/media_grid.dart';
+import '../widgets/search_results.dart';
 
 void showPhotoviewSearch(BuildContext context) {
   Navigator.of(
@@ -88,8 +89,8 @@ class _Results extends ConsumerWidget {
 
     return results.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => ErrorMessage(
-        message: '$error',
+      error: (error, _) => ErrorMessage.forError(
+        error,
         onRetry: () => ref.invalidate(searchProvider(query)),
       ),
       data: (data) {
@@ -100,21 +101,50 @@ class _Results extends ConsumerWidget {
           );
         }
 
+        final albums = planSearchSection(data.albums.length);
+        final media = planSearchSection(data.media.length);
+
         return CustomScrollView(
           slivers: [
-            if (data.albums.isNotEmpty) ...[
-              const SliverToBoxAdapter(child: _SectionTitle('Albums')),
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                sliver: AlbumSliverGrid(albums: data.albums),
+            if (albums.shown > 0) ...[
+              SliverToBoxAdapter(
+                child: _SectionTitle('Albums', count: data.albums.length),
               ),
+              if (albums.layout == SearchResultLayout.grid)
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  sliver: AlbumSliverGrid(
+                    albums: data.albums.take(albums.shown).toList(),
+                  ),
+                )
+              else
+                AlbumResultList(
+                  albums: data.albums.take(albums.shown).toList(),
+                ),
+              if (albums.hasHidden)
+                SliverToBoxAdapter(
+                  child: HiddenResultsNote(hidden: albums.hidden),
+                ),
             ],
-            if (data.media.isNotEmpty) ...[
-              const SliverToBoxAdapter(child: _SectionTitle('Media')),
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                sliver: MediaSliverGrid(media: data.media),
+            if (media.shown > 0) ...[
+              SliverToBoxAdapter(
+                child: _SectionTitle('Media', count: data.media.length),
               ),
+              if (media.layout == SearchResultLayout.grid)
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  sliver: MediaSliverGrid(
+                    media: data.media.take(media.shown).toList(),
+                  ),
+                )
+              else
+                MediaResultList(
+                  media: data.media.take(media.shown).toList(),
+                ),
+              if (media.hasHidden)
+                SliverToBoxAdapter(
+                  child: HiddenResultsNote(hidden: media.hidden),
+                ),
             ],
             const SliverToBoxAdapter(child: SizedBox(height: 24)),
           ],
@@ -127,13 +157,20 @@ class _Results extends ConsumerWidget {
 class _SectionTitle extends StatelessWidget {
   final String title;
 
-  const _SectionTitle(this.title);
+  /// Shown alongside the heading once the list is long enough that the user
+  /// cannot count it at a glance.
+  final int count;
+
+  const _SectionTitle(this.title, {required this.count});
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final label = count > compactSearchThreshold ? '$title · $count' : title;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
-      child: Text(title, style: Theme.of(context).textTheme.titleSmall),
+      child: Text(label, style: theme.textTheme.titleSmall),
     );
   }
 }

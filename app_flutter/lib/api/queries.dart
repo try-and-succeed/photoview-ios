@@ -6,6 +6,7 @@ const _mediaItemFragment = r'''
 fragment MediaItem on Media {
   id
   type
+  title
   blurhash
   thumbnail {
     url

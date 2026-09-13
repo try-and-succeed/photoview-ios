@@ -29,6 +29,10 @@ class Thumbnail {
 class MediaItem {
   final String id;
   final MediaType type;
+
+  /// Usually the file name. Needed wherever media is listed as text rather
+  /// than as a picture, which is how large result sets are shown.
+  final String title;
   final String? blurhash;
   final Thumbnail? thumbnail;
   final bool favorite;
@@ -36,6 +40,7 @@ class MediaItem {
   const MediaItem({
     required this.id,
     required this.type,
+    this.title = '',
     this.blurhash,
     this.thumbnail,
     this.favorite = false,
@@ -46,6 +51,7 @@ class MediaItem {
     return MediaItem(
       id: json['id'].toString(),
       type: _mediaTypeFrom(json['type'] as String?),
+      title: json['title'] as String? ?? '',
       blurhash: json['blurhash'] as String?,
       thumbnail: thumb == null ? null : Thumbnail.fromJson(thumb),
       favorite: json['favorite'] as bool? ?? false,
