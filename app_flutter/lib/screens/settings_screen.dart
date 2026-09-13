@@ -28,7 +28,8 @@ class SettingsScreen extends ConsumerWidget {
                     : '${session.instanceUrl} · ${session.username}',
               ),
             ),
-          if (InsecureConnectionNotice.appliesTo(session?.endpoint))
+          if (InsecureConnectionNotice.riskOf(session?.endpoint) !=
+              InsecureConnectionRisk.none)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: InsecureConnectionNotice(host: session!.endpoint.host),

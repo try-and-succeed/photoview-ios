@@ -224,10 +224,12 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
       onChanged: (_) => setState(() {}),
       onSubmitted: (_) => _usernameFocus.requestFocus(),
     ),
-    if (InsecureConnectionNotice.appliesToText(_instance.text)) ...[
+    if (InsecureConnectionNotice.riskOfText(_instance.text) !=
+        InsecureConnectionRisk.none) ...[
       const SizedBox(height: 12),
       InsecureConnectionNotice(
-        host: Uri.tryParse(_instance.text.trim())?.host ?? 'this server',
+        host: InsecureConnectionNotice.hostOfText(_instance.text),
+        risk: InsecureConnectionNotice.riskOfText(_instance.text),
       ),
     ],
     const SizedBox(height: 16),
