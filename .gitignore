@@ -32,3 +32,8 @@ DerivedData/
 HANDOFF_app_guide.md
 logcat.bat
 .claude/settings.local.json
+
+# Credentials for the local test servers. Never commit these.
+env.txt
+*.env
+.env
