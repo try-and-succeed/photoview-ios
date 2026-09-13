@@ -154,8 +154,10 @@ class TrustedCertificateHttpOverrides extends HttpOverrides {
 Future<TrustedCertificate?> probeCertificate(Uri url) async {
   X509Certificate? captured;
 
+  const step = Duration(seconds: 10);
+
   final client = HttpClient()
-    ..connectionTimeout = const Duration(seconds: 10)
+    ..connectionTimeout = step
     ..badCertificateCallback = (cert, host, port) {
       captured = cert;
       // Accept for this probe only; this client is discarded immediately and
@@ -164,9 +166,13 @@ Future<TrustedCertificate?> probeCertificate(Uri url) async {
     };
 
   try {
-    final request = await client.headUrl(url);
-    final response = await request.close();
-    await response.drain<void>();
+    // connectionTimeout only bounds establishing the connection. A server that
+    // completes the handshake and then stalls on the status line or body would
+    // otherwise hang the sign-in flow that awaits this probe, so each step
+    // gets its own deadline.
+    final request = await client.headUrl(url).timeout(step);
+    final response = await request.close().timeout(step);
+    await response.drain<void>().timeout(step);
   } catch (_) {
     // A capture is all this probe needs; failures past the handshake are fine.
   } finally {

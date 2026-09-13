@@ -359,10 +359,29 @@ class PhotoviewClient {
     if (raw == null) return const [];
 
     // The server returns the FeatureCollection as a JSON scalar, which may
-    // arrive either already decoded or as an encoded string.
-    final geojson = raw is String
-        ? jsonDecode(raw) as Map<String, dynamic>
-        : raw as Map<String, dynamic>;
+    // arrive either already decoded or as an encoded string. A JSON scalar is
+    // valid too, so the shape is checked rather than cast: a bare cast throws
+    // a TypeError, which is not an ApiException and would reach the places
+    // screen as a raw Dart error instead of a readable message.
+    final Object? decoded;
+    if (raw is String) {
+      try {
+        decoded = jsonDecode(raw);
+      } on FormatException {
+        throw const ApiException(
+          'The server returned map data that is not valid JSON.',
+        );
+      }
+    } else {
+      decoded = raw;
+    }
+
+    if (decoded is! Map<String, dynamic>) {
+      throw const ApiException(
+        'The server returned map data in an unexpected shape.',
+      );
+    }
+    final geojson = decoded;
 
     return (geojson['features'] as List<dynamic>? ?? const [])
         .whereType<Map<String, dynamic>>()

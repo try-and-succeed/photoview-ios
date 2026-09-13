@@ -98,9 +98,12 @@ class FaceThumbnail extends StatelessWidget {
       final longestSide = rect.width > rect.height ? rect.width : rect.height;
       final scale = longestSide <= 0 ? 1.0 : (1 / longestSide) * _scaleMultiplier;
 
-      final aspectRatio = thumbnail == null || thumbnail.height == 0
-          ? 1.0
-          : thumbnail.aspectRatio;
+      // Missing dimensions are stored as 0, so a thumbnail of zero width
+      // yields a ratio of 0 and `scale / aspectRatio` below becomes infinity —
+      // which makes Transform.scale build an invalid matrix and the tile does
+      // not render at all. Checking the ratio covers both dimensions.
+      final reported = thumbnail?.aspectRatio ?? 1.0;
+      final aspectRatio = reported.isFinite && reported > 0 ? reported : 1.0;
 
       if (aspectRatio >= 1) {
         scaleX = scale * aspectRatio;
