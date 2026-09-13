@@ -7,6 +7,7 @@ import '../state/library.dart';
 import '../state/scanner.dart';
 import '../widgets/album_grid.dart';
 import '../widgets/async_states.dart';
+import '../widgets/load_more.dart';
 import '../widgets/media_grid.dart';
 import 'scanner_screen.dart';
 
@@ -76,7 +77,11 @@ class AlbumScreen extends ConsumerWidget {
             return const EmptyMessage(message: 'This album is empty');
           }
 
-          return CustomScrollView(
+          return LoadMoreOnScroll(
+            hasMore: data.hasMore,
+            onLoadMore: () =>
+                ref.read(albumProvider(albumId).notifier).loadMore(),
+            child: CustomScrollView(
             slivers: [
               if (data.subAlbums.isNotEmpty)
                 SliverPadding(
@@ -85,23 +90,7 @@ class AlbumScreen extends ConsumerWidget {
                 ),
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 4),
-                sliver: MediaSliverGrid(
-                  media: data.media,
-                  onItemBuilt: (index) {
-                    if (data.media.length - index >= albumPrefetchThreshold) {
-                      return;
-                    }
-
-                    // Deferred: the grid reports this from inside build, and
-                    // loadMore writes provider state straight away. By the
-                    // time the frame is done the screen may be gone, so the
-                    // element has to be checked before reading from it.
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (!context.mounted) return;
-                      ref.read(albumProvider(albumId).notifier).loadMore();
-                    });
-                  },
-                ),
+                sliver: MediaSliverGrid(media: data.media),
               ),
               if (data.loadingMore)
                 const SliverToBoxAdapter(
@@ -112,6 +101,7 @@ class AlbumScreen extends ConsumerWidget {
                 ),
               const SliverToBoxAdapter(child: SizedBox(height: 24)),
             ],
+            ),
           );
         },
       ),

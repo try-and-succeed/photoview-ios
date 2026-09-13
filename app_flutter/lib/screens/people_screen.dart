@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../state/library.dart';
 import '../widgets/async_states.dart';
+import '../widgets/load_more.dart';
 import '../widgets/face_grid.dart';
 
 class PeopleScreen extends ConsumerWidget {
@@ -15,7 +16,10 @@ class PeopleScreen extends ConsumerWidget {
     return Scaffold(
       body: RefreshIndicator(
         onRefresh: () async => ref.invalidate(faceGroupsProvider),
-        child: CustomScrollView(
+        child: LoadMoreOnScroll(
+          hasMore: faces.valueOrNull?.hasMore ?? false,
+          onLoadMore: () => ref.read(faceGroupsProvider.notifier).loadMore(),
+          child: CustomScrollView(
           // See the note in timeline_screen.dart: a short list would otherwise
           // refuse the pull-to-refresh gesture.
           physics: const AlwaysScrollableScrollPhysics(),
@@ -54,23 +58,7 @@ class PeopleScreen extends ConsumerWidget {
                 else
                   SliverPadding(
                     padding: const EdgeInsets.all(16),
-                    sliver: FaceSliverGrid(
-                      faceGroups: data.groups,
-                      onItemBuilt: (index) {
-                        if (data.groups.length - index >=
-                            faceGroupPrefetchThreshold) {
-                          return;
-                        }
-
-                        // Deferred: the grid reports this from inside build,
-                        // and loadMore writes provider state straight away.
-                        // The screen may be gone once the frame completes.
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (!context.mounted) return;
-                          ref.read(faceGroupsProvider.notifier).loadMore();
-                        });
-                      },
-                    ),
+                    sliver: FaceSliverGrid(faceGroups: data.groups),
                   ),
                 if (data.loadingMore)
                   const SliverToBoxAdapter(
@@ -82,6 +70,7 @@ class PeopleScreen extends ConsumerWidget {
               ],
             ),
           ],
+          ),
         ),
       ),
     );

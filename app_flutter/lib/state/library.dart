@@ -7,7 +7,6 @@ import 'stale_response_guard.dart';
 import 'search_limit.dart';
 
 const _albumPageSize = 200;
-const albumPrefetchThreshold = 20;
 
 final myAlbumsProvider = FutureProvider<List<AlbumItem>>(
   (ref) => ref.guarded((c) => c.myAlbums()),
@@ -16,7 +15,6 @@ final myAlbumsProvider = FutureProvider<List<AlbumItem>>(
 /// Face groups are fetched in small pages: the server resolves a thumbnail per
 /// group, which is slow enough that asking for all of them at once times out.
 const _faceGroupPageSize = 40;
-const faceGroupPrefetchThreshold = 8;
 
 class FaceGroupsData {
   final List<FaceGroup> groups;

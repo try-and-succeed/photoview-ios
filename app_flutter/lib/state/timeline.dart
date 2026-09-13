@@ -6,9 +6,6 @@ import 'stale_response_guard.dart';
 
 const _pageSize = 200;
 
-/// How close to the end of the loaded media the user must scroll before the
-/// next page is requested.
-const timelinePrefetchThreshold = 20;
 
 class TimelineData {
   final List<TimelineGroup> groups;

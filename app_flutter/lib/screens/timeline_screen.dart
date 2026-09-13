@@ -5,6 +5,7 @@ import '../api/models.dart';
 import '../state/timeline.dart';
 import '../util/formatting.dart';
 import '../widgets/async_states.dart';
+import '../widgets/load_more.dart';
 import '../widgets/media_grid.dart';
 import 'album_screen.dart';
 import 'search_screen.dart';
@@ -22,7 +23,10 @@ class TimelineScreen extends ConsumerWidget {
           ref.invalidate(timelineProvider);
           await ref.read(timelineProvider.future);
         },
-        child: CustomScrollView(
+        child: LoadMoreOnScroll(
+          hasMore: timeline.valueOrNull?.hasMore ?? false,
+          onLoadMore: () => ref.read(timelineProvider.notifier).loadMore(),
+          child: CustomScrollView(
           // Without this, a timeline that fits on screen — empty, still
           // loading, or showing an error — cannot be overscrolled, so the
           // pull-to-refresh gesture never fires exactly when it is wanted most.
@@ -58,6 +62,7 @@ class TimelineScreen extends ConsumerWidget {
               data: (data) => _timelineSlivers(context, ref, data),
             ),
           ],
+          ),
         ),
       ),
     );
@@ -79,35 +84,14 @@ class TimelineScreen extends ConsumerWidget {
 
     final slivers = <Widget>[];
 
-    // Running offset of each group within the flat media list, so the grids can
-    // tell how close the user is to the end of what has been loaded.
-    var groupStart = 0;
-
     for (final group in data.groups) {
-      final start = groupStart;
-      groupStart += group.media.length;
-
       slivers.add(
         SliverToBoxAdapter(child: _GroupHeader(group: group)),
       );
       slivers.add(
         SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
-          sliver: MediaSliverGrid(
-            media: group.media,
-            onItemBuilt: (index) {
-              final remaining = data.mediaCount - (start + index);
-              if (remaining >= timelinePrefetchThreshold) return;
-
-              // Deferred: the grid reports this from inside build, and
-              // loadMore writes provider state straight away. The screen may
-              // be gone once the frame completes.
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (!context.mounted) return;
-                ref.read(timelineProvider.notifier).loadMore();
-              });
-            },
-          ),
+          sliver: MediaSliverGrid(media: group.media),
         ),
       );
     }
