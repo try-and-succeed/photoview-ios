@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../api/trusted_cas.dart';
 import '../state/auth.dart';
 import '../util/image_cache.dart';
+import '../widgets/insecure_notice.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -26,6 +27,11 @@ class SettingsScreen extends ConsumerWidget {
                     ? session.instanceUrl.toString()
                     : '${session.instanceUrl} · ${session.username}',
               ),
+            ),
+          if (InsecureConnectionNotice.appliesTo(session?.endpoint))
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: InsecureConnectionNotice(host: session!.endpoint.host),
             ),
           ListTile(
             leading: const Icon(Icons.swap_horiz),

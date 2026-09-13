@@ -85,31 +85,48 @@ class PhotoviewClient {
       ],
     ];
 
+    return attemptCandidates(
+      candidates,
+      (endpoint) => _authorize(
+        endpoint: endpoint,
+        username: username,
+        password: password,
+      ),
+    );
+  }
+
+  /// Tries each candidate endpoint in turn until one signs in.
+  ///
+  /// Separate from [login] so the stopping rules can be tested without a
+  /// server: which failures are worth trying the next candidate for is a
+  /// security property, not a detail.
+  @visibleForTesting
+  static Future<Session> attemptCandidates(
+    List<Uri> candidates,
+    Future<Session> Function(Uri endpoint) authorize,
+  ) async {
     Object? lastError;
-    CertificateNotTrustedException? certificateError;
 
     for (final endpoint in candidates) {
       try {
-        return await _authorize(
-          endpoint: endpoint,
-          username: username,
-          password: password,
-        );
+        return await authorize(endpoint);
       } on LoginFailure {
         // The server answered and refused the credentials — no point retrying
         // the other path prefix.
         rethrow;
-      } on CertificateNotTrustedException catch (error) {
-        // Remember it, but keep trying: a bare host is probed over HTTPS
-        // first, and the instance may well be reachable over plain HTTP.
-        certificateError ??= error;
-        lastError = error;
+      } on CertificateNotTrustedException {
+        // Stop here rather than work down to the plain-HTTP candidate. A bare
+        // host is tried over HTTPS first, so continuing would send the
+        // password — and later the token — in the clear precisely when the
+        // certificate looked suspicious. The user is asked about the
+        // certificate instead, and can still type an explicit http:// address
+        // if that is what they meant.
+        rethrow;
       } catch (error) {
         lastError = error;
       }
     }
 
-    if (certificateError != null) throw certificateError;
     throw LoginFailure(_describe(lastError));
   }
 

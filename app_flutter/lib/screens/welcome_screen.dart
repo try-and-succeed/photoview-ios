@@ -6,6 +6,7 @@ import '../api/session.dart';
 import '../api/trusted_certificates.dart';
 import '../state/auth.dart';
 import '../widgets/certificate_dialog.dart';
+import '../widgets/insecure_notice.dart';
 
 class WelcomeScreen extends ConsumerStatefulWidget {
   const WelcomeScreen({super.key});
@@ -220,8 +221,15 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
       keyboardType: TextInputType.url,
       autocorrect: false,
       textInputAction: TextInputAction.next,
+      onChanged: (_) => setState(() {}),
       onSubmitted: (_) => _usernameFocus.requestFocus(),
     ),
+    if (InsecureConnectionNotice.appliesToText(_instance.text)) ...[
+      const SizedBox(height: 12),
+      InsecureConnectionNotice(
+        host: Uri.tryParse(_instance.text.trim())?.host ?? 'this server',
+      ),
+    ],
     const SizedBox(height: 16),
     TextField(
       controller: _username,
