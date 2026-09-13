@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:graphql/client.dart';
 
+import 'capabilities.dart';
 import 'models.dart';
 import 'queries.dart';
 import 'session.dart';
@@ -301,7 +302,16 @@ class PhotoviewClient {
   Map<String, dynamic> _unwrap(QueryResult result) {
     if (result.hasException) {
       final exception = result.exception!;
+
+      // Order matters. A rejected sign-in is decided first, because it is the
+      // only outcome that ends the session; a missing field is decided next,
+      // so a schema mismatch is reported as such instead of reaching the user
+      // as a raw `Cannot query field …`; anything else is generic.
       if (isUnauthorized(exception)) throw const UnauthorizedException();
+
+      final unsupported = unsupportedFieldException(exception);
+      if (unsupported != null) throw unsupported;
+
       throw ApiException(_describe(exception));
     }
 
@@ -345,6 +355,70 @@ class PhotoviewClient {
     final parsed = link is ServerException ? link.parsedResponse?.errors : null;
 
     return [...exception.graphqlErrors, ...?parsed];
+  }
+
+  /// The first "this field does not exist" error in [exception], if any.
+  @visibleForTesting
+  static UnsupportedFieldException? unsupportedFieldException(
+    OperationException exception,
+  ) {
+    for (final error in graphqlErrorsOf(exception)) {
+      final named = unsupportedFieldAndTypeIn(error.message);
+      if (named != null) {
+        return UnsupportedFieldException(
+          field: named.field,
+          type: named.type,
+        );
+      }
+    }
+
+    return null;
+  }
+
+  /// Asks the server which of the newer features it has.
+  ///
+  /// Deliberately does not go through [_unwrap]: a probe must never be able to
+  /// sign the user out. Field-level authorization errors arrive inside an
+  /// otherwise successful response, so running probes through the normal path
+  /// would let a query about, say, the scanner queue end a perfectly good
+  /// session for a non-admin. An unanswerable probe leaves the capability
+  /// [CapabilityState.unknown] and the next real request settles the session
+  /// question on its own.
+  Future<Map<Capability, CapabilityState>> probeCapabilities() async {
+    final batch = await _probe(capabilityProbeDocument);
+    var found = readProbe(data: batch.data, errorMessages: batch.messages);
+
+    // Whatever the batch could not settle is asked again on its own, so one
+    // suppressed or truncated error cannot leave a whole group unknown.
+    for (final capability in ServerCapabilities(found).unresolved) {
+      final single = await _probe(singleCapabilityProbeDocument(capability));
+      found = {
+        ...found,
+        ...readProbe(data: single.data, errorMessages: single.messages),
+      };
+    }
+
+    return found;
+  }
+
+  Future<({Map<String, dynamic>? data, List<String> messages})> _probe(
+    String document,
+  ) async {
+    final result = await _client.query(
+      QueryOptions(
+        document: gql(document),
+        fetchPolicy: FetchPolicy.networkOnly,
+      ),
+    );
+
+    final exception = result.exception;
+
+    return (
+      data: result.data,
+      messages: exception == null
+          ? const <String>[]
+          : graphqlErrorsOf(exception).map((e) => e.message).toList(),
+    );
   }
 
   static bool _isAuthError(GraphQLError error) {

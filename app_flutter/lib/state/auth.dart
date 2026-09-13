@@ -5,6 +5,7 @@ import '../api/session.dart';
 import '../api/trusted_cas.dart';
 import '../api/trusted_certificates.dart';
 import '../util/image_cache.dart';
+import 'capabilities.dart';
 
 final sessionStoreProvider = Provider<SessionStore>((ref) => SessionStore());
 
@@ -62,6 +63,17 @@ class AuthNotifier extends AsyncNotifier<Session?> {
         lastUsed: DateTime.now(),
       ),
     );
+
+    // A password sign-in is the moment the user is most likely to have just
+    // updated their server, so it is the cheapest place to stop trusting what
+    // was remembered about it. Reopening a saved server deliberately does not
+    // do this — that path exists to be instant.
+    try {
+      await ref.read(capabilityStoreProvider).clear(session.serverId);
+      ref.invalidate(serverCapabilitiesProvider);
+    } catch (_) {
+      // Only costs a stale capability answer; never worth failing a login.
+    }
   }
 
   /// Reopens a remembered server without asking for anything.
@@ -144,9 +156,7 @@ class AuthNotifier extends AsyncNotifier<Session?> {
   }
 
   Future<void> _forgetSession(Session session) async {
-    await ref
-        .read(sessionStoreProvider)
-        .forget('${session.endpoint}|${session.username}');
+    await ref.read(sessionStoreProvider).forget(session.serverId);
     ref.invalidate(savedServersProvider);
   }
 }

@@ -38,6 +38,14 @@ class Session {
   /// is all that has to be added to it.
   String cacheKeyFor(String url) => '$username|${resolve(url)}';
 
+  /// Identity of this account on this server, matching [SavedServer.id].
+  ///
+  /// Anything remembered per server — the saved sign-in, what the server can
+  /// do — is filed under this, so two users on one instance and one user on
+  /// two instances all stay separate. Defined once because a second spelling
+  /// of it would silently look up a different entry.
+  String get serverId => '$endpoint|$username';
+
   /// The address the user originally typed, recovered from the resolved
   /// endpoint by dropping the `graphql` segment and an `api` prefix.
   ///
@@ -94,7 +102,7 @@ class SavedServer {
 
   /// Identity of the account on the server, so the same user on two instances
   /// (or two users on one) stay separate entries.
-  String get id => '$endpoint|$username';
+  String get id => session.serverId;
 
   Session get session =>
       Session(endpoint: endpoint, token: token, username: username);
