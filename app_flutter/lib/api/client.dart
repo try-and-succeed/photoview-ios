@@ -551,11 +551,54 @@ class PhotoviewClient {
     return MediaDetails.fromJson(media);
   }
 
-  Future<SearchResults> search(String query) async {
-    final data = await _query(mediaSearchQuery, {'query': query});
+  /// Searches, with [limitMedia] and [limitAlbums] passed through as given.
+  ///
+  /// Null leaves them out and the server applies its own default of ten each;
+  /// zero means unlimited. Neither is decided here — the caller knows whether
+  /// the user set a limit.
+  Future<SearchResults> search(
+    String query, {
+    int? limitMedia,
+    int? limitAlbums,
+  }) async {
+    final data = await _query(mediaSearchQuery, {
+      'query': query,
+      'limitMedia': limitMedia,
+      'limitAlbums': limitAlbums,
+    });
+
     final search = data['search'] as Map<String, dynamic>?;
     if (search == null) return SearchResults(query: query);
     return SearchResults.fromJson(search);
+  }
+
+  Future<UserPreferences> userPreferences() async {
+    final data = await _query(userPreferencesQuery);
+    final preferences = data['myUserPreferences'] as Map<String, dynamic>?;
+    if (preferences == null) return const UserPreferences();
+    return UserPreferences.fromJson(preferences);
+  }
+
+  /// Writes the whole preferences record.
+  ///
+  /// Both fields are always sent because the server replaces rather than
+  /// patches: measured against a live instance, writing only the search limit
+  /// reset a `language` of `English` to null. Callers therefore pass what they
+  /// want the record to *be*, not what they want to change — which is also how
+  /// the search limit is cleared, since a negative value is refused outright.
+  Future<UserPreferences> changeUserPreferences({
+    String? language,
+    int? searchResultLimit,
+  }) async {
+    final data = await _mutate(changeUserPreferencesMutation, {
+      'language': language,
+      'searchResultLimit': searchResultLimit,
+    });
+
+    final preferences =
+        data['changeUserPreferences'] as Map<String, dynamic>?;
+    if (preferences == null) return const UserPreferences();
+    return UserPreferences.fromJson(preferences);
   }
 
   Future<void> shareMedia(String mediaId) =>

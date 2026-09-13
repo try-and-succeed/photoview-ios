@@ -4,6 +4,7 @@ import '../api/client.dart';
 import '../api/models.dart';
 import 'auth.dart';
 import 'pagination_guard.dart';
+import 'search_limit.dart';
 
 const _albumPageSize = 200;
 const albumPrefetchThreshold = 20;
@@ -113,7 +114,19 @@ final mediaDetailsProvider = FutureProvider.family<MediaDetails, String>(
 final searchProvider = FutureProvider.autoDispose
     .family<SearchResults, String>((ref, query) async {
       if (query.trim().isEmpty) return SearchResults(query: query);
-      return ref.guarded((c) => c.search(query));
+
+      // Waiting on the limit rather than firing without it: the limit resolves
+      // from the cache on all but the first search, and starting with the
+      // server default only to re-query would make results jump about.
+      final limit = await ref.watch(searchLimitProvider.future);
+
+      return ref.guarded(
+        (c) => c.search(
+          query,
+          limitMedia: limit.limitArgument,
+          limitAlbums: limit.limitArgument,
+        ),
+      );
     });
 
 class AlbumData {

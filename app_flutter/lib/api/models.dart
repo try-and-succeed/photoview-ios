@@ -299,6 +299,27 @@ class MediaDetails {
   }
 }
 
+/// The server-side user preferences the app reads.
+///
+/// [language] is carried even though the app never shows it: the mutation that
+/// writes preferences replaces the whole record, so anything not sent back is
+/// erased. Holding it here is what lets a write preserve it.
+class UserPreferences {
+  final String? language;
+
+  /// Null when unset, in which case the app falls back to its own default.
+  /// Zero means unlimited.
+  final int? searchResultLimit;
+
+  const UserPreferences({this.language, this.searchResultLimit});
+
+  factory UserPreferences.fromJson(Map<String, dynamic> json) =>
+      UserPreferences(
+        language: json['language'] as String?,
+        searchResultLimit: json['searchResultLimit'] as int?,
+      );
+}
+
 class SearchResults {
   final String query;
   final List<AlbumItem> albums;

@@ -187,9 +187,15 @@ query mediaDetails(\$mediaID: ID!) {
 $_mediaItemFragment
 ''';
 
+/// Search with the limits as variables.
+///
+/// The server applies its own default of 10 each when they are omitted, and
+/// treats 0 as unlimited — both measured against a live instance. The
+/// `searchResultLimit` preference is *not* applied server-side to `search`, so
+/// it is the client that reads the preference and passes it here.
 const mediaSearchQuery = '''
-query mediaSearch(\$query: String!) {
-  search(query: \$query, limitAlbums: 6, limitMedia: 12) {
+query mediaSearch(\$query: String!, \$limitMedia: Int, \$limitAlbums: Int) {
+  search(query: \$query, limitAlbums: \$limitAlbums, limitMedia: \$limitMedia) {
     query
     albums {
       ...AlbumItem
@@ -201,6 +207,41 @@ query mediaSearch(\$query: String!) {
 }
 $_albumItemFragment
 $_mediaItemFragment
+''';
+
+/// Reads the preferences the app cares about.
+///
+/// `language` is read even though the app does not use it, because it has to
+/// be written back — see [changeUserPreferencesMutation].
+const userPreferencesQuery = r'''
+query myUserPreferences {
+  myUserPreferences {
+    id
+    language
+    searchResultLimit
+  }
+}
+''';
+
+/// Writes user preferences.
+///
+/// **Every field has to be sent every time.** This mutation replaces the whole
+/// preferences record rather than patching it: measured against a live
+/// instance, writing only `searchResultLimit` reset a `language` of `English`
+/// to null. So an omitted argument is not "leave alone", it is "clear" — which
+/// is also the only way to clear a field, since the server rejects a negative
+/// limit outright ("search result limit must not be negative").
+const changeUserPreferencesMutation = r'''
+mutation changeUserPreferences($language: String, $searchResultLimit: Int) {
+  changeUserPreferences(
+    language: $language
+    searchResultLimit: $searchResultLimit
+  ) {
+    id
+    language
+    searchResultLimit
+  }
+}
 ''';
 
 const shareMediaMutation = r'''
