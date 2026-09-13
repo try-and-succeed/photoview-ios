@@ -111,6 +111,7 @@ class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
                 return PhotoViewGalleryPageOptions(
                   imageProvider: CachedNetworkImageProvider(
                     session.resolve(url).toString(),
+                    cacheKey: session.cacheKeyFor(url),
                     headers: session.headers,
                   ),
                   heroAttributes: PhotoViewHeroAttributes(tag: item.id),

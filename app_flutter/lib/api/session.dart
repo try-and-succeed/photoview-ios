@@ -25,6 +25,19 @@ class Session {
   /// Resolves a server-relative media path against the instance.
   Uri resolve(String url) => endpoint.resolve(url);
 
+  /// Cache key for a media URL, scoped to who is signed in.
+  ///
+  /// The image cache is keyed by URL alone unless told otherwise, and the auth
+  /// cookie does not enter that key — so two accounts on the same instance
+  /// would read each other's cached renditions, and clearing the cache on sign
+  /// out does not help against a request that is still in flight and lands
+  /// afterwards. The token deliberately stays out of the key: it changes on
+  /// every sign-in, which would discard the whole cache, and cache keys end up
+  /// in file names on disk.
+  /// The resolved URL already carries scheme, host and port, so the user name
+  /// is all that has to be added to it.
+  String cacheKeyFor(String url) => '$username|${resolve(url)}';
+
   /// The address the user originally typed, recovered from the resolved
   /// endpoint by dropping the `graphql` segment and an `api` prefix.
   ///

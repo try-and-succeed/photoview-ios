@@ -31,10 +31,9 @@ class ProtectedImage extends ConsumerWidget {
       return _placeholder(context);
     }
 
-    final resolved = session.resolve(path).toString();
-
     return CachedNetworkImage(
-      imageUrl: resolved,
+      imageUrl: session.resolve(path).toString(),
+      cacheKey: session.cacheKeyFor(path),
       httpHeaders: session.headers,
       fit: fit,
       alignment: alignment,

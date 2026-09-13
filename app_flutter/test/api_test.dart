@@ -185,6 +185,70 @@ void main() {
     });
   });
 
+  group('Session.cacheKeyFor', () {
+    Session sessionFor(String endpoint, String username, String token) =>
+        Session(
+          endpoint: Uri.parse(endpoint),
+          username: username,
+          token: token,
+        );
+
+    test('separates two accounts on the same instance', () {
+      final alice = sessionFor('https://example.com/api/graphql', 'alice', 'a');
+      final bob = sessionFor('https://example.com/api/graphql', 'bob', 'b');
+
+      expect(
+        alice.cacheKeyFor('photo/thumbnail_x.jpg'),
+        isNot(bob.cacheKeyFor('photo/thumbnail_x.jpg')),
+      );
+    });
+
+    test('separates two instances that differ only by port', () {
+      final first = sessionFor('http://host:8080/api/graphql', 'admin', 't');
+      final second = sessionFor('http://host:8081/api/graphql', 'admin', 't');
+
+      expect(
+        first.cacheKeyFor('photo/thumbnail_x.jpg'),
+        isNot(second.cacheKeyFor('photo/thumbnail_x.jpg')),
+      );
+    });
+
+    test('survives a new token for the same account', () {
+      // A fresh sign-in issues a new token. Keying on it would throw away
+      // every cached thumbnail each time the session is renewed.
+      final before = sessionFor('https://example.com/api/graphql', 'admin', '1');
+      final after = sessionFor('https://example.com/api/graphql', 'admin', '2');
+
+      expect(
+        before.cacheKeyFor('photo/thumbnail_x.jpg'),
+        after.cacheKeyFor('photo/thumbnail_x.jpg'),
+      );
+    });
+
+    test('never contains the token', () {
+      final session = sessionFor(
+        'https://example.com/api/graphql',
+        'admin',
+        'super-secret-token',
+      );
+
+      // Cache keys become file names on disk, so the token must not be one.
+      expect(
+        session.cacheKeyFor('photo/thumbnail_x.jpg'),
+        isNot(contains('super-secret-token')),
+      );
+    });
+
+    test('distinguishes two media paths', () {
+      final session = sessionFor('https://example.com/api/graphql', 'admin', 't');
+
+      expect(
+        session.cacheKeyFor('photo/a.jpg'),
+        isNot(session.cacheKeyFor('photo/b.jpg')),
+      );
+    });
+  });
+
   group('PlacesMarker.fromFeature', () {
     test('reads GeoJSON coordinates as [longitude, latitude]', () {
       final marker = PlacesMarker.fromFeature({
