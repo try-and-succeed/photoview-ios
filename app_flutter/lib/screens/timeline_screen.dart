@@ -96,10 +96,12 @@ class TimelineScreen extends ConsumerWidget {
               if (remaining >= timelinePrefetchThreshold) return;
 
               // Deferred: the grid reports this from inside build, and
-              // loadMore writes provider state straight away.
-              WidgetsBinding.instance.addPostFrameCallback(
-                (_) => ref.read(timelineProvider.notifier).loadMore(),
-              );
+              // loadMore writes provider state straight away. The screen may
+              // be gone once the frame completes.
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!context.mounted) return;
+                ref.read(timelineProvider.notifier).loadMore();
+              });
             },
           ),
         ),

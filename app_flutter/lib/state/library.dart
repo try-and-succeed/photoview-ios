@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../api/client.dart';
 import '../api/models.dart';
 import 'auth.dart';
+import 'pagination_guard.dart';
 
 const _albumPageSize = 200;
 const albumPrefetchThreshold = 20;
@@ -38,9 +39,12 @@ class FaceGroupsData {
   );
 }
 
-class FaceGroupsNotifier extends AsyncNotifier<FaceGroupsData> {
+class FaceGroupsNotifier extends AsyncNotifier<FaceGroupsData>
+    with PaginationGuard {
   @override
   Future<FaceGroupsData> build() async {
+    beginGeneration(ref);
+
     final page = await ref.guarded(
       (c) => c.faceGroups(limit: _faceGroupPageSize, offset: 0),
     );
@@ -55,6 +59,7 @@ class FaceGroupsNotifier extends AsyncNotifier<FaceGroupsData> {
     final current = state.valueOrNull;
     if (current == null || !current.hasMore || current.loadingMore) return;
 
+    final generation = this.generation;
     state = AsyncData(current.copyWith(loadingMore: true));
 
     try {
@@ -65,6 +70,7 @@ class FaceGroupsNotifier extends AsyncNotifier<FaceGroupsData> {
         ),
       );
 
+      if (movedOn(generation)) return;
       state = AsyncData(
         current.copyWith(
           groups: [...current.groups, ...page],
@@ -73,6 +79,7 @@ class FaceGroupsNotifier extends AsyncNotifier<FaceGroupsData> {
         ),
       );
     } catch (error, stack) {
+      if (movedOn(generation)) return;
       state = AsyncError(error, stack);
     }
   }
@@ -137,9 +144,12 @@ class AlbumData {
   );
 }
 
-class AlbumNotifier extends FamilyAsyncNotifier<AlbumData, String> {
+class AlbumNotifier extends FamilyAsyncNotifier<AlbumData, String>
+    with PaginationGuard {
   @override
   Future<AlbumData> build(String albumId) async {
+    beginGeneration(ref);
+
     final page = await ref.guarded(
       (c) => c.album(albumId: albumId, limit: _albumPageSize, offset: 0),
     );
@@ -156,6 +166,7 @@ class AlbumNotifier extends FamilyAsyncNotifier<AlbumData, String> {
     final current = state.valueOrNull;
     if (current == null || !current.hasMore || current.loadingMore) return;
 
+    final generation = this.generation;
     state = AsyncData(current.copyWith(loadingMore: true));
 
     try {
@@ -167,6 +178,7 @@ class AlbumNotifier extends FamilyAsyncNotifier<AlbumData, String> {
         ),
       );
 
+      if (movedOn(generation)) return;
       state = AsyncData(
         current.copyWith(
           media: [...current.media, ...page.media],
@@ -175,6 +187,7 @@ class AlbumNotifier extends FamilyAsyncNotifier<AlbumData, String> {
         ),
       );
     } catch (error, stack) {
+      if (movedOn(generation)) return;
       state = AsyncError(error, stack);
     }
   }

@@ -46,10 +46,13 @@ class AlbumScreen extends ConsumerWidget {
                     }
 
                     // Deferred: the grid reports this from inside build, and
-                    // loadMore writes provider state straight away.
-                    WidgetsBinding.instance.addPostFrameCallback(
-                      (_) => ref.read(albumProvider(albumId).notifier).loadMore(),
-                    );
+                    // loadMore writes provider state straight away. By the
+                    // time the frame is done the screen may be gone, so the
+                    // element has to be checked before reading from it.
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (!context.mounted) return;
+                      ref.read(albumProvider(albumId).notifier).loadMore();
+                    });
                   },
                 ),
               ),

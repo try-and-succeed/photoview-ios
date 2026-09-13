@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/models.dart';
 import 'auth.dart';
+import 'pagination_guard.dart';
 
 const _pageSize = 200;
 
@@ -63,11 +64,14 @@ List<TimelineGroup> groupTimeline(List<TimelineMedia> items) {
   return groups;
 }
 
-class TimelineNotifier extends AsyncNotifier<TimelineData> {
+class TimelineNotifier extends AsyncNotifier<TimelineData>
+    with PaginationGuard {
   final List<TimelineMedia> _loaded = [];
 
   @override
   Future<TimelineData> build() async {
+    beginGeneration(ref);
+
     _loaded.clear();
     final page = await ref.guarded((c) => c.timeline(limit: _pageSize, offset: 0));
     _loaded.addAll(page);
@@ -83,12 +87,18 @@ class TimelineNotifier extends AsyncNotifier<TimelineData> {
     final current = state.valueOrNull;
     if (current == null || !current.hasMore || current.loadingMore) return;
 
+    final generation = this.generation;
     state = AsyncData(current.copyWith(loadingMore: true));
 
     try {
       final page = await ref.guardedRead(
         (c) => c.timeline(limit: _pageSize, offset: _loaded.length),
       );
+
+      // Checked before touching _loaded, not just before the state write: a
+      // late page appended here would corrupt the accumulated timeline even if
+      // the state assignment were skipped.
+      if (movedOn(generation)) return;
       _loaded.addAll(page);
 
       state = AsyncData(
@@ -100,6 +110,7 @@ class TimelineNotifier extends AsyncNotifier<TimelineData> {
         ),
       );
     } catch (error, stack) {
+      if (movedOn(generation)) return;
       state = AsyncError(error, stack);
     }
   }
