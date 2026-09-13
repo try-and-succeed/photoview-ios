@@ -11,6 +11,9 @@ import 'session.dart';
 /// Raised when the server rejects our credentials and the user must sign in again.
 class UnauthorizedException implements Exception {
   const UnauthorizedException();
+
+  @override
+  String toString() => 'Your sign-in is no longer accepted.';
 }
 
 class ApiException implements Exception {
@@ -213,11 +216,13 @@ class PhotoviewClient {
 
   static String _describe(Object? error) {
     if (error is OperationException) {
+      // What the server said beats how the transport failed: a non-200 with a
+      // GraphQL body would otherwise be reported as an HTTP status.
+      final errors = graphqlErrorsOf(error);
+      if (errors.isNotEmpty) return errors.map((e) => e.message).join(', ');
+
       final link = error.linkException;
       if (link != null) return _describeLink(link);
-      if (error.graphqlErrors.isNotEmpty) {
-        return error.graphqlErrors.map((e) => e.message).join(', ');
-      }
     }
     if (error is LinkException) return _describeLink(error);
     return _describeCause(error);
@@ -228,6 +233,17 @@ class PhotoviewClient {
       final errors = link.parsedResponse?.errors;
       if (errors != null && errors.isNotEmpty) {
         return errors.map((e) => e.message).join(', ');
+      }
+
+      // No body at all — the connection may never have produced one. Falling
+      // through to toString() here would show the user gql's internal
+      // representation, so say what little is known instead.
+      final cause = link.originalException;
+      final status = link.statusCode;
+      if (cause == null) {
+        return status == null
+            ? 'The server did not answer the request.'
+            : 'The server returned HTTP $status.';
       }
     }
     return _describeCause(link.originalException ?? link);
@@ -263,6 +279,15 @@ class PhotoviewClient {
     return _unwrap(result);
   }
 
+  /// Runs a mutation, exactly once.
+  ///
+  /// Queries are safe to repeat, mutations are not, and the difference is not
+  /// visible at the call site once a failure has been turned into an
+  /// exception — so the rule lives here: **a failed mutation is never retried
+  /// automatically**, a timeout included. A timeout says nothing about whether
+  /// the server carried the change out; retrying would risk doing it twice,
+  /// and the second request runs to completion even when the server
+  /// deduplicates the work. Retrying is the user's decision.
   Future<Map<String, dynamic>> _mutate(
     String document, [
     Map<String, dynamic> variables = const {},
@@ -276,13 +301,7 @@ class PhotoviewClient {
   Map<String, dynamic> _unwrap(QueryResult result) {
     if (result.hasException) {
       final exception = result.exception!;
-      final link = exception.linkException;
-      if (link is ServerException && link.statusCode == 401) {
-        throw const UnauthorizedException();
-      }
-      if (exception.graphqlErrors.any(_isAuthError)) {
-        throw const UnauthorizedException();
-      }
+      if (isUnauthorized(exception)) throw const UnauthorizedException();
       throw ApiException(_describe(exception));
     }
 
@@ -290,6 +309,42 @@ class PhotoviewClient {
     if (data == null) throw const ApiException('No data returned from server');
 
     return data;
+  }
+
+  /// Whether [exception] means the sign-in is no longer accepted, as opposed to
+  /// any other failure.
+  ///
+  /// This is the decision that signs the user out, so the two cases it must
+  /// not confuse are a rejected token and a server that is merely unreachable
+  /// or broken. A timeout, a socket error and a 5xx all fall through to
+  /// [ApiException] and leave the session alone.
+  @visibleForTesting
+  static bool isUnauthorized(OperationException exception) {
+    final link = exception.linkException;
+    if (link is ServerException) {
+      final status = link.statusCode;
+      // 403 counts as well as 401. This server checks authorization before it
+      // validates the query, so a request carrying a stale token comes back as
+      // either, depending on how the rejection is raised.
+      if (status == 401 || status == 403) return true;
+    }
+
+    return graphqlErrorsOf(exception).any(_isAuthError);
+  }
+
+  /// Every GraphQL error in [exception], from both places they can hide.
+  ///
+  /// `graphqlErrors` is only populated for a 200 response. When the server
+  /// answers with a non-200 status it still returns a GraphQL body, and those
+  /// errors arrive inside the [ServerException]'s parsed response instead.
+  /// Reading only the first list reports the HTTP status as though it were a
+  /// transport failure and loses what the server actually said.
+  @visibleForTesting
+  static List<GraphQLError> graphqlErrorsOf(OperationException exception) {
+    final link = exception.linkException;
+    final parsed = link is ServerException ? link.parsedResponse?.errors : null;
+
+    return [...exception.graphqlErrors, ...?parsed];
   }
 
   static bool _isAuthError(GraphQLError error) {
