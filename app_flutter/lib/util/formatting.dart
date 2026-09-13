@@ -90,6 +90,19 @@ String formatDimensions(int width, int height) {
   return '${formatter.format(width)} × ${formatter.format(height)}';
 }
 
+/// A download URL reduced to a plain file name, safe to join onto a directory.
+///
+/// `Uri.pathSegments` percent-decodes, so a segment containing `%2F` or `%5C`
+/// comes back carrying a separator and would place the file outside the
+/// directory it was meant for.
+String safeFileName(Uri uri) {
+  final raw = uri.pathSegments.isEmpty ? '' : uri.pathSegments.last;
+  final name = raw.split(RegExp(r'[/\\]')).last.trim();
+
+  if (name.isEmpty || name == '.' || name == '..') return 'download';
+  return name;
+}
+
 String fileExtension(String url) {
   final path = Uri.tryParse(url)?.path ?? url;
   final dot = path.lastIndexOf('.');

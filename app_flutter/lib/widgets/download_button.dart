@@ -10,6 +10,14 @@ import '../api/models.dart';
 import '../state/auth.dart';
 import '../util/formatting.dart';
 
+/// How long to wait for the response headers.
+const _headerTimeout = Duration(seconds: 30);
+
+/// How long a transfer may stall before it is abandoned. An idle deadline,
+/// not a total one: a large original over a slow link is fine, a server that
+/// stops sending is not — and without it the button stays busy forever.
+const _stallTimeout = Duration(seconds: 60);
+
 /// Downloads one rendition through the authenticated session and hands it to
 /// the system share sheet, mirroring the iOS client's download rows.
 class DownloadButton extends ConsumerStatefulWidget {
@@ -29,19 +37,41 @@ class _DownloadButtonState extends ConsumerState<DownloadButton> {
     if (session == null || _busy) return;
 
     setState(() => _busy = true);
+    final client = http.Client();
 
     try {
       final uri = session.resolve(widget.download.url);
-      final response = await http.get(uri, headers: session.headers);
+      final request = http.Request('GET', uri)
+        ..headers.addAll(session.headers);
 
+      final response = await client.send(request).timeout(_headerTimeout);
+
+      if (response.statusCode == 401 || response.statusCode == 403) {
+        // This path bypasses the GraphQL client, so it has to report an
+        // expired session itself or the user is left with a download that
+        // silently never works.
+        await ref.read(authProvider.notifier).sessionExpired(session);
+        throw const HttpException('Your sign-in is no longer accepted');
+      }
       if (response.statusCode != 200) {
         throw HttpException('Server returned ${response.statusCode}');
       }
 
       final directory = await getTemporaryDirectory();
-      final name = uri.pathSegments.isEmpty ? 'download' : uri.pathSegments.last;
-      final file = File('${directory.path}${Platform.pathSeparator}$name');
-      await file.writeAsBytes(response.bodyBytes);
+      final file = File(
+        '${directory.path}${Platform.pathSeparator}${safeFileName(uri)}',
+      );
+
+      // Streamed rather than buffered: the sheet offers the original first,
+      // and holding a few hundred megabytes in memory can end the app.
+      final sink = file.openWrite();
+      try {
+        await response.stream.timeout(_stallTimeout).pipe(sink);
+      } catch (_) {
+        await sink.close();
+        if (file.existsSync()) await file.delete();
+        rethrow;
+      }
 
       if (!mounted) return;
       await SharePlus.instance.share(ShareParams(files: [XFile(file.path)]));
@@ -52,6 +82,7 @@ class _DownloadButtonState extends ConsumerState<DownloadButton> {
         ).showSnackBar(SnackBar(content: Text('Download failed: $error')));
       }
     } finally {
+      client.close();
       if (mounted) setState(() => _busy = false);
     }
   }

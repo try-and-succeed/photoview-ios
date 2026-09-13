@@ -120,6 +120,34 @@ void main() {
       expect(fileExtension('photo/original_abc.JPG'), 'jpg');
       expect(fileExtension('photo/noext'), '');
     });
+  });
+
+  group('safeFileName', () {
+    test('keeps an ordinary file name', () {
+      expect(
+        safeFileName(Uri.parse('http://host/api/photo/berge_01.jpg')),
+        'berge_01.jpg',
+      );
+    });
+
+    test('strips a separator smuggled in as an escape', () {
+      // pathSegments decodes %2F, so the last segment would otherwise carry a
+      // separator and escape the directory it is joined onto.
+      expect(
+        safeFileName(Uri.parse('http://host/api/photo/..%2F..%2Fevil.sh')),
+        'evil.sh',
+      );
+      expect(
+        safeFileName(Uri.parse('http://host/api/photo/a%5Cb%5Cc.jpg')),
+        'c.jpg',
+      );
+    });
+
+    test('falls back for names that address a directory', () {
+      expect(safeFileName(Uri.parse('http://host/api/photo/')), 'download');
+      expect(safeFileName(Uri.parse('http://host')), 'download');
+      expect(safeFileName(Uri.parse('http://host/api/photo/%2E%2E')), 'download');
+    });
 
     test('names known exposure programs', () {
       expect(exposureProgramName(3), 'Aperture priority');
