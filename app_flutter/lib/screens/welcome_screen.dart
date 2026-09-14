@@ -103,7 +103,11 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
     // is a question for the user here; an unreachable host reports itself
     // through the sign-in that follows.
     final certificate = await probeCertificate(endpoint);
-    if (certificate == null || !mounted) return true;
+
+    // Gone while the probe was out: nothing further should be opened on
+    // behalf of a screen the user has already left.
+    if (!mounted) return false;
+    if (certificate == null) return true;
 
     final store = ref.read(trustedCertificatesProvider);
     final pinned = store.accepted[certificate.host];
