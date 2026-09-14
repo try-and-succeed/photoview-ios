@@ -55,6 +55,19 @@ TrustedCertificate describeCertificate(X509Certificate cert, String host) =>
 /// protection TLS provides — the app trusts one exact certificate per host,
 /// after showing the user its fingerprint. If that certificate later changes,
 /// the connection fails again and the user is asked afresh.
+///
+/// **These pins widen trust, they do not narrow it.** A pin is only ever
+/// created for a certificate the TLS stack rejected, and it is consulted only
+/// from [HttpClient.badCertificateCallback] — which the stack does not call
+/// when a certificate validates on its own. So a host that later presents a
+/// certificate issued by a system root, or by a CA the user imported, is
+/// accepted without the pin being consulted.
+///
+/// That is deliberate. Enforcing the pin on top of a valid chain would be
+/// strict pinning, and it would break the path this app actually recommends:
+/// importing the server's CA (see [TrustedCaStore]), after which Caddy's
+/// twice-daily reissues validate normally. Enforcing it would mean prompting
+/// the user twice a day for a certificate that is already verifiable.
 class TrustedCertificateStore {
   static const _key = 'trusted-certificates';
 

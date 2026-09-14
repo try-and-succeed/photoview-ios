@@ -18,10 +18,22 @@ class CertificateErrorMessage extends ConsumerStatefulWidget {
   /// Called after the certificate is accepted, to run the failed request again.
   final VoidCallback? onRetry;
 
+  /// Seams for the test, which can neither open a socket nor tap a dialog.
+  /// Both default to the real thing.
+  final Future<TrustedCertificate?> Function(Uri) probe;
+  final Future<bool> Function(
+    BuildContext,
+    TrustedCertificate, {
+    bool replacesTrusted,
+  })
+  confirm;
+
   const CertificateErrorMessage({
     super.key,
     required this.endpoint,
     this.onRetry,
+    this.probe = probeCertificate,
+    this.confirm = showCertificateDialog,
   });
 
   @override
@@ -41,7 +53,7 @@ class _CertificateErrorMessageState
     });
 
     try {
-      final certificate = await probeCertificate(widget.endpoint);
+      final certificate = await widget.probe(widget.endpoint);
       if (!mounted) return;
 
       if (certificate == null) {
@@ -55,7 +67,7 @@ class _CertificateErrorMessageState
       final store = ref.read(trustedCertificatesProvider);
       final pinned = store.accepted[certificate.host];
 
-      final accepted = await showCertificateDialog(
+      final accepted = await widget.confirm(
         context,
         certificate,
         replacesTrusted: pinned != null && pinned != certificate.sha256,
@@ -71,6 +83,13 @@ class _CertificateErrorMessageState
       if (!mounted) return;
 
       widget.onRetry?.call();
+    } catch (error) {
+      // Storing the decision can fail — secure storage is not guaranteed to be
+      // writable. Without this the button simply came back and the user tried
+      // again forever, never told that the certificate was not saved.
+      if (mounted) {
+        setState(() => _note = 'Could not trust this certificate: $error');
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }

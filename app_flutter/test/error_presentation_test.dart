@@ -3,12 +3,45 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:photoview/api/capabilities.dart';
 import 'package:photoview/api/client.dart';
+import 'package:photoview/api/trusted_certificates.dart';
+import 'package:photoview/state/auth.dart';
 import 'package:photoview/widgets/async_states.dart';
 import 'package:photoview/widgets/certificate_error.dart';
 
-Widget _host(Widget child) => ProviderScope(
-  child: MaterialApp(home: Scaffold(body: child)),
+Widget _host(Widget child, {List<Override> overrides = const []}) =>
+    ProviderScope(
+      overrides: overrides,
+      child: MaterialApp(home: Scaffold(body: child)),
+    );
+
+final _certificate = TrustedCertificate(
+  host: 'photoview.lan',
+  sha256: 'aa' * 32,
+  subject: 'CN=photoview.lan',
+  issuer: 'CN=Caddy Local Authority',
+  validFrom: DateTime.utc(2026, 9, 13),
+  validTo: DateTime.utc(2026, 9, 14),
 );
+
+/// A store whose write fails, as it does on a device with unwritable secure
+/// storage.
+class _UnwritableStore extends TrustedCertificateStore {
+  @override
+  Future<void> trust(TrustedCertificate certificate) async {
+    throw Exception('secure storage is unavailable');
+  }
+}
+
+/// A store that accepts without touching the secure-storage channel, which
+/// does not answer under the test binding.
+class _RecordingStore extends TrustedCertificateStore {
+  final trusted = <TrustedCertificate>[];
+
+  @override
+  Future<void> trust(TrustedCertificate certificate) async {
+    trusted.add(certificate);
+  }
+}
 
 void main() {
   group('ErrorMessage.forError', () {
@@ -49,6 +82,62 @@ void main() {
       expect(find.text('Review certificate'), findsOneWidget);
       expect(find.text('Retry'), findsNothing);
       expect(find.textContaining('photoview.lan'), findsOneWidget);
+    });
+
+    testWidgets('says so when the certificate could not be stored', (
+      tester,
+    ) async {
+      // Without a catch the button simply came back and the user tried again
+      // forever, never told that the decision was not saved.
+      var retried = 0;
+
+      await tester.pumpWidget(
+        _host(
+          CertificateErrorMessage(
+            endpoint: Uri.parse('https://photoview.lan/api/graphql'),
+            onRetry: () => retried++,
+            probe: (_) async => _certificate,
+            confirm: (_, _, {bool replacesTrusted = false}) async => true,
+          ),
+          overrides: [
+            trustedCertificatesProvider.overrideWithValue(_UnwritableStore()),
+          ],
+        ),
+      );
+
+      await tester.tap(find.text('Review certificate'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Could not trust this certificate'),
+          findsOneWidget);
+      expect(retried, 0, reason: 'nothing was stored, so nothing to retry');
+    });
+
+    testWidgets('retries the screen once the certificate is accepted', (
+      tester,
+    ) async {
+      var retried = 0;
+      final store = _RecordingStore();
+
+      await tester.pumpWidget(
+        _host(
+          CertificateErrorMessage(
+            endpoint: Uri.parse('https://photoview.lan/api/graphql'),
+            onRetry: () => retried++,
+            probe: (_) async => _certificate,
+            confirm: (_, _, {bool replacesTrusted = false}) async => true,
+          ),
+          overrides: [
+            trustedCertificatesProvider.overrideWithValue(store),
+          ],
+        ),
+      );
+
+      await tester.tap(find.text('Review certificate'));
+      await tester.pumpAndSettle();
+
+      expect(store.trusted.single.sha256, _certificate.sha256);
+      expect(retried, 1);
     });
 
     testWidgets('presents a missing server feature calmly', (tester) async {

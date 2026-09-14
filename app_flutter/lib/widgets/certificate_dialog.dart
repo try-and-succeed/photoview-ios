@@ -94,7 +94,8 @@ class _CertificateDialog extends StatelessWidget {
             Text(
               'Only continue if this fingerprint matches your server. This '
               'exact certificate will be trusted from now on, and you will be '
-              'asked again if it ever changes.',
+              'asked again if it changes to another one this device cannot '
+              'verify on its own.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
