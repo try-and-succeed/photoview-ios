@@ -21,7 +21,9 @@
       "PowerShell(Copy-Item:*)",
       "PowerShell(Select-Object:*)",
       "PowerShell(Select-String:*)",
-      "PowerShell(Get-Content:*)"
+      "PowerShell(Get-Content:*)",
+      "PowerShell(Get-ChildItem:*)",
+      "PowerShell(Where-Object:*)"
     ]
   }
 }
