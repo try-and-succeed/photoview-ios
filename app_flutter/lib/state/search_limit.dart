@@ -112,17 +112,28 @@ final setSearchLimitProvider = Provider<Future<void> Function(int?)>((ref) {
     final onServer = ref.read(
       hasCapabilityProvider(Capability.searchLimitPreference),
     );
+
+    // Whether this server also keeps the album-tree preference. A separate
+    // capability, so it has to be asked separately — but it travels in the
+    // same record, and the mutation replaces that record whole.
+    final withAlbumTree = ref.read(
+      hasCapabilityProvider(Capability.albumTreePreference),
+    );
     final client = ref.read(clientProvider);
 
     if (onServer && client != null) {
       try {
-        // Read first, then write both fields back. The mutation replaces the
-        // record, so writing the limit alone would erase the language the user
-        // picked in the web interface.
-        final current = await client.userPreferences();
+        // Read first, then write every field back. The mutation replaces the
+        // record, so writing the limit alone would erase the language and the
+        // album-tree setting the user picked in the web interface.
+        final current = await client.userPreferences(
+          withAlbumTree: withAlbumTree,
+        );
         await client.changeUserPreferences(
           language: current.language,
           searchResultLimit: clamped,
+          showAlbumTree: current.showAlbumTree,
+          withAlbumTree: withAlbumTree,
         );
         ref.invalidate(searchLimitProvider);
         return;

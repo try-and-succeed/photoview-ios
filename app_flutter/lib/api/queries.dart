@@ -278,12 +278,19 @@ mutation cancelAllScanJobs {
 ///
 /// `language` is read even though the app does not use it, because it has to
 /// be written back — see [changeUserPreferencesMutation].
-const userPreferencesQuery = r'''
+///
+/// `showAlbumTree` is included only when the server has it, which is why this
+/// is built rather than a constant. Asking for it unconditionally would tie
+/// two separate capabilities together: on a server that has
+/// `searchResultLimit` but not `showAlbumTree`, one missing field would fail
+/// the whole document and take the search limit down with it.
+String userPreferencesQuery({bool withAlbumTree = false}) =>
+    '''
 query myUserPreferences {
   myUserPreferences {
     id
     language
-    searchResultLimit
+    searchResultLimit${withAlbumTree ? '\n    showAlbumTree' : ''}
   }
 }
 ''';
@@ -296,15 +303,23 @@ query myUserPreferences {
 /// to null. So an omitted argument is not "leave alone", it is "clear" — which
 /// is also the only way to clear a field, since the server rejects a negative
 /// limit outright ("search result limit must not be negative").
-const changeUserPreferencesMutation = r'''
-mutation changeUserPreferences($language: String, $searchResultLimit: Int) {
+///
+/// Same conditional shape as [userPreferencesQuery], and for the same reason:
+/// a server without `showAlbumTree` must still be able to store a search
+/// limit.
+String changeUserPreferencesMutation({bool withAlbumTree = false}) =>
+    '''
+mutation changeUserPreferences(
+  \$language: String
+  \$searchResultLimit: Int${withAlbumTree ? '\n  \$showAlbumTree: Boolean' : ''}
+) {
   changeUserPreferences(
-    language: $language
-    searchResultLimit: $searchResultLimit
+    language: \$language
+    searchResultLimit: \$searchResultLimit${withAlbumTree ? '\n    showAlbumTree: \$showAlbumTree' : ''}
   ) {
     id
     language
-    searchResultLimit
+    searchResultLimit${withAlbumTree ? '\n    showAlbumTree' : ''}
   }
 }
 ''';

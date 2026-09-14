@@ -351,12 +351,26 @@ class UserPreferences {
   /// Zero means unlimited.
   final int? searchResultLimit;
 
-  const UserPreferences({this.language, this.searchResultLimit});
+  /// Whether the web interface shows its album tree sidebar.
+  ///
+  /// The app never acts on this — it is a statement about a browser window.
+  /// It is read and written back for the same reason as [language]: so that
+  /// saving the search limit here does not silently switch it off over there.
+  /// Null both when the server has no such field and when it is simply unset;
+  /// the two are told apart by [Capability.albumTreePreference], not here.
+  final bool? showAlbumTree;
+
+  const UserPreferences({
+    this.language,
+    this.searchResultLimit,
+    this.showAlbumTree,
+  });
 
   factory UserPreferences.fromJson(Map<String, dynamic> json) =>
       UserPreferences(
         language: json['language'] as String?,
         searchResultLimit: json['searchResultLimit'] as int?,
+        showAlbumTree: json['showAlbumTree'] as bool?,
       );
 }
 

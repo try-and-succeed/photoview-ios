@@ -22,7 +22,7 @@ class _ServerWithoutPreference extends PhotoviewClient {
   _ServerWithoutPreference() : super(_session);
 
   @override
-  Future<UserPreferences> userPreferences() async =>
+  Future<UserPreferences> userPreferences({bool withAlbumTree = false}) async =>
       throw UnsupportedFieldException(
         field: 'searchResultLimit',
         type: 'UserPreferences',
@@ -32,6 +32,8 @@ class _ServerWithoutPreference extends PhotoviewClient {
   Future<UserPreferences> changeUserPreferences({
     String? language,
     int? searchResultLimit,
+    bool? showAlbumTree,
+    bool withAlbumTree = false,
   }) async => throw UnsupportedFieldException(
     field: 'searchResultLimit',
     type: 'UserPreferences',
@@ -44,19 +46,42 @@ class _ServerWithPreference extends PhotoviewClient {
 
   int? stored = 25;
   String? language = 'English';
+  bool? albumTree = true;
+
+  /// Whether the last write asked for `showAlbumTree` at all.
+  bool? lastWriteAskedForAlbumTree;
 
   @override
-  Future<UserPreferences> userPreferences() async =>
-      UserPreferences(language: language, searchResultLimit: stored);
+  Future<UserPreferences> userPreferences({bool withAlbumTree = false}) async =>
+      UserPreferences(
+        language: language,
+        searchResultLimit: stored,
+        // A server is only asked for what it has; a caller that does not ask
+        // gets null, exactly as an older server would answer.
+        showAlbumTree: withAlbumTree ? albumTree : null,
+      );
 
   @override
   Future<UserPreferences> changeUserPreferences({
     String? language,
     int? searchResultLimit,
+    bool? showAlbumTree,
+    bool withAlbumTree = false,
   }) async {
+    lastWriteAskedForAlbumTree = withAlbumTree;
+
     this.language = language;
     stored = searchResultLimit;
-    return UserPreferences(language: language, searchResultLimit: stored);
+
+    // The record is replaced, so a field left out of the document is the one
+    // case where the stored value survives untouched.
+    if (withAlbumTree) albumTree = showAlbumTree;
+
+    return UserPreferences(
+      language: language,
+      searchResultLimit: stored,
+      showAlbumTree: albumTree,
+    );
   }
 }
 
@@ -74,6 +99,15 @@ ProviderContainer _containerWith(PhotoviewClient client) {
 class _FixedAuth extends AuthNotifier {
   @override
   Future<Session?> build() async => _session;
+}
+
+/// A store that reads what is there but cannot keep anything new — what a
+/// device with unwritable secure storage looks like.
+class _UnwritableStore extends CapabilityStore {
+  @override
+  Future<void> write(String serverId, ServerCapabilities capabilities) async {
+    throw Exception('secure storage is unavailable');
+  }
 }
 
 void main() {
@@ -131,6 +165,34 @@ void main() {
         15,
       );
     });
+
+    test('a cache that cannot be written does not break the read', () async {
+      // The downgrade is awaited by searchLimitProvider, which the search
+      // itself awaits. A device whose secure storage refuses writes would
+      // otherwise lose searching altogether — over a note about a setting that
+      // is only an optimisation in the first place.
+      await CapabilityStore().write(
+        _session.serverId,
+        const ServerCapabilities({
+          Capability.searchLimitPreference: CapabilityState.supported,
+        }),
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          authProvider.overrideWith(_FixedAuth.new),
+          clientProvider.overrideWithValue(_ServerWithoutPreference()),
+          capabilityStoreProvider.overrideWithValue(_UnwritableStore()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(authProvider.future);
+
+      final limit = await container.read(searchLimitProvider.future);
+
+      expect(limit.source, SearchLimitSource.device);
+    });
   });
 
   group('searchLimitProvider against a server that has the preference', () {
@@ -176,6 +238,47 @@ void main() {
       await container.read(setSearchLimitProvider)(maxSearchResultLimit + 500);
 
       expect(client.stored, maxSearchResultLimit);
+    });
+
+    test('writing keeps the album-tree setting on a server that has it',
+        () async {
+      // Same trap as the language, one capability further out: showAlbumTree
+      // lives in the same record, the mutation replaces that record, and the
+      // app never shows the setting — so it would be erased silently, and only
+      // noticed later in the web interface.
+      final client = _ServerWithPreference()..albumTree = true;
+
+      await CapabilityStore().write(
+        _session.serverId,
+        const ServerCapabilities({
+          Capability.searchLimitPreference: CapabilityState.supported,
+          Capability.albumTreePreference: CapabilityState.supported,
+        }),
+      );
+
+      final container = _containerWith(client);
+      await container.read(authProvider.future);
+      await container.read(serverCapabilitiesProvider.future);
+
+      await container.read(setSearchLimitProvider)(40);
+
+      expect(client.stored, 40);
+      expect(client.albumTree, isTrue);
+      expect(client.lastWriteAskedForAlbumTree, isTrue);
+    });
+
+    test('never asks for the album-tree field on a server without it',
+        () async {
+      // The two preferences are separate capabilities. Asking for a field this
+      // server does not have would fail the whole document and take the search
+      // limit down with it.
+      final client = _ServerWithPreference();
+      final container = await supported(client);
+
+      await container.read(setSearchLimitProvider)(40);
+
+      expect(client.stored, 40);
+      expect(client.lastWriteAskedForAlbumTree, isFalse);
     });
 
     test('clearing sends null, not a negative number', () async {

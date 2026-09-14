@@ -717,8 +717,13 @@ class PhotoviewClient {
     return data['cancelAllScanJobs'] as int? ?? 0;
   }
 
-  Future<UserPreferences> userPreferences() async {
-    final data = await _query(userPreferencesQuery);
+  /// Reads the preferences record.
+  ///
+  /// [withAlbumTree] asks for `showAlbumTree` as well, and may only be set
+  /// when [Capability.albumTreePreference] says the server has it — otherwise
+  /// the missing field fails the read of everything else too.
+  Future<UserPreferences> userPreferences({bool withAlbumTree = false}) async {
+    final data = await _query(userPreferencesQuery(withAlbumTree: withAlbumTree));
     final preferences = data['myUserPreferences'] as Map<String, dynamic>?;
     if (preferences == null) return const UserPreferences();
     return UserPreferences.fromJson(preferences);
@@ -726,19 +731,29 @@ class PhotoviewClient {
 
   /// Writes the whole preferences record.
   ///
-  /// Both fields are always sent because the server replaces rather than
+  /// Every field is always sent because the server replaces rather than
   /// patches: measured against a live instance, writing only the search limit
   /// reset a `language` of `English` to null. Callers therefore pass what they
   /// want the record to *be*, not what they want to change — which is also how
   /// the search limit is cleared, since a negative value is refused outright.
+  ///
+  /// [withAlbumTree] carries the same rule as on [userPreferences]: set it
+  /// only for a server that has the field. Left unset, `showAlbumTree` is not
+  /// part of the document at all, so the server keeps whatever it holds.
   Future<UserPreferences> changeUserPreferences({
     String? language,
     int? searchResultLimit,
+    bool? showAlbumTree,
+    bool withAlbumTree = false,
   }) async {
-    final data = await _mutate(changeUserPreferencesMutation, {
-      'language': language,
-      'searchResultLimit': searchResultLimit,
-    });
+    final data = await _mutate(
+      changeUserPreferencesMutation(withAlbumTree: withAlbumTree),
+      {
+        'language': language,
+        'searchResultLimit': searchResultLimit,
+        if (withAlbumTree) 'showAlbumTree': showAlbumTree,
+      },
+    );
 
     final preferences =
         data['changeUserPreferences'] as Map<String, dynamic>?;
