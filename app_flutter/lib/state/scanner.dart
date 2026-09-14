@@ -101,13 +101,23 @@ class ScannerNotifier extends AutoDisposeNotifier<ScannerState>
     return const ScannerState(isLoading: true);
   }
 
+  /// Numbers each [refresh], so only the latest one may touch the state.
+  int _latestRefresh = 0;
+
   Future<void> refresh() async {
     final generation = this.generation;
     final serverId = ref.read(sessionProvider)?.serverId;
 
+    // The poll timer, pull-to-refresh and the refresh after a stop can all be
+    // out at once, and answers need not come back in order. [movedOn] only
+    // tells sessions apart; an older read landing last would put back the
+    // queue as it was before the stop, and schedule a second poll.
+    final request = ++_latestRefresh;
+    bool superseded() => movedOn(generation) || request != _latestRefresh;
+
     try {
       final jobs = await ref.guardedRead((c) => c.scannerQueue());
-      if (movedOn(generation)) return;
+      if (superseded()) return;
 
       // Forget a stop request once its album has left the queue, so the label
       // does not outlive the job it belonged to.
@@ -127,17 +137,17 @@ class ScannerNotifier extends AutoDisposeNotifier<ScannerState>
       //
       // Cancelled, not merely left unscheduled — a poll queued by an earlier
       // successful refresh is still pending and would fire regardless.
-      _timer?.cancel();
+      if (!superseded()) _timer?.cancel();
 
       if (serverId != null) {
         await ref.read(capabilityDowngradeProvider)(serverId, failure);
       }
 
-      if (movedOn(generation)) return;
+      if (superseded()) return;
       state = state.copyWith(isLoading: false, error: '$failure');
       return;
     } catch (error) {
-      if (movedOn(generation)) return;
+      if (superseded()) return;
       state = state.copyWith(isLoading: false, error: '$error');
     }
 

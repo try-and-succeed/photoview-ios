@@ -36,12 +36,22 @@ class _FakeScannerClient extends PhotoviewClient {
   /// What `cancelScanJob` answers: false when there was no such job.
   bool acceptCancel = true;
 
+  /// Delays for the next queue reads, one per read, in order.
+  final List<Duration> readDelays = [];
+
   @override
   Future<List<ScannerJob>> scannerQueue() async {
     queueReads++;
+
+    // The answer is what the queue was when asked, however long it takes.
     final failure = failWith;
+    final snapshot = queue;
+    if (readDelays.isNotEmpty) {
+      await Future<void>.delayed(readDelays.removeAt(0));
+    }
+
     if (failure != null) throw failure;
-    return queue;
+    return snapshot;
   }
 
   /// How long the server takes to accept a scan. Not zero in every test: the
@@ -291,6 +301,42 @@ void main() {
       final state = container.read(scannerProvider);
       expect(state.error, contains('server down'));
       expect(state.jobs, hasLength(1));
+    });
+
+    test('an older queue read that answers last does not win', () async {
+      // A poll goes out while the job is still queued; the user stops it and
+      // the refresh after the stop comes back first. The poll's late answer
+      // must not put the stopped job back.
+      await start([_job('8', 'Berge')]);
+      final notifier = container.read(scannerProvider.notifier);
+
+      client.readDelays.addAll([
+        const Duration(milliseconds: 300),
+        Duration.zero,
+      ]);
+      final poll = notifier.refresh();
+
+      client.queue = [];
+      await notifier.refresh();
+      await poll;
+
+      expect(container.read(scannerProvider).jobs, isEmpty);
+    });
+
+    test('an older failed read does not replace a newer answer', () async {
+      await start([_job('8', 'Berge')]);
+      final notifier = container.read(scannerProvider.notifier);
+
+      client
+        ..failWith = const ApiException('timed out')
+        ..readDelays.addAll([const Duration(milliseconds: 300), Duration.zero]);
+      final poll = notifier.refresh();
+
+      client.failWith = null;
+      await notifier.refresh();
+      await poll;
+
+      expect(container.read(scannerProvider).error, isNull);
     });
 
     test('starting a scan asks for the album the user chose', () async {
