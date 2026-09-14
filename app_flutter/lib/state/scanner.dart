@@ -164,11 +164,36 @@ class ScannerNotifier extends AutoDisposeNotifier<ScannerState>
   /// this provider is torn down while the request is in flight; and
   /// `scanAlbum` has a two-minute timeout, so that is the ordinary case rather
   /// than a race.
-  Future<String?> scanAlbum(String albumId) => _keptAlive(() async {
-    final message = await ref.guardedRead((c) => c.scanAlbum(albumId));
-    await refresh();
-    return message;
-  });
+  ///
+  /// A second request for an album whose scan is still being requested joins
+  /// the first instead of sending another. The button stays tappable while the
+  /// request is out, and the server runs a repeated request to completion even
+  /// though it deduplicates the queue.
+  Future<String?> scanAlbum(String albumId) {
+    final pending = _scansRequested[albumId];
+    if (pending != null) return pending;
+
+    final request = _keptAlive(() async {
+      final message = await ref.guardedRead((c) => c.scanAlbum(albumId));
+      await refresh();
+      return message;
+    });
+
+    // Forgotten once answered, whichever way. whenComplete runs only after
+    // the entry is stored, even for a request that fails straight away; the
+    // derived future is ignored because the caller handles the error.
+    _scansRequested[albumId] = request;
+    request.whenComplete(() {
+      if (identical(_scansRequested[albumId], request)) {
+        _scansRequested.remove(albumId);
+      }
+    }).ignore();
+
+    return request;
+  }
+
+  /// Scan requests still waiting for the server, by album.
+  final Map<String, Future<String?>> _scansRequested = {};
 
   /// Asks the server to stop one album's job.
   ///

@@ -59,10 +59,14 @@ class _FakeScannerClient extends PhotoviewClient {
   /// that depends on the provider still existing when the answer arrives.
   Duration scanDelay = Duration.zero;
 
+  Object? failScanWith;
+
   @override
   Future<String?> scanAlbum(String albumId) async {
     scanned.add(albumId);
     if (scanDelay > Duration.zero) await Future<void>.delayed(scanDelay);
+    final failure = failScanWith;
+    if (failure != null) throw failure;
     return 'Scanner started';
   }
 
@@ -345,6 +349,47 @@ void main() {
       await container.read(scannerProvider.notifier).scanAlbum('3');
 
       expect(client.scanned, ['3']);
+    });
+
+    test('tapping scan twice while the first request is out sends one',
+        () async {
+      await start([]);
+      client.scanDelay = const Duration(milliseconds: 300);
+      final notifier = container.read(scannerProvider.notifier);
+
+      final messages = await Future.wait([
+        notifier.scanAlbum('3'),
+        notifier.scanAlbum('3'),
+      ]);
+
+      expect(client.scanned, ['3']);
+      expect(messages, ['Scanner started', 'Scanner started']);
+
+      // Once answered, asking again is a new request.
+      await notifier.scanAlbum('3');
+      expect(client.scanned, ['3', '3']);
+    });
+
+    test('a failed scan request can be asked again', () async {
+      await start([]);
+      client.failScanWith = const ApiException('refused');
+      final notifier = container.read(scannerProvider.notifier);
+
+      await expectLater(notifier.scanAlbum('3'), throwsA(isA<ApiException>()));
+
+      client.failScanWith = null;
+      expect(await notifier.scanAlbum('3'), 'Scanner started');
+      expect(client.scanned, ['3', '3']);
+    });
+
+    test('scans of different albums are not merged', () async {
+      await start([]);
+      client.scanDelay = const Duration(milliseconds: 300);
+      final notifier = container.read(scannerProvider.notifier);
+
+      await Future.wait([notifier.scanAlbum('3'), notifier.scanAlbum('4')]);
+
+      expect(client.scanned, ['3', '4']);
     });
 
     test('a scan started without a listener stops polling afterwards',
