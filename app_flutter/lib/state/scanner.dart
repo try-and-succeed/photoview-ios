@@ -149,27 +149,22 @@ class ScannerNotifier extends AutoDisposeNotifier<ScannerState>
   /// Never retried on failure — see `PhotoviewClient._mutate`. The caller is
   /// told what happened and can ask again deliberately.
   ///
-  /// Held alive for the whole call. The album screen starts a scan with a bare
-  /// `ref.read`, which creates no listener, so this auto-disposed provider is
-  /// torn down while the request is still in flight — and `scanAlbum` gets its
-  /// own client with a two-minute timeout, so that is the ordinary case rather
-  /// than a race. The `onDispose` that cancels the poll timer has then already
-  /// run, and the `refresh()` below schedules a new one that nothing will ever
-  /// cancel: measured at two extra queue reads in the twenty seconds after a
-  /// scan, going on for as long as the app lives.
-  Future<String?> scanAlbum(String albumId) async {
-    final link = ref.keepAlive();
-    try {
-      final message = await ref.guardedRead((c) => c.scanAlbum(albumId));
-      await refresh();
-      return message;
-    } finally {
-      link.close();
-    }
-  }
+  /// Held alive for the whole call — see [_keptAlive]. The album screen starts
+  /// a scan with a bare `ref.read`, which creates no listener, so without it
+  /// this provider is torn down while the request is in flight; and
+  /// `scanAlbum` has a two-minute timeout, so that is the ordinary case rather
+  /// than a race.
+  Future<String?> scanAlbum(String albumId) => _keptAlive(() async {
+    final message = await ref.guardedRead((c) => c.scanAlbum(albumId));
+    await refresh();
+    return message;
+  });
 
   /// Asks the server to stop one album's job.
-  Future<void> cancel(String albumId) async {
+  ///
+  /// Held alive like [scanAlbum]: the user can close the scanner screen the
+  /// moment they press stop.
+  Future<void> cancel(String albumId) => _keptAlive(() async {
     state = state.copyWith(stopping: {...state.stopping, albumId});
 
     try {
@@ -195,10 +190,12 @@ class ScannerNotifier extends AutoDisposeNotifier<ScannerState>
     }
 
     await refresh();
-  }
+  });
 
   /// Asks the server to stop everything, returning how many jobs it cancelled.
-  Future<int> cancelAll() async {
+  ///
+  /// Held alive like [scanAlbum].
+  Future<int> cancelAll() => _keptAlive(() async {
     final ids = state.jobs.map((j) => j.albumId).toSet();
     state = state.copyWith(stopping: {...state.stopping, ...ids});
 
@@ -212,6 +209,23 @@ class ScannerNotifier extends AutoDisposeNotifier<ScannerState>
         error: '$error',
       );
       rethrow;
+    }
+  });
+
+  /// Runs [action] with this provider held alive until it has finished.
+  ///
+  /// For every mutation that ends in [refresh]. If the last listener goes away
+  /// while the request is out, this auto-disposed provider is torn down and
+  /// the `onDispose` that cancels the poll timer runs; the `refresh()` at the
+  /// end would then schedule a new timer that nothing will ever cancel —
+  /// measured at two extra queue reads in the twenty seconds after a scan,
+  /// going on for as long as the app lives.
+  Future<T> _keptAlive<T>(Future<T> Function() action) async {
+    final link = ref.keepAlive();
+    try {
+      return await action();
+    } finally {
+      link.close();
     }
   }
 

@@ -56,9 +56,14 @@ class _FakeScannerClient extends PhotoviewClient {
     return 'Scanner started';
   }
 
+  /// How long the server takes to answer a stop request. Same reasoning as
+  /// [scanDelay].
+  Duration cancelDelay = Duration.zero;
+
   @override
   Future<bool> cancelScanJob(String albumId) async {
     cancelled.add(albumId);
+    if (cancelDelay > Duration.zero) await Future<void>.delayed(cancelDelay);
     if (!acceptCancel) return false;
 
     if (removeOnCancel) {
@@ -70,6 +75,7 @@ class _FakeScannerClient extends PhotoviewClient {
   @override
   Future<int> cancelAllScanJobs() async {
     cancelAllCalls++;
+    if (cancelDelay > Duration.zero) await Future<void>.delayed(cancelDelay);
     final count = queue.length;
     queue = [];
     return count;
@@ -324,5 +330,43 @@ void main() {
         reason: 'the poll outlived the provider that owns it',
       );
     }, timeout: const Timeout(Duration(seconds: 60)));
+
+    for (final (name, stop) in [
+      ('stop', (ScannerNotifier n) => n.cancel('8')),
+      ('stop all', (ScannerNotifier n) => n.cancelAll()),
+    ]) {
+      test('a $name whose screen closes at once stops polling afterwards',
+          () async {
+        // The user presses stop and leaves the scanner screen straight away,
+        // so the last listener goes while the request is still out.
+        client = _FakeScannerClient()
+          ..queue = [_job('8', 'Berge')]
+          ..cancelDelay = const Duration(seconds: 1);
+        container = ProviderContainer(
+          overrides: [
+            authProvider.overrideWith(_FixedAuth.new),
+            clientProvider.overrideWithValue(client),
+          ],
+        );
+        addTearDown(container.dispose);
+        await container.read(authProvider.future);
+
+        final screen = container.listen(scannerProvider, (_, _) {});
+        await pumpEventQueue();
+
+        final pending = stop(container.read(scannerProvider.notifier));
+        screen.close();
+        await pending;
+        final reads = client.queueReads;
+
+        await Future<void>.delayed(scannerIdlePollInterval * 2);
+
+        expect(
+          client.queueReads,
+          reads,
+          reason: 'the poll outlived the provider that owns it',
+        );
+      }, timeout: const Timeout(Duration(seconds: 60)));
+    }
   });
 }
