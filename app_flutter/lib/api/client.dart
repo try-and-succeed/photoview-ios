@@ -8,6 +8,7 @@ import 'capabilities.dart';
 import 'models.dart';
 import 'queries.dart';
 import 'session.dart';
+import 'trusted_certificates.dart';
 
 /// Raised when the server rejects our credentials and the user must sign in again.
 class UnauthorizedException implements Exception {
@@ -108,6 +109,8 @@ class PhotoviewClient {
         username: username,
         password: password,
       ),
+      presentsCertificate: (endpoint) async =>
+          await probeCertificate(endpoint) != null,
     );
   }
 
@@ -116,11 +119,16 @@ class PhotoviewClient {
   /// Separate from [login] so the stopping rules can be tested without a
   /// server: which failures are worth trying the next candidate for is a
   /// security property, not a detail.
+  ///
+  /// [presentsCertificate] tells a TLS failure *about a certificate* apart
+  /// from a TLS failure because there was none — see the comment where it is
+  /// consulted.
   @visibleForTesting
   static Future<Session> attemptCandidates(
     List<Uri> candidates,
-    Future<Session> Function(Uri endpoint) authorize,
-  ) async {
+    Future<Session> Function(Uri endpoint) authorize, {
+    required Future<bool> Function(Uri endpoint) presentsCertificate,
+  }) async {
     Object? lastError;
 
     for (final endpoint in candidates) {
@@ -130,14 +138,28 @@ class PhotoviewClient {
         // The server answered and refused the credentials — no point retrying
         // the other path prefix.
         rethrow;
-      } on CertificateNotTrustedException {
-        // Stop here rather than work down to the plain-HTTP candidate. A bare
-        // host is tried over HTTPS first, so continuing would send the
-        // password — and later the token — in the clear precisely when the
-        // certificate looked suspicious. The user is asked about the
-        // certificate instead, and can still type an explicit http:// address
-        // if that is what they meant.
-        rethrow;
+      } on CertificateNotTrustedException catch (error) {
+        // Dart reports a handshake against a port that does not speak TLS at
+        // all as a TlsException too, so this may not be about a certificate.
+        // Only a certificate that was actually presented is a trust question.
+        if (await presentsCertificate(endpoint)) {
+          // Stop here rather than work down to the plain-HTTP candidate. A
+          // bare host is tried over HTTPS first, so continuing would send the
+          // password — and later the token — in the clear precisely when the
+          // certificate looked suspicious. The user is asked about the
+          // certificate instead, and can still type an explicit http://
+          // address if that is what they meant.
+          rethrow;
+        }
+
+        // No certificate: nothing was sent and there is nothing to protect,
+        // so this is the same as HTTPS being unreachable — which already falls
+        // through to HTTP. Anyone able to strip TLS from the port could just
+        // as well refuse the connection.
+        lastError = ApiException(
+          '${error.endpoint.host} did not complete a TLS handshake. '
+          'It may only serve plain HTTP.',
+        );
       } catch (error) {
         lastError = error;
       }

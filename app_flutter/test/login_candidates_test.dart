@@ -4,6 +4,9 @@ import 'package:photoview/api/session.dart';
 
 Session _session(Uri endpoint) => Session(endpoint: endpoint, token: 'tok');
 
+Future<bool> _certificate(Uri _) async => true;
+Future<bool> _noCertificate(Uri _) async => false;
+
 void main() {
   /// The candidates a bare host produces: HTTPS first, then plain HTTP.
   final bare = PhotoviewClient.candidateBases('photoview.lan')
@@ -19,13 +22,15 @@ void main() {
     test('works down the list while failures are inconclusive', () async {
       final tried = <Uri>[];
 
-      final session = await PhotoviewClient.attemptCandidates(bare, (
-        endpoint,
-      ) async {
-        tried.add(endpoint);
-        if (tried.length < 3) throw const ApiException('not graphql here');
-        return _session(endpoint);
-      });
+      final session = await PhotoviewClient.attemptCandidates(
+        bare,
+        (endpoint) async {
+          tried.add(endpoint);
+          if (tried.length < 3) throw const ApiException('not graphql here');
+          return _session(endpoint);
+        },
+        presentsCertificate: _certificate,
+      );
 
       expect(tried, hasLength(3));
       expect(session.endpoint, bare[2]);
@@ -35,10 +40,14 @@ void main() {
       final tried = <Uri>[];
 
       await expectLater(
-        PhotoviewClient.attemptCandidates(bare, (endpoint) async {
-          tried.add(endpoint);
-          throw CertificateNotTrustedException(endpoint);
-        }),
+        PhotoviewClient.attemptCandidates(
+          bare,
+          (endpoint) async {
+            tried.add(endpoint);
+            throw CertificateNotTrustedException(endpoint);
+          },
+          presentsCertificate: _certificate,
+        ),
         throwsA(isA<CertificateNotTrustedException>()),
       );
 
@@ -52,14 +61,61 @@ void main() {
       );
     });
 
+    test('falls back to HTTP when the HTTPS port presents no certificate',
+        () async {
+      final tried = <Uri>[];
+
+      // What a plain-HTTP port looks like over HTTPS: the handshake fails as a
+      // TlsException, but no certificate was ever presented.
+      final session = await PhotoviewClient.attemptCandidates(
+        bare,
+        (endpoint) async {
+          tried.add(endpoint);
+          if (endpoint.scheme == 'https') {
+            throw CertificateNotTrustedException(endpoint);
+          }
+          return _session(endpoint);
+        },
+        presentsCertificate: _noCertificate,
+      );
+
+      expect(session.endpoint.scheme, 'http');
+      expect(tried.where((u) => u.scheme == 'https'), hasLength(2));
+    });
+
+    test('names the missing handshake when only HTTPS was tried', () async {
+      final explicit = PhotoviewClient.candidateBases('https://192.168.0.47:8081')
+          .map((b) => b.resolve('graphql'))
+          .toList();
+
+      await expectLater(
+        PhotoviewClient.attemptCandidates(
+          explicit,
+          (endpoint) async => throw CertificateNotTrustedException(endpoint),
+          presentsCertificate: _noCertificate,
+        ),
+        throwsA(
+          isA<LoginFailure>().having(
+            (e) => e.message,
+            'message',
+            contains('did not complete a TLS handshake'),
+          ),
+        ),
+      );
+    });
+
     test('stops as soon as the server refuses the credentials', () async {
       final tried = <Uri>[];
 
       await expectLater(
-        PhotoviewClient.attemptCandidates(bare, (endpoint) async {
-          tried.add(endpoint);
-          throw const LoginFailure('invalid credentials');
-        }),
+        PhotoviewClient.attemptCandidates(
+          bare,
+          (endpoint) async {
+            tried.add(endpoint);
+            throw const LoginFailure('invalid credentials');
+          },
+          presentsCertificate: _certificate,
+        ),
         throwsA(isA<LoginFailure>()),
       );
 
@@ -71,6 +127,7 @@ void main() {
         PhotoviewClient.attemptCandidates(
           bare,
           (_) async => throw const ApiException('unreachable'),
+          presentsCertificate: _certificate,
         ),
         throwsA(isA<LoginFailure>()),
       );
