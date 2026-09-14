@@ -3,7 +3,6 @@
     "allow": [
       "Bash(flutter analyze:*)",
       "Bash(flutter test:*)",
-      "Bash(adb:*)",
       "Bash(openssl x509:*)",
       "Bash(openssl s_client:*)",
       "Bash(git status:*)",
@@ -12,7 +11,6 @@
       "Bash(git show:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)",
       "Bash(git branch:*)",
       "Bash(cd:*)",
       "Bash(ls:*)",
