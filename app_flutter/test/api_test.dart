@@ -8,18 +8,12 @@ void main() {
     List<String> bases(String input) =>
         PhotoviewClient.candidateBases(input).map((u) => u.toString()).toList();
 
-    test('tries both schemes for a bare host', () {
-      expect(bases('photoview.lan'), [
-        'https://photoview.lan/',
-        'http://photoview.lan/',
-      ]);
+    test('tries a bare host over HTTPS only, never plain HTTP', () {
+      expect(bases('photoview.lan'), ['https://photoview.lan/']);
     });
 
     test('keeps a port on a bare host', () {
-      expect(bases('192.168.0.47:8080'), [
-        'https://192.168.0.47:8080/',
-        'http://192.168.0.47:8080/',
-      ]);
+      expect(bases('192.168.0.47:8080'), ['https://192.168.0.47:8080/']);
     });
 
     test('honours an explicit scheme instead of guessing', () {

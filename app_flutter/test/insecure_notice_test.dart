@@ -11,16 +11,12 @@ void main() {
       );
     });
 
-    test('warns about a schemeless address, which may fall back to HTTP', () {
-      // The decisive case: a bare host is the usual way a LAN instance is
-      // entered, and login tries HTTP after HTTPS fails. Staying silent here
-      // would mean no warning at all in exactly the case where the password
-      // goes out in the clear without the user having asked for it.
+    test('stays quiet for a schemeless address, which is HTTPS only', () {
       for (final text in ['photoview.lan', '192.168.0.47:8080', 'host/photos']) {
         expect(
           InsecureConnectionNotice.riskOfText(text),
-          InsecureConnectionRisk.possible,
-          reason: '$text has no scheme, so HTTP is still on the table',
+          InsecureConnectionRisk.none,
+          reason: '$text has no scheme, so sign-in never uses plain HTTP',
         );
       }
     });
@@ -55,6 +51,8 @@ void main() {
         'http://example.com',
         'photoview.lan',
         '192.168.0.47:8080',
+        'host/photos',
+        '  HTTP://host ',
       ];
 
       for (final input in inputs) {

@@ -7,16 +7,18 @@ Session _session(Uri endpoint) => Session(endpoint: endpoint, token: 'tok');
 Future<bool> _certificate(Uri _) async => true;
 Future<bool> _noCertificate(Uri _) async => false;
 
+/// The endpoints [PhotoviewClient.login] tries for what the user typed.
+List<Uri> _candidates(String instance) => PhotoviewClient.candidateBases(
+  instance,
+).expand((b) => [b.resolve('graphql'), b.resolve('api/graphql')]).toList();
+
 void main() {
-  /// The candidates a bare host produces: HTTPS first, then plain HTTP.
-  final bare = PhotoviewClient.candidateBases('photoview.lan')
-      .expand((b) => [b.resolve('graphql'), b.resolve('api/graphql')])
-      .toList();
+  final bare = _candidates('192.168.0.47:8081');
 
   group('PhotoviewClient.attemptCandidates', () {
-    test('a bare host is tried over HTTPS before HTTP', () {
-      expect(bare.first.scheme, 'https');
-      expect(bare.last.scheme, 'http');
+    test('a bare host is only ever tried over HTTPS', () {
+      expect(bare, hasLength(2));
+      expect(bare.every((u) => u.scheme == 'https'), isTrue);
     });
 
     test('works down the list while failures are inconclusive', () async {
@@ -26,17 +28,17 @@ void main() {
         bare,
         (endpoint) async {
           tried.add(endpoint);
-          if (tried.length < 3) throw const ApiException('not graphql here');
+          if (tried.length < 2) throw const ApiException('not graphql here');
           return _session(endpoint);
         },
         presentsCertificate: _certificate,
       );
 
-      expect(tried, hasLength(3));
-      expect(session.endpoint, bare[2]);
+      expect(tried, hasLength(2));
+      expect(session.endpoint, bare[1]);
     });
 
-    test('stops at an untrusted certificate instead of trying HTTP', () async {
+    test('stops at an untrusted certificate', () async {
       final tried = <Uri>[];
 
       await expectLater(
@@ -51,56 +53,40 @@ void main() {
         throwsA(isA<CertificateNotTrustedException>()),
       );
 
-      // The decisive assertion: the password must not be offered to a plain
-      // HTTP endpoint just because HTTPS presented a suspicious certificate.
       expect(tried, hasLength(1));
-      expect(
-        tried.every((u) => u.scheme == 'https'),
-        isTrue,
-        reason: 'no cleartext attempt after a TLS trust failure',
-      );
     });
 
-    test('falls back to HTTP when the HTTPS port presents no certificate',
-        () async {
+    test('a port without TLS is not reported as a certificate problem, and '
+        'points to http:// instead of connecting that way', () async {
       final tried = <Uri>[];
 
       // What a plain-HTTP port looks like over HTTPS: the handshake fails as a
       // TlsException, but no certificate was ever presented.
-      final session = await PhotoviewClient.attemptCandidates(
-        bare,
-        (endpoint) async {
-          tried.add(endpoint);
-          if (endpoint.scheme == 'https') {
-            throw CertificateNotTrustedException(endpoint);
-          }
-          return _session(endpoint);
-        },
-        presentsCertificate: _noCertificate,
-      );
-
-      expect(session.endpoint.scheme, 'http');
-      expect(tried.where((u) => u.scheme == 'https'), hasLength(2));
-    });
-
-    test('names the missing handshake when only HTTPS was tried', () async {
-      final explicit = PhotoviewClient.candidateBases('https://192.168.0.47:8081')
-          .map((b) => b.resolve('graphql'))
-          .toList();
-
       await expectLater(
         PhotoviewClient.attemptCandidates(
-          explicit,
-          (endpoint) async => throw CertificateNotTrustedException(endpoint),
+          bare,
+          (endpoint) async {
+            tried.add(endpoint);
+            throw CertificateNotTrustedException(endpoint);
+          },
           presentsCertificate: _noCertificate,
         ),
         throwsA(
           isA<LoginFailure>().having(
             (e) => e.message,
             'message',
-            contains('did not complete a TLS handshake'),
+            allOf(
+              contains('did not complete a TLS handshake'),
+              contains('http://192.168.0.47:8081'),
+            ),
           ),
         ),
+      );
+
+      expect(
+        tried.every((u) => u.scheme == 'https'),
+        isTrue,
+        reason: 'plain HTTP is only used when the user types it',
       );
     });
 
@@ -134,10 +120,10 @@ void main() {
     });
 
     test('an explicit http:// address is honoured as given', () {
-      final explicit = PhotoviewClient.candidateBases('http://192.168.0.47:8081');
+      final explicit = _candidates('http://192.168.0.47:8081');
 
-      expect(explicit, hasLength(1));
-      expect(explicit.single.scheme, 'http');
+      expect(explicit, isNotEmpty);
+      expect(explicit.every((u) => u.scheme == 'http'), isTrue);
     });
   });
 }

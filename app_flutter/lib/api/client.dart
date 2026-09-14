@@ -121,8 +121,8 @@ class PhotoviewClient {
   /// security property, not a detail.
   ///
   /// [presentsCertificate] tells a TLS failure *about a certificate* apart
-  /// from a TLS failure because there was none — see the comment where it is
-  /// consulted.
+  /// from a TLS failure because there was none — Dart reports both as a
+  /// TlsException, but only the first is a question for the user.
   @visibleForTesting
   static Future<Session> attemptCandidates(
     List<Uri> candidates,
@@ -139,26 +139,19 @@ class PhotoviewClient {
         // the other path prefix.
         rethrow;
       } on CertificateNotTrustedException catch (error) {
-        // Dart reports a handshake against a port that does not speak TLS at
-        // all as a TlsException too, so this may not be about a certificate.
-        // Only a certificate that was actually presented is a trust question.
         if (await presentsCertificate(endpoint)) {
-          // Stop here rather than work down to the plain-HTTP candidate. A
-          // bare host is tried over HTTPS first, so continuing would send the
-          // password — and later the token — in the clear precisely when the
-          // certificate looked suspicious. The user is asked about the
-          // certificate instead, and can still type an explicit http://
-          // address if that is what they meant.
+          // A certificate the device rejected: the user is asked about it,
+          // which the other path prefix on the same host cannot change.
           rethrow;
         }
 
-        // No certificate: nothing was sent and there is nothing to protect,
-        // so this is the same as HTTPS being unreachable — which already falls
-        // through to HTTP. Anyone able to strip TLS from the port could just
-        // as well refuse the connection.
+        // No certificate at all — most likely a port serving plain HTTP. Not
+        // a trust question, so it is reported as what it is, with the way to
+        // connect if plain HTTP is really what the user wants.
         lastError = ApiException(
-          '${error.endpoint.host} did not complete a TLS handshake. '
-          'It may only serve plain HTTP.',
+          '${error.endpoint.host} did not complete a TLS handshake. If it '
+          'only serves plain HTTP, type http://${error.endpoint.authority} '
+          'to connect without encryption.',
         );
       } catch (error) {
         lastError = error;
@@ -209,23 +202,19 @@ class PhotoviewClient {
 
   /// Bases to try for what the user typed.
   ///
-  /// A bare host like `192.168.0.47:8080` gets both schemes, because a
-  /// self-hosted instance is as likely to be plain HTTP on a LAN as HTTPS.
+  /// A bare host like `192.168.0.47:8080` is tried over HTTPS only. Plain HTTP
+  /// is used when the user types `http://` and never as a fallback: whoever
+  /// can make the HTTPS attempt fail on a LAN — refuse it, stall it, or answer
+  /// without TLS — could otherwise answer the HTTP attempt too and receive the
+  /// password in the clear, without the user ever having chosen HTTP.
   /// An explicit scheme is taken at face value.
   @visibleForTesting
   static List<Uri> candidateBases(String raw) {
     final text = raw.trim();
     if (text.isEmpty) return const [];
 
-    if (text.contains('://')) {
-      final uri = _normalizeBase(text);
-      return uri == null ? const [] : [uri];
-    }
-
-    return [
-      _normalizeBase('https://$text'),
-      _normalizeBase('http://$text'),
-    ].whereType<Uri>().toList();
+    final uri = _normalizeBase(text.contains('://') ? text : 'https://$text');
+    return uri == null ? const [] : [uri];
   }
 
   /// Guarantees a trailing slash so [Uri.resolve] appends rather than replaces
