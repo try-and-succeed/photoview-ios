@@ -35,10 +35,16 @@ final serverCapabilitiesProvider = FutureProvider<ServerCapabilities>((
 
   try {
     final probed = await client.probeCapabilities();
-    final merged = remembered.merge(probed);
+    var merged = remembered.merge(probed);
 
     try {
-      await store.write(serverId, merged);
+      // Merged into what is stored now, not into what was read before the
+      // probe: a downgrade recorded while the probe was out would otherwise be
+      // overwritten by the older picture.
+      merged = await store.update(
+        serverId,
+        (current) => current.merge(probed),
+      );
     } catch (_) {
       // An answer that cannot be cached is still an answer. Letting the write
       // failure reach the outer catch would hide every feature the server
@@ -97,13 +103,17 @@ final capabilityDowngradeProvider =
 
         final store = ref.read(capabilityStoreProvider);
 
-        var updated = await store.read(serverId);
-        for (final capability in ruledOut) {
-          updated = updated.downgrade(capability);
-        }
-
         try {
-          await store.write(serverId, updated);
+          // One step from read to write, so a downgrade running at the same
+          // time — the scanner and the search limit can both fail at once —
+          // is not overwritten by this one.
+          await store.update(serverId, (current) {
+            var updated = current;
+            for (final capability in ruledOut) {
+              updated = updated.downgrade(capability);
+            }
+            return updated;
+          });
         } catch (_) {
           // Same reasoning as in serverCapabilitiesProvider: a correction that
           // cannot be cached is still a correction. This one is awaited by

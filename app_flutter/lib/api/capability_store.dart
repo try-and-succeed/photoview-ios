@@ -80,7 +80,48 @@ class CapabilityStore {
   /// Nothing is stored for [CapabilityState.unknown]: an unanswered question
   /// is not an answer, and writing it would make the next launch skip the
   /// probe that could finally settle it.
-  Future<void> write(String serverId, ServerCapabilities capabilities) async {
+  ///
+  /// Replaces what is remembered for [serverId]. To change it in the light of
+  /// what is already there, use [update] instead — reading first and writing
+  /// afterwards loses whatever another change stored in between.
+  Future<void> write(String serverId, ServerCapabilities capabilities) =>
+      _serialized(() => _write(serverId, capabilities));
+
+  /// Reads what is remembered for [serverId], applies [change] and stores the
+  /// result, with no other change to the store in between. Returns what was
+  /// stored.
+  ///
+  /// Every entry lives in one storage record, so two changes that each read
+  /// it, change it and write it back overwrite one another: a probe landing
+  /// during a downgrade, or two features downgraded at once, would keep only
+  /// one of the two.
+  Future<ServerCapabilities> update(
+    String serverId,
+    ServerCapabilities Function(ServerCapabilities current) change,
+  ) => _serialized(() async {
+    final changed = change(await read(serverId));
+    await _write(serverId, changed);
+    return changed;
+  });
+
+  /// Forgets [serverId], so the next read probes again.
+  Future<void> clear(String serverId) => _serialized(() => _clear(serverId));
+
+  /// The end of the queue of changes. Static because every instance shares
+  /// the same storage record.
+  static Future<void> _queue = Future.value();
+
+  /// Runs [action] after every change queued before it.
+  ///
+  /// A failing change still releases the queue: it reports its failure to its
+  /// own caller, and must not stop every later change from running.
+  Future<T> _serialized<T>(Future<T> Function() action) {
+    final result = _queue.then((_) => action());
+    _queue = result.then<void>((_) {}, onError: (Object _) {});
+    return result;
+  }
+
+  Future<void> _write(String serverId, ServerCapabilities capabilities) async {
     final stamp = _now().toUtc().toIso8601String();
     final all = await _readAll();
 
@@ -127,8 +168,7 @@ class CapabilityStore {
     await _storage.write(key: _key, value: jsonEncode(all));
   }
 
-  /// Forgets [serverId], so the next read probes again.
-  Future<void> clear(String serverId) async {
+  Future<void> _clear(String serverId) async {
     final all = await _readAll();
     if (all.remove(serverId) == null) return;
 

@@ -313,6 +313,67 @@ void main() {
       );
     });
 
+    test('changes made at the same time do not overwrite each other', () async {
+      // Two features downgraded at once — the scanner and the search limit
+      // can both fail in the same moment. Each reads the shared record,
+      // changes its own feature and writes it back.
+      await store().write(
+        serverA,
+        const ServerCapabilities({
+          Capability.scanner: CapabilityState.supported,
+          Capability.albumTree: CapabilityState.supported,
+        }),
+      );
+
+      await Future.wait([
+        store().update(serverA, (c) => c.downgrade(Capability.scanner)),
+        store().update(serverA, (c) => c.downgrade(Capability.albumTree)),
+      ]);
+
+      final remembered = await store().read(serverA);
+      expect(remembered[Capability.scanner], CapabilityState.unsupported);
+      expect(remembered[Capability.albumTree], CapabilityState.unsupported);
+    });
+
+    test('a clear is not undone by a write that started earlier', () async {
+      await store().write(
+        serverA,
+        const ServerCapabilities({
+          Capability.scanner: CapabilityState.supported,
+        }),
+      );
+
+      await Future.wait([
+        store().update(serverA, (c) => c.downgrade(Capability.albumTree)),
+        store().clear(serverA),
+      ]);
+
+      expect(
+        (await store().read(serverA)).unresolved,
+        containsAll(Capability.values),
+      );
+    });
+
+    test('a failed change does not block the ones after it', () async {
+      final s = store();
+
+      await expectLater(
+        s.update(serverA, (_) => throw StateError('boom')),
+        throwsStateError,
+      );
+
+      await s.write(
+        serverA,
+        const ServerCapabilities({
+          Capability.scanner: CapabilityState.supported,
+        }),
+      );
+      expect(
+        (await s.read(serverA))[Capability.scanner],
+        CapabilityState.supported,
+      );
+    });
+
     test('unreadable storage reports nothing rather than throwing', () async {
       FlutterSecureStorage.setMockInitialValues({
         'server-capabilities': 'not json at all',
