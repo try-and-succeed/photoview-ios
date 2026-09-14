@@ -102,10 +102,19 @@ class _FixedAuth extends AuthNotifier {
 }
 
 /// A store that reads what is there but cannot keep anything new — what a
-/// device with unwritable secure storage looks like.
+/// device with unwritable secure storage looks like. Both ways in fail: the
+/// probe and the downgrade store their answers through [update].
 class _UnwritableStore extends CapabilityStore {
   @override
   Future<void> write(String serverId, ServerCapabilities capabilities) async {
+    throw Exception('secure storage is unavailable');
+  }
+
+  @override
+  Future<ServerCapabilities> update(
+    String serverId,
+    ServerCapabilities Function(ServerCapabilities current) change,
+  ) async {
     throw Exception('secure storage is unavailable');
   }
 }
@@ -188,12 +197,14 @@ void main() {
       addTearDown(container.dispose);
 
       await container.read(authProvider.future);
+      // Without this the capability is still loading, reads as not supported,
+      // and the server path — where the downgrade happens — is never taken.
+      await container.read(serverCapabilitiesProvider.future);
 
       final limit = await container.read(searchLimitProvider.future);
 
       expect(limit.source, SearchLimitSource.device);
-    });
-  });
+    });  });
 
   group('searchLimitProvider against a server that has the preference', () {
     Future<ProviderContainer> supported(PhotoviewClient client) async {
