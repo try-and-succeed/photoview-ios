@@ -143,6 +143,19 @@ void main() {
       expect(await SettingsStore().searchResultLimit(serverA), isNull);
     });
 
+    test('a record that is not JSON can be written over', () async {
+      // Nothing in it can ever be read back, so refusing would leave the
+      // setting unsavable for good — and a raw FormatException would reach
+      // the settings screen.
+      FlutterSecureStorage.setMockInitialValues({
+        'device-settings': 'not json',
+      });
+
+      await SettingsStore().setSearchResultLimit(serverA, 25);
+
+      expect(await SettingsStore().searchResultLimit(serverA), 25);
+    });
+
     test('refuses to write rather than discard other servers', () async {
       // A write rebuilds the whole record, so treating a failed read as "empty"
       // would silently drop every other server's settings.

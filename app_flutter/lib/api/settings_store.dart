@@ -87,7 +87,15 @@ class SettingsStore {
 
     if (raw == null || raw.isEmpty) return {};
 
-    final decoded = jsonDecode(raw);
-    return decoded is Map<String, dynamic> ? decoded : {};
+    // A record that is not valid JSON counts as empty, exactly like one that
+    // decodes to the wrong shape. The refusal above protects settings that
+    // might still be read on another attempt; nothing will ever be read out
+    // of this, and refusing would make the setting unsavable for good.
+    try {
+      final decoded = jsonDecode(raw);
+      return decoded is Map<String, dynamic> ? decoded : {};
+    } on FormatException {
+      return {};
+    }
   }
 }
