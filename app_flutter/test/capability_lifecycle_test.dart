@@ -40,6 +40,32 @@ class _ServerWithoutPreference extends PhotoviewClient {
   );
 }
 
+/// A client that keeps the search limit but has no `showAlbumTree`.
+class _ServerWithoutAlbumTreePreference extends _ServerWithPreference {
+  UnsupportedFieldException get _missing =>
+      UnsupportedFieldException(field: 'showAlbumTree', type: 'UserPreferences');
+
+  @override
+  Future<UserPreferences> userPreferences({bool withAlbumTree = false}) {
+    if (withAlbumTree) throw _missing;
+    return super.userPreferences();
+  }
+
+  @override
+  Future<UserPreferences> changeUserPreferences({
+    String? language,
+    int? searchResultLimit,
+    bool? showAlbumTree,
+    bool withAlbumTree = false,
+  }) {
+    if (withAlbumTree) throw _missing;
+    return super.changeUserPreferences(
+      language: language,
+      searchResultLimit: searchResultLimit,
+    );
+  }
+}
+
 /// A client that answers normally.
 class _ServerWithPreference extends PhotoviewClient {
   _ServerWithPreference() : super(_session);
@@ -290,6 +316,47 @@ void main() {
 
       expect(client.stored, 40);
       expect(client.lastWriteAskedForAlbumTree, isFalse);
+    });
+
+    test('a refused album-tree field still saves the limit on the server',
+        () async {
+      // The cache wrongly says the server has showAlbumTree. Only that field
+      // is refused; the server still keeps the limit, and the read path reads
+      // it from there — so a device fallback would appear to save and then
+      // show the old server value.
+      final client = _ServerWithoutAlbumTreePreference();
+
+      await CapabilityStore().write(
+        _session.serverId,
+        const ServerCapabilities({
+          Capability.searchLimitPreference: CapabilityState.supported,
+          Capability.albumTreePreference: CapabilityState.supported,
+        }),
+      );
+
+      final container = _containerWith(client);
+      await container.read(authProvider.future);
+      await container.read(serverCapabilitiesProvider.future);
+
+      await container.read(setSearchLimitProvider)(40);
+
+      expect(client.stored, 40);
+      expect(client.language, 'English');
+      expect(
+        await SettingsStore().searchResultLimit(_session.serverId),
+        isNull,
+        reason: 'the server kept it, so nothing belongs on the device',
+      );
+
+      final corrected = await CapabilityStore().read(_session.serverId);
+      expect(
+        corrected[Capability.albumTreePreference],
+        CapabilityState.unsupported,
+      );
+      expect(
+        corrected[Capability.searchLimitPreference],
+        CapabilityState.supported,
+      );
     });
 
     test('clearing sends null, not a negative number', () async {

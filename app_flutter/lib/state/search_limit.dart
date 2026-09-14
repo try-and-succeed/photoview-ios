@@ -116,12 +116,13 @@ final setSearchLimitProvider = Provider<Future<void> Function(int?)>((ref) {
     // Whether this server also keeps the album-tree preference. A separate
     // capability, so it has to be asked separately — but it travels in the
     // same record, and the mutation replaces that record whole.
-    final withAlbumTree = ref.read(
+    var withAlbumTree = ref.read(
       hasCapabilityProvider(Capability.albumTreePreference),
     );
     final client = ref.read(clientProvider);
 
-    if (onServer && client != null) {
+    // At most two attempts: the second only drops showAlbumTree.
+    while (onServer && client != null) {
       try {
         // Read first, then write every field back. The mutation replaces the
         // record, so writing the limit alone would erase the language and the
@@ -138,9 +139,25 @@ final setSearchLimitProvider = Provider<Future<void> Function(int?)>((ref) {
         ref.invalidate(searchLimitProvider);
         return;
       } on UnsupportedFieldException catch (failure) {
-        // Same correction as on the read path, so a wrong "supported" does not
-        // make the setting unsavable — it moves to the device instead.
+        // Same correction as on the read path, so a wrong "supported" corrects
+        // itself.
         await ref.read(capabilityDowngradeProvider)(session.serverId, failure);
+
+        // Only the album-tree field was refused: the server still keeps the
+        // limit, and the read path goes on reading it from there. Saving to
+        // the device instead would report success while the value shown
+        // springs back to the server's.
+        final ruledOut = failure.ruledOut;
+        if (withAlbumTree &&
+            ruledOut.contains(Capability.albumTreePreference) &&
+            !ruledOut.contains(Capability.searchLimitPreference)) {
+          withAlbumTree = false;
+          continue;
+        }
+
+        // The limit itself cannot be kept on this server: it moves to the
+        // device instead.
+        break;
       }
     }
 
