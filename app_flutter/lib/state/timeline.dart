@@ -68,9 +68,22 @@ class TimelineNotifier extends AsyncNotifier<TimelineData>
   @override
   Future<TimelineData> build() async {
     beginGeneration(ref);
+    final generation = this.generation;
 
     _loaded.clear();
     final page = await ref.guarded((c) => c.timeline(limit: _pageSize, offset: 0));
+
+    // Same check as in loadMore, for the same reason: the notifier outlives a
+    // rebuild, so a first page that lands after the next build has cleared
+    // _loaded would be appended to that build's timeline. Riverpod ignores
+    // what a superseded build returns, so returning the page alone is harmless.
+    if (movedOn(generation)) {
+      return TimelineData(
+        groups: groupTimeline(page),
+        mediaCount: page.length,
+        hasMore: page.length >= _pageSize,
+      );
+    }
     _loaded.addAll(page);
 
     return TimelineData(
