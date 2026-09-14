@@ -341,6 +341,27 @@ void main() {
     });
   });
 
+  group('MediaItem.copyWith', () {
+    test('keeps every field it is not asked to change', () {
+      const original = MediaItem(
+        id: '7',
+        type: MediaType.video,
+        title: 'IMG_0001.mov',
+        blurhash: 'LEHV6nWB2yk8',
+        thumbnail: Thumbnail(url: 'a.jpg', width: 4, height: 3),
+      );
+
+      final copy = original.copyWith(favorite: true);
+
+      expect(copy.id, original.id);
+      expect(copy.type, original.type);
+      expect(copy.title, original.title);
+      expect(copy.blurhash, original.blurhash);
+      expect(copy.thumbnail, same(original.thumbnail));
+      expect(copy.favorite, isTrue);
+    });
+  });
+
   group('MediaItem.fromJson media type', () {
     MediaType typeOf(String? raw) =>
         MediaItem.fromJson({'id': '1', 'type': raw}).type;

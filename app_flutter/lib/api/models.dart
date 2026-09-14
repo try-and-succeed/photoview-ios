@@ -61,6 +61,7 @@ class MediaItem {
   MediaItem copyWith({Thumbnail? thumbnail, bool? favorite}) => MediaItem(
     id: id,
     type: type,
+    title: title,
     blurhash: blurhash,
     thumbnail: thumbnail ?? this.thumbnail,
     favorite: favorite ?? this.favorite,
