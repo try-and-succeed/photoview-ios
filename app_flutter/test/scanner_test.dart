@@ -44,9 +44,15 @@ class _FakeScannerClient extends PhotoviewClient {
     return queue;
   }
 
+  /// How long the server takes to accept a scan. Not zero in every test: the
+  /// real call has a two-minute timeout, and an instant answer hides anything
+  /// that depends on the provider still existing when the answer arrives.
+  Duration scanDelay = Duration.zero;
+
   @override
   Future<String?> scanAlbum(String albumId) async {
     scanned.add(albumId);
+    if (scanDelay > Duration.zero) await Future<void>.delayed(scanDelay);
     return 'Scanner started';
   }
 
@@ -288,5 +294,35 @@ void main() {
 
       expect(client.scanned, ['3']);
     });
+
+    test('a scan started without a listener stops polling afterwards',
+        () async {
+      // What the album screen does: `ref.read(...).scanAlbum(...)` and nothing
+      // else. That creates no listener, so this auto-disposed provider is torn
+      // down while the request is still running. Its onDispose — the only
+      // thing that cancels the poll timer — has then already fired, and the
+      // refresh at the end of scanAlbum would schedule a timer nobody can
+      // cancel: a queue poll every ten seconds for the rest of the app's life.
+      client = _FakeScannerClient()..scanDelay = const Duration(seconds: 1);
+      container = ProviderContainer(
+        overrides: [
+          authProvider.overrideWith(_FixedAuth.new),
+          clientProvider.overrideWithValue(client),
+        ],
+      );
+      addTearDown(container.dispose);
+      await container.read(authProvider.future);
+
+      await container.read(scannerProvider.notifier).scanAlbum('7');
+      final reads = client.queueReads;
+
+      await Future<void>.delayed(scannerIdlePollInterval * 2);
+
+      expect(
+        client.queueReads,
+        reads,
+        reason: 'the poll outlived the provider that owns it',
+      );
+    }, timeout: const Timeout(Duration(seconds: 60)));
   });
 }

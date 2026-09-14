@@ -148,10 +148,24 @@ class ScannerNotifier extends AutoDisposeNotifier<ScannerState>
   ///
   /// Never retried on failure — see `PhotoviewClient._mutate`. The caller is
   /// told what happened and can ask again deliberately.
+  ///
+  /// Held alive for the whole call. The album screen starts a scan with a bare
+  /// `ref.read`, which creates no listener, so this auto-disposed provider is
+  /// torn down while the request is still in flight — and `scanAlbum` gets its
+  /// own client with a two-minute timeout, so that is the ordinary case rather
+  /// than a race. The `onDispose` that cancels the poll timer has then already
+  /// run, and the `refresh()` below schedules a new one that nothing will ever
+  /// cancel: measured at two extra queue reads in the twenty seconds after a
+  /// scan, going on for as long as the app lives.
   Future<String?> scanAlbum(String albumId) async {
-    final message = await ref.guardedRead((c) => c.scanAlbum(albumId));
-    await refresh();
-    return message;
+    final link = ref.keepAlive();
+    try {
+      final message = await ref.guardedRead((c) => c.scanAlbum(albumId));
+      await refresh();
+      return message;
+    } finally {
+      link.close();
+    }
   }
 
   /// Asks the server to stop one album's job.
