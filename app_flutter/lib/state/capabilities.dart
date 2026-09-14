@@ -102,7 +102,18 @@ final capabilityDowngradeProvider =
           updated = updated.downgrade(capability);
         }
 
-        await store.write(serverId, updated);
+        try {
+          await store.write(serverId, updated);
+        } catch (_) {
+          // Same reasoning as in serverCapabilitiesProvider: a correction that
+          // cannot be cached is still a correction. This one is awaited by
+          // searchLimitProvider, which the search itself awaits — so letting a
+          // storage failure out would stop the user searching at all, over a
+          // note about a setting.
+        }
+
+        // Invalidated either way. The cache is where the correction is
+        // remembered, not where it takes effect.
         ref.invalidate(serverCapabilitiesProvider);
       };
     });

@@ -196,6 +196,47 @@ void main() {
       );
     });
 
+    test('a re-confirmed miss is dated now, not by the old revision', () async {
+      // read() throws an entry away when the revision has moved on, because
+      // the app is now asking a different question. Carrying that entry's
+      // timestamps into the answer to the new question would date the new
+      // finding to when the old one was made — and an old enough stamp makes
+      // it expire the moment it is written, so the probe runs again on every
+      // single launch.
+      final s = store();
+      await s.write(
+        serverA,
+        const ServerCapabilities({
+          Capability.scanner: CapabilityState.unsupported,
+        }),
+      );
+
+      // A release that changed the probes, long after that answer was given.
+      final raw = await FlutterSecureStorage().read(key: 'server-capabilities');
+      await FlutterSecureStorage().write(
+        key: 'server-capabilities',
+        value: raw!.replaceAll(
+          '"revision":$capabilityProbeRevision',
+          '"revision":${capabilityProbeRevision - 1}',
+        ),
+      );
+      now = now.add(const Duration(days: 30));
+
+      // The new probe asks again and gets the same answer.
+      await store().write(
+        serverA,
+        const ServerCapabilities({
+          Capability.scanner: CapabilityState.unsupported,
+        }),
+      );
+
+      expect(
+        (await store().read(serverA))[Capability.scanner],
+        CapabilityState.unsupported,
+        reason: 'the fresh answer must last its own seven days',
+      );
+    });
+
     test('clear forgets one server and keeps the others', () async {
       final s = store();
       await s.write(

@@ -88,8 +88,16 @@ class CapabilityStore {
     // stores the whole record, so re-stamping would push the seven-day expiry
     // forward each time anything else was written — and the app would never
     // notice a server that gained the feature.
+    //
+    // Only from the same probe revision, though. `read` discards an entry
+    // whose revision has moved on, because the app is now asking a different
+    // question; carrying its timestamps into the answer to that new question
+    // would date the new finding to when the old one was made, and it could
+    // then expire on the spot.
     final previous = all[serverId];
-    final previousMisses = previous is Map<String, dynamic>
+    final previousMisses =
+        previous is Map<String, dynamic> &&
+            previous['revision'] == capabilityProbeRevision
         ? previous['unsupported']
         : null;
 
