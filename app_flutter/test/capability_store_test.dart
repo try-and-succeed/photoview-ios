@@ -172,6 +172,40 @@ void main() {
       );
     });
 
+    test('a miss re-confirmed after expiry lasts another seven days', () async {
+      // Same revision, so the old entry is still in storage when the fresh
+      // answer is written. Its expired date must not be carried into it.
+      final s = store();
+      await s.write(
+        serverA,
+        const ServerCapabilities({
+          Capability.albumTree: CapabilityState.unsupported,
+        }),
+      );
+
+      now = now.add(capabilityMissDuration + const Duration(days: 1));
+      expect(
+        (await s.read(serverA))[Capability.albumTree],
+        CapabilityState.unknown,
+        reason: 'expired, so the app probes again',
+      );
+
+      // The probe gets the same answer.
+      await s.write(
+        serverA,
+        const ServerCapabilities({
+          Capability.albumTree: CapabilityState.unsupported,
+        }),
+      );
+
+      now = now.add(const Duration(days: 6));
+      expect(
+        (await s.read(serverA))[Capability.albumTree],
+        CapabilityState.unsupported,
+        reason: 'the fresh answer must last its own seven days',
+      );
+    });
+
     test('a changed probe revision discards the entry', () async {
       await store().write(
         serverA,

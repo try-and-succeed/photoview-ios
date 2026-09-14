@@ -111,8 +111,8 @@ class CapabilityStore {
           final seenBefore = previousMisses is Map<String, dynamic>
               ? previousMisses[capability.name]
               : null;
-          unsupported[capability.name] = seenBefore is String
-              ? seenBefore
+          unsupported[capability.name] = _isCurrentMiss(seenBefore)
+              ? seenBefore as String
               : stamp;
         case CapabilityState.unknown:
           break;
@@ -158,6 +158,17 @@ class CapabilityStore {
     } catch (_) {
       return {};
     }
+  }
+
+  /// Whether [stamp] dates a miss that `read` would still honour.
+  ///
+  /// An expired one is not carried forward: `read` has already discarded it,
+  /// so the probe asked again, and this write is a new answer. Keeping the old
+  /// date would make that answer expire the moment it is stored — and the
+  /// probe would then run on every launch.
+  bool _isCurrentMiss(Object? stamp) {
+    final seenAt = stamp is String ? DateTime.tryParse(stamp) : null;
+    return seenAt != null && _now().difference(seenAt) < capabilityMissDuration;
   }
 
   static Capability? _capabilityNamed(Object? name) {
