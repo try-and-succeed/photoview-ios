@@ -11,5 +11,199 @@
   "actionCancel": "Cancel",
   "@actionCancel": {
     "description": "Button that dismisses a dialog without doing anything."
+  },
+  "welcomeTitle": "Welcome to Photoview",
+  "@welcomeTitle": {
+    "description": "Heading of the sign-in screen."
+  },
+  "welcomeConnectSubtitle": "Connect to your instance",
+  "@welcomeConnectSubtitle": {
+    "description": "Below the heading when the sign-in form is shown."
+  },
+  "welcomeChooseServer": "Choose a server",
+  "@welcomeChooseServer": {
+    "description": "Below the heading when saved servers are listed."
+  },
+  "welcomeAnotherServer": "Another server",
+  "@welcomeAnotherServer": {
+    "description": "Button below the saved servers that opens the sign-in form for a new one."
+  },
+  "welcomeInstanceLabel": "Instance",
+  "@welcomeInstanceLabel": {
+    "description": "Label of the field for the server address."
+  },
+  "loginUsername": "Username",
+  "@loginUsername": {
+    "description": "Label of the username field."
+  },
+  "loginPassword": "Password",
+  "@loginPassword": {
+    "description": "Label of the password field."
+  },
+  "welcomeConnect": "Connect",
+  "@welcomeConnect": {
+    "description": "Button that signs in."
+  },
+  "welcomeBackToSavedServers": "Back to saved servers",
+  "@welcomeBackToSavedServers": {
+    "description": "Button under the sign-in form that returns to the list of saved servers."
+  },
+  "welcomeSessionExpired": "The saved sign-in for {host} is no longer accepted. Enter your password to sign in again.",
+  "@welcomeSessionExpired": {
+    "description": "Notice when a saved sign-in was rejected by the server.",
+    "placeholders": {
+      "host": {
+        "type": "String",
+        "example": "photoview.lan"
+      }
+    }
+  },
+  "welcomeForgetServerTooltip": "Forget this server",
+  "@welcomeForgetServerTooltip": {
+    "description": "Tooltip of the button that removes a saved server."
+  },
+  "welcomeForgetServerTitle": "Forget {server}?",
+  "@welcomeForgetServerTitle": {
+    "description": "Title of the confirmation before removing a saved server.",
+    "placeholders": {
+      "server": {
+        "type": "String",
+        "example": "photoview.lan"
+      }
+    }
+  },
+  "welcomeForgetServerBody": "The saved sign-in for this server is removed. You can add it again with your password.",
+  "@welcomeForgetServerBody": {
+    "description": "Explanation in the confirmation before removing a saved server."
+  },
+  "actionForget": "Forget",
+  "@actionForget": {
+    "description": "Confirms removing a saved server."
+  },
+  "certificateCouldNotRead": "Could not read the certificate from {host}.",
+  "@certificateCouldNotRead": {
+    "description": "The server's certificate could not be fetched for review.",
+    "placeholders": {
+      "host": {
+        "type": "String",
+        "example": "photoview.lan"
+      }
+    }
+  },
+  "certificateNotAcceptedFor": "Certificate for {host} was not accepted.",
+  "@certificateNotAcceptedFor": {
+    "description": "The user declined a certificate while signing in.",
+    "placeholders": {
+      "host": {
+        "type": "String",
+        "example": "photoview.lan"
+      }
+    }
+  },
+  "certificateChangedTitle": "Certificate has changed",
+  "@certificateChangedTitle": {
+    "description": "Dialog title when a server presents a different certificate than the one accepted before."
+  },
+  "certificateUntrustedTitle": "Untrusted certificate",
+  "@certificateUntrustedTitle": {
+    "description": "Dialog title when a server presents a certificate the device cannot verify."
+  },
+  "certificateChangedBody": "{host} is now presenting a different certificate from the one you accepted. Short-lived certificates are renewed often, so this is usually routine — but it is also what it would look like if something else were answering for this address.",
+  "@certificateChangedBody": {
+    "description": "Explains a changed certificate.",
+    "placeholders": {
+      "host": {
+        "type": "String",
+        "example": "photoview.lan"
+      }
+    }
+  },
+  "certificateUntrustedBody": "{host} identifies itself with a certificate this device cannot verify. That is normal for a self-hosted server using its own certificate authority.",
+  "@certificateUntrustedBody": {
+    "description": "Explains an untrusted certificate.",
+    "placeholders": {
+      "host": {
+        "type": "String",
+        "example": "photoview.lan"
+      }
+    }
+  },
+  "certificateIssuedBy": "Issued by",
+  "@certificateIssuedBy": {
+    "description": "Label: who issued the certificate."
+  },
+  "certificateIssuedTo": "Issued to",
+  "@certificateIssuedTo": {
+    "description": "Label: who the certificate was issued to."
+  },
+  "certificateValid": "Valid",
+  "@certificateValid": {
+    "description": "Label: the period the certificate is valid for."
+  },
+  "certificateFingerprint": "SHA-256 fingerprint",
+  "@certificateFingerprint": {
+    "description": "Label above a certificate's SHA-256 fingerprint."
+  },
+  "certificateTrustWarning": "Only continue if this fingerprint matches your server. This exact certificate will be trusted from now on, and you will be asked again if it changes to another one this device cannot verify on its own.",
+  "@certificateTrustWarning": {
+    "description": "Warning before trusting a certificate."
+  },
+  "certificateTrust": "Trust",
+  "@certificateTrust": {
+    "description": "Button that trusts the shown certificate."
+  },
+  "certificateErrorBody": "The certificate {host} is presenting is not trusted. If it was renewed, you can check the new one and accept it.",
+  "@certificateErrorBody": {
+    "description": "Shown on a screen whose request failed because the certificate is no longer trusted.",
+    "placeholders": {
+      "host": {
+        "type": "String",
+        "example": "photoview.lan"
+      }
+    }
+  },
+  "certificateReview": "Review certificate",
+  "@certificateReview": {
+    "description": "Button that shows the certificate a server presents."
+  },
+  "certificateNotAccepted": "Certificate was not accepted.",
+  "@certificateNotAccepted": {
+    "description": "The user declined the certificate shown."
+  },
+  "certificateTrustFailed": "Could not trust this certificate: {error}",
+  "@certificateTrustFailed": {
+    "description": "Storing the decision to trust a certificate failed.",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "storage unavailable"
+      }
+    }
+  },
+  "insecureConnection": "Unencrypted connection to {host}. Your sign-in travels with every request, so use this only on a network you trust.",
+  "@insecureConnection": {
+    "description": "Warning for a plain HTTP connection.",
+    "placeholders": {
+      "host": {
+        "type": "String",
+        "example": "192.168.0.47"
+      }
+    }
+  },
+  "thisServer": "this server",
+  "@thisServer": {
+    "description": "Stands in for a server address that has not been typed yet, inside a sentence."
+  },
+  "passwordShow": "Show password",
+  "@passwordShow": {
+    "description": "Tooltip of the button that reveals the typed password."
+  },
+  "passwordHide": "Hide password",
+  "@passwordHide": {
+    "description": "Tooltip of the button that hides the typed password again."
+  },
+  "actionRetry": "Retry",
+  "@actionRetry": {
+    "description": "Button that repeats a failed request."
   }
 }

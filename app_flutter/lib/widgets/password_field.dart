@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
+
 /// A password field whose contents can be shown while typing.
 ///
 /// Hidden by default and hidden again whenever the field is rebuilt from
@@ -12,7 +14,9 @@ import 'package:flutter/material.dart';
 class PasswordField extends StatefulWidget {
   final TextEditingController controller;
   final FocusNode? focusNode;
-  final String labelText;
+
+  /// The field's label; "Password" in the app language when not given.
+  final String? labelText;
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onSubmitted;
 
@@ -20,7 +24,7 @@ class PasswordField extends StatefulWidget {
     super.key,
     required this.controller,
     this.focusNode,
-    this.labelText = 'Password',
+    this.labelText,
     this.textInputAction,
     this.onSubmitted,
   });
@@ -34,6 +38,8 @@ class _PasswordFieldState extends State<PasswordField> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return TextField(
       controller: widget.controller,
       focusNode: widget.focusNode,
@@ -45,12 +51,12 @@ class _PasswordFieldState extends State<PasswordField> {
       textInputAction: widget.textInputAction,
       onSubmitted: widget.onSubmitted,
       decoration: InputDecoration(
-        labelText: widget.labelText,
+        labelText: widget.labelText ?? l10n.loginPassword,
         border: const OutlineInputBorder(),
         suffixIcon: IconButton(
           // A real button, not a gesture on the field: reachable by keyboard
           // and announced by a screen reader.
-          tooltip: _revealed ? 'Hide password' : 'Show password',
+          tooltip: _revealed ? l10n.passwordHide : l10n.passwordShow,
           icon: Icon(_revealed ? Icons.visibility_off : Icons.visibility),
           onPressed: () => setState(() => _revealed = !_revealed),
         ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../api/capabilities.dart';
 import '../api/client.dart';
+import '../l10n/app_localizations.dart';
 import 'certificate_error.dart';
 
 class ErrorMessage extends StatelessWidget {
@@ -53,7 +54,10 @@ class ErrorMessage extends StatelessWidget {
             Text(message, textAlign: TextAlign.center),
             if (onRetry != null) ...[
               const SizedBox(height: 16),
-              FilledButton.tonal(onPressed: onRetry, child: const Text('Retry')),
+              FilledButton.tonal(
+                onPressed: onRetry,
+                child: Text(AppLocalizations.of(context).actionRetry),
+              ),
             ],
           ],
         ),

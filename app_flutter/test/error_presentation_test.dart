@@ -8,11 +8,16 @@ import 'package:photoview/state/auth.dart';
 import 'package:photoview/widgets/async_states.dart';
 import 'package:photoview/widgets/certificate_error.dart';
 
-Widget _host(Widget child, {List<Override> overrides = const []}) =>
-    ProviderScope(
-      overrides: overrides,
-      child: MaterialApp(home: Scaffold(body: child)),
-    );
+import 'support/localized_app.dart';
+
+Widget _host(
+  Widget child, {
+  List<Override> overrides = const [],
+  Locale? locale,
+}) => ProviderScope(
+  overrides: overrides,
+  child: localizedApp(home: Scaffold(body: child), locale: locale),
+);
 
 final _certificate = TrustedCertificate(
   host: 'photoview.lan',

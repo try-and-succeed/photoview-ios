@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:photoview/widgets/password_field.dart';
 
+import 'support/localized_app.dart';
+
 TextField _field(WidgetTester tester) =>
     tester.widget<TextField>(find.byType(TextField));
 
-Widget _host(Widget child) => MaterialApp(home: Scaffold(body: child));
+Widget _host(Widget child, {Locale? locale}) =>
+    localizedApp(home: Scaffold(body: child), locale: locale);
 
 void main() {
   testWidgets('starts hidden and can be shown and hidden again', (tester) async {
@@ -40,6 +43,18 @@ void main() {
       expect(field.enableSuggestions, isFalse, reason: 'revealed: $reveal');
       expect(field.autocorrect, isFalse, reason: 'revealed: $reveal');
     }
+  });
+
+  testWidgets('labels and tooltips follow the app language', (tester) async {
+    await tester.pumpWidget(
+      _host(
+        PasswordField(controller: TextEditingController()),
+        locale: const Locale('de'),
+      ),
+    );
+
+    expect(find.text('Passwort'), findsOneWidget);
+    expect(find.byTooltip('Passwort anzeigen'), findsOneWidget);
   });
 
   testWidgets('a field built afresh is hidden again', (tester) async {
