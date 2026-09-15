@@ -100,6 +100,29 @@ void main() {
       );
     });
 
+    test('two transfers of the same name do not share a file', () async {
+      // A shared file stays in the cache while the receiving app reads it;
+      // saving the same photo next must not write over it or delete it.
+      var calls = 0;
+      final fetcher = fetcherWith((_, _) async {
+        calls++;
+        return respond(200, [
+          List.filled(4, calls),
+        ]);
+      });
+
+      final shared = await fetcher.fetch(_session, '/a.jpg', fileName: 'a.jpg');
+      final saved = await fetcher.fetch(_session, '/a.jpg', fileName: 'a.jpg');
+
+      expect(saved.path, isNot(shared.path));
+      expect(saved.path, endsWith('a.jpg'), reason: 'the name is kept');
+      expect(shared.readAsBytesSync(), [1, 1, 1, 1]);
+
+      await discardDownload(saved);
+      expect(shared.existsSync(), isTrue, reason: 'discarding one leaves the other');
+      expect(saved.parent.existsSync(), isFalse, reason: 'its directory goes too');
+    });
+
     test('a transfer that breaks off leaves no partial file behind', () async {
       final fetcher = fetcherWith((_, _) async {
         final controller = StreamController<List<int>>();
@@ -180,6 +203,20 @@ void main() {
         throwsA(isA<DownloadCancelledException>()),
       );
       expect(asked, isFalse);
+    });
+  });
+
+  group('discardDownload', () {
+    test('removes only the file when it is not in a transfer directory', () async {
+      // A wrong path must never take a whole folder with it.
+      final file = File('${temp.path}/unrelated.jpg')..writeAsBytesSync([1]);
+      final neighbour = File('${temp.path}/keep.jpg')..writeAsBytesSync([2]);
+
+      await discardDownload(file);
+
+      expect(file.existsSync(), isFalse);
+      expect(neighbour.existsSync(), isTrue);
+      expect(temp.existsSync(), isTrue);
     });
   });
 

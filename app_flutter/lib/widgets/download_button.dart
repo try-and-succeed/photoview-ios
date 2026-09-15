@@ -103,7 +103,7 @@ class _DownloadButtonState extends ConsumerState<DownloadButton> {
     } finally {
       // The copy the dialog made is the one that matters; the cached file
       // would only use up space.
-      if (file.existsSync()) await file.delete();
+      await discardDownload(file);
     }
   });
 

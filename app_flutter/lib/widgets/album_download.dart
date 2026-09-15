@@ -41,7 +41,7 @@ Future<void> downloadAlbum(
         SnackBar(content: Text('Could not save the album: $error')),
       );
     } finally {
-      if (outcome.existsSync()) await outcome.delete();
+      await discardDownload(outcome);
     }
     return;
   }
@@ -112,8 +112,8 @@ class _AlbumDownloadDialogState extends ConsumerState<_AlbumDownloadDialog> {
 
     if (mounted) {
       Navigator.of(context).pop(outcome);
-    } else if (outcome is File && outcome.existsSync()) {
-      await outcome.delete();
+    } else if (outcome is File) {
+      await discardDownload(outcome);
     }
   }
 

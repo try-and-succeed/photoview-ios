@@ -39,6 +39,34 @@ class DownloadCancellation {
   }
 }
 
+/// Removes a file [MediaFileFetcher.fetch] returned, together with the
+/// directory of its own it was downloaded into.
+///
+/// Only that directory: a file anywhere else is removed on its own, so a
+/// wrong path can never take a whole folder with it.
+Future<void> discardDownload(File file) async {
+  final directory = file.parent;
+  final isTransferDirectory =
+      directory.parent.uri.pathSegments.where((s) => s.isNotEmpty).lastOrNull ==
+          'downloads' &&
+      directory.uri.pathSegments
+              .where((s) => s.isNotEmpty)
+              .lastOrNull
+              ?.startsWith('transfer') ==
+          true;
+
+  try {
+    if (isTransferDirectory) {
+      if (directory.existsSync()) await directory.delete(recursive: true);
+    } else if (file.existsSync()) {
+      await file.delete();
+    }
+  } on FileSystemException {
+    // Cleaning up is best effort; the system clears the temporary directory
+    // on its own eventually.
+  }
+}
+
 /// Where a whole album can be downloaded, as one ZIP of its originals.
 ///
 /// Measured against a live instance: `original` and `thumbnail` answer with a
@@ -138,10 +166,15 @@ class MediaFileFetcher {
       );
     }
 
-    final directory = Directory(
+    // A directory of its own for every transfer, with the file keeping the
+    // name it will be saved or shared under. A shared file stays in the cache
+    // while the receiving app reads it; with one path per name, saving the
+    // same photo next would write over that file and then delete it.
+    final downloads = Directory(
       '${(await _directory()).path}${Platform.pathSeparator}downloads',
     );
-    await directory.create(recursive: true);
+    await downloads.create(recursive: true);
+    final directory = await downloads.createTemp('transfer');
     final file = File('${directory.path}${Platform.pathSeparator}$fileName');
 
     var received = 0;
@@ -164,7 +197,7 @@ class MediaFileFetcher {
       try {
         await sink.close();
       } catch (_) {}
-      if (file.existsSync()) await file.delete();
+      await discardDownload(file);
       rethrow;
     }
 
