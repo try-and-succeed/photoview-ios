@@ -1,6 +1,60 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:photoview/api/models.dart';
+import 'package:photoview/api/session.dart';
+import 'package:photoview/state/auth.dart';
 import 'package:photoview/widgets/fullscreen_gallery.dart';
+
+final _session = Session(
+  endpoint: Uri.parse('http://host:8081/api/graphql'),
+  token: 'tok',
+  username: 'admin',
+);
+
+/// Pages without a thumbnail render a placeholder icon — no network needed,
+/// but still photo pages with the same tap handling.
+final _offlinePages = [
+  for (var i = 0; i < 3; i++) MediaItem(id: '$i', type: MediaType.photo),
+];
+
+/// Opens the gallery from a home screen, so closing it has somewhere to go.
+Future<void> _openGallery(WidgetTester tester) async {
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [sessionProvider.overrideWithValue(_session)],
+      child: MaterialApp(
+        home: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => showFullscreenGallery(
+              context,
+              media: _offlinePages,
+              initialIndex: 0,
+            ),
+            child: const Text('open'),
+          ),
+        ),
+      ),
+    ),
+  );
+  await tester.tap(find.text('open'));
+  await tester.pumpAndSettle();
+}
+
+double _controlsOpacity(WidgetTester tester) => tester
+    .widget<AnimatedOpacity>(
+      find.ancestor(of: find.byType(AppBar), matching: find.byType(AnimatedOpacity)),
+    )
+    .opacity;
+
+/// A single tap, given time to be told apart from the first half of a double
+/// tap, which zooms.
+Future<void> _tapPhoto(WidgetTester tester) async {
+  await tester.tap(find.byIcon(Icons.broken_image_outlined));
+  await tester.pump(const Duration(milliseconds: 500));
+  await tester.pumpAndSettle();
+}
 
 const _thumbnail = Thumbnail(url: '/api/photo/thumbnail_a.jpg', width: 1024, height: 576);
 const _full = Thumbnail(url: '/api/photo/a.jpg', width: 1920, height: 1080);
@@ -28,6 +82,76 @@ void main() {
 
     test('does not load the same file twice as two layers', () {
       expect(galleryLayers(_item, _details(highRes: _thumbnail)), [_thumbnail]);
+    });
+  });
+
+  group('galleryActionFor', () {
+    test('arrows and page keys turn pages, Escape closes', () {
+      expect(galleryActionFor(LogicalKeyboardKey.arrowLeft), GalleryAction.previous);
+      expect(galleryActionFor(LogicalKeyboardKey.pageUp), GalleryAction.previous);
+      expect(galleryActionFor(LogicalKeyboardKey.arrowRight), GalleryAction.next);
+      expect(galleryActionFor(LogicalKeyboardKey.pageDown), GalleryAction.next);
+      expect(galleryActionFor(LogicalKeyboardKey.escape), GalleryAction.close);
+    });
+
+    test('leaves every other key alone', () {
+      expect(galleryActionFor(LogicalKeyboardKey.tab), isNull);
+      expect(galleryActionFor(LogicalKeyboardKey.keyA), isNull);
+    });
+  });
+
+  group('FullscreenGallery presentation', () {
+    testWidgets('a tap on the photo hides the controls, another shows them', (
+      tester,
+    ) async {
+      await _openGallery(tester);
+      expect(_controlsOpacity(tester), 1);
+
+      await _tapPhoto(tester);
+      expect(_controlsOpacity(tester), 0);
+
+      await _tapPhoto(tester);
+      expect(_controlsOpacity(tester), 1);
+    });
+
+    testWidgets('hidden controls stay reachable by keyboard', (tester) async {
+      // Web had them only on hover, which a keyboard never produces. Here they
+      // are faded, not removed, and a key such as Tab brings them back.
+      await _openGallery(tester);
+      await _tapPhoto(tester);
+      expect(_controlsOpacity(tester), 0);
+      // The gallery opens as a fullscreen dialog, so its bar has a close
+      // button rather than a back button.
+      expect(find.byType(CloseButton), findsOneWidget, reason: 'still in the tree');
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pumpAndSettle();
+
+      expect(_controlsOpacity(tester), 1);
+    });
+
+    testWidgets('arrow keys turn the pages', (tester) async {
+      await _openGallery(tester);
+      expect(find.text('1 / 3'), findsOneWidget);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await tester.pumpAndSettle();
+      expect(find.text('2 / 3'), findsOneWidget);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+      await tester.pumpAndSettle();
+      expect(find.text('1 / 3'), findsOneWidget);
+    });
+
+    testWidgets('Escape closes the gallery', (tester) async {
+      await _openGallery(tester);
+      expect(find.text('1 / 3'), findsOneWidget);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+
+      expect(find.text('1 / 3'), findsNothing);
+      expect(find.text('open'), findsOneWidget);
     });
   });
 

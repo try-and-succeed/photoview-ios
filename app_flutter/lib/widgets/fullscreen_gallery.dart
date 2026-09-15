@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
@@ -45,31 +46,114 @@ class FullscreenGallery extends ConsumerStatefulWidget {
   ConsumerState<FullscreenGallery> createState() => _FullscreenGalleryState();
 }
 
+/// What a key does in the gallery.
+enum GalleryAction { previous, next, close }
+
+/// The gallery's keys, for tablets and phones with a keyboard attached.
+@visibleForTesting
+GalleryAction? galleryActionFor(LogicalKeyboardKey key) {
+  if (key == LogicalKeyboardKey.arrowLeft || key == LogicalKeyboardKey.pageUp) {
+    return GalleryAction.previous;
+  }
+  if (key == LogicalKeyboardKey.arrowRight ||
+      key == LogicalKeyboardKey.pageDown) {
+    return GalleryAction.next;
+  }
+  if (key == LogicalKeyboardKey.escape) return GalleryAction.close;
+  return null;
+}
+
+const _pageTurn = Duration(milliseconds: 250);
+
 class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
   late final PageController _controller = PageController(
     initialPage: widget.initialIndex,
   );
   late int _index = widget.initialIndex;
 
+  /// Whether the bar with the position and actions is showing. A tap on a
+  /// photo toggles it, so nothing lies over the picture while looking at it.
+  bool _controlsVisible = true;
+
   @override
   void dispose() {
     _controller.dispose();
+    // Hidden controls also hid the system bars; the rest of the app expects
+    // them back.
+    if (!_controlsVisible) _showSystemBars(true);
     super.dispose();
+  }
+
+  static void _showSystemBars(bool visible) {
+    SystemChrome.setEnabledSystemUIMode(
+      visible ? SystemUiMode.manual : SystemUiMode.immersiveSticky,
+      overlays: visible ? SystemUiOverlay.values : null,
+    );
+  }
+
+  void _setControlsVisible(bool visible) {
+    if (visible == _controlsVisible) return;
+    setState(() => _controlsVisible = visible);
+    _showSystemBars(visible);
+  }
+
+  void _toggleControls() => _setControlsVisible(!_controlsVisible);
+
+  KeyEventResult _onKey(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+      return KeyEventResult.ignored;
+    }
+
+    switch (galleryActionFor(event.logicalKey)) {
+      case GalleryAction.previous:
+        _controller.previousPage(duration: _pageTurn, curve: Curves.easeOut);
+        return KeyEventResult.handled;
+      case GalleryAction.next:
+        _controller.nextPage(duration: _pageTurn, curve: Curves.easeOut);
+        return KeyEventResult.handled;
+      case GalleryAction.close:
+        Navigator.of(context).maybePop();
+        return KeyEventResult.handled;
+      case null:
+        // Any other key — Tab above all — brings the controls back, so focus
+        // moves onto buttons that can be seen. Hidden controls stay in the
+        // tree and reachable; they are only faded out, never removed.
+        _setControlsVisible(true);
+        return KeyEventResult.ignored;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final session = ref.watch(sessionProvider);
 
+    return Focus(
+      autofocus: true,
+      onKeyEvent: _onKey,
+      child: _scaffold(session),
+    );
+  }
+
+  Widget _scaffold(Session? session) {
     return Scaffold(
       backgroundColor: Colors.black,
       extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        title: Text(
-          '${_index + 1} / ${widget.media.length}',
-          style: const TextStyle(fontSize: 15),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: AnimatedOpacity(
+          opacity: _controlsVisible ? 1 : 0,
+          duration: const Duration(milliseconds: 200),
+          child: IgnorePointer(
+            ignoring: !_controlsVisible,
+            child: AppBar(
+              backgroundColor: Colors.black38,
+              foregroundColor: Colors.white,
+              title: Text(
+                '${_index + 1} / ${widget.media.length}',
+                style: const TextStyle(fontSize: 15),
+              ),
+            ),
+          ),
         ),
       ),
       body: session == null
@@ -108,6 +192,7 @@ class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
                     ),
                     minScale: PhotoViewComputedScale.contained,
                     maxScale: PhotoViewComputedScale.contained,
+                    onTapUp: (_, _, _) => _toggleControls(),
                   );
                 }
 
@@ -125,6 +210,7 @@ class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
                   heroAttributes: PhotoViewHeroAttributes(tag: item.id),
                   minScale: PhotoViewComputedScale.contained,
                   maxScale: PhotoViewComputedScale.covered * 4,
+                  onTapUp: (_, _, _) => _toggleControls(),
                 );
               },
             ),
