@@ -210,8 +210,16 @@ class AlbumTreeNotifier extends Notifier<AlbumTreeState>
     List<String> albumIds, {
     bool lookAhead = true,
   }) async {
+    // Skips what is already on its way too. Opening an album whose children
+    // the lookahead is still fetching would otherwise ask twice — and if the
+    // second request failed after the first had succeeded, its error would sit
+    // next to children that loaded fine, where retry (which skips known
+    // children) could never clear it.
     final wanted = albumIds
-        .where((id) => !state.children.containsKey(id))
+        .where(
+          (id) =>
+              !state.children.containsKey(id) && !state.loading.contains(id),
+        )
         .toSet()
         .toList();
     if (wanted.isEmpty) return;

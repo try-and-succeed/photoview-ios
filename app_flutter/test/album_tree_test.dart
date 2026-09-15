@@ -308,6 +308,42 @@ void main() {
     });
   });
 
+  test('opening an album whose children are still loading asks only once',
+      () async {
+    // The roots' lookahead is out asking for 2's children when the user opens
+    // 2. A second request for the same id is wasted — and if it failed after
+    // the first succeeded, its error would stick next to children that loaded.
+    final client = _RecordingClient()
+      ..childrenDelay = const Duration(milliseconds: 200);
+    final container = ProviderContainer(
+      overrides: [
+        authProvider.overrideWith(_FixedAuth.new),
+        clientProvider.overrideWithValue(client),
+      ],
+    );
+    addTearDown(container.dispose);
+    await container.read(authProvider.future);
+
+    container.read(albumTreeProvider);
+    await pumpEventQueue();
+    expect(
+      container.read(albumTreeProvider).loading,
+      contains('2'),
+      reason: "precondition: 2's children are on their way",
+    );
+
+    await container.read(albumTreeProvider.notifier).toggle('2');
+    await Future<void>.delayed(const Duration(seconds: 1));
+
+    expect(
+      client.batches.where((batch) => batch.contains('2')),
+      hasLength(1),
+    );
+    final state = container.read(albumTreeProvider);
+    expect(state.expanded, contains('2'));
+    expect(state.hasChildren('6'), isTrue, reason: 'the lookahead still ran');
+  });
+
   group('AlbumTreeState', () {
     test('distinguishes loading the roots from having none', () {
       const loading = AlbumTreeState();
@@ -345,6 +381,9 @@ class _RecordingClient extends PhotoviewClient {
 
   final List<List<String>> batches = [];
 
+  /// How long each children request takes. Zero hides every overlap.
+  Duration childrenDelay = Duration.zero;
+
   @override
   Future<List<AlbumItem>> myAlbums() async => [
     _album('2', 'Familie'),
@@ -358,6 +397,9 @@ class _RecordingClient extends PhotoviewClient {
   ) async {
     final unique = albumIds.toSet().toList();
     batches.add(unique);
+    if (childrenDelay > Duration.zero) {
+      await Future<void>.delayed(childrenDelay);
+    }
 
     return {for (final id in unique) id: _tree[id] ?? const []};
   }
