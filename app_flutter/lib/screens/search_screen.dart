@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../l10n/app_localizations.dart';
 import '../state/library.dart';
@@ -161,6 +162,14 @@ class _Results extends ConsumerWidget {
   }
 }
 
+/// The heading of a result section, with the count once the list is too long
+/// to take in at a glance, written with the app language's digit grouping.
+@visibleForTesting
+String searchSectionLabel(String title, int count) =>
+    count > compactSearchThreshold
+        ? '$title · ${NumberFormat.decimalPattern().format(count)}'
+        : title;
+
 class _SectionTitle extends StatelessWidget {
   final String title;
 
@@ -173,7 +182,7 @@ class _SectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final label = count > compactSearchThreshold ? '$title · $count' : title;
+    final label = searchSectionLabel(title, count);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
