@@ -18,6 +18,41 @@ const downloadHeaderTimeout = Duration(seconds: 30);
 /// stops sending is not.
 const downloadStallTimeout = Duration(seconds: 60);
 
+/// The user stopped a download.
+class DownloadCancelledException implements Exception {
+  const DownloadCancelledException();
+
+  @override
+  String toString() => 'Download cancelled.';
+}
+
+/// Lets a running download be stopped from outside.
+class DownloadCancellation {
+  final _cancelled = Completer<void>();
+
+  bool get isCancelled => _cancelled.isCompleted;
+
+  Future<void> get whenCancelled => _cancelled.future;
+
+  void cancel() {
+    if (!isCancelled) _cancelled.complete();
+  }
+}
+
+/// Where a whole album can be downloaded, as one ZIP of its originals.
+///
+/// Measured against a live instance: `original` and `thumbnail` answer with a
+/// ZIP; `high-res` answers "no media found" for an album of JPEGs, whose
+/// high-res rendition is the original itself.
+String albumDownloadPath(String albumId) =>
+    '/api/download/album/${Uri.encodeComponent(albumId)}/original';
+
+/// The file name an album's ZIP is saved under: its title.
+String albumZipFileName(String albumTitle) {
+  final name = _safeName(albumTitle);
+  return '${name.isEmpty ? 'album' : name}.zip';
+}
+
 /// Fetches files from the server through the signed-in session into the
 /// app's temporary directory, ready to be saved or shared.
 ///
@@ -41,52 +76,133 @@ class MediaFileFetcher {
   /// of this one file, not of the sign-in, and throws
   /// [PermissionDeniedException]. Anything else names the status and the
   /// start of what the server said.
+  ///
+  /// [onProgress] is told the bytes received so far — the album download
+  /// sends no length, so a count is all there is. Cancelling through
+  /// [cancellation] closes the connection, removes the partial file and
+  /// throws [DownloadCancelledException].
   Future<File> fetch(
     Session session,
     String url, {
     required String fileName,
+    void Function(int received)? onProgress,
+    DownloadCancellation? cancellation,
   }) async {
+    if (cancellation?.isCancelled ?? false) {
+      throw const DownloadCancelledException();
+    }
+
     final client = _newClient();
+    // Closing the client is what interrupts a request under way, whichever
+    // step it is on.
+    cancellation?.whenCancelled.then((_) => client.close());
 
     try {
-      final request = http.Request('GET', session.resolve(url))
-        ..headers.addAll(session.headers);
-      final response = await client.send(request).timeout(downloadHeaderTimeout);
-
-      if (response.statusCode == 401) throw const UnauthorizedException();
-      if (response.statusCode == 403) throw const PermissionDeniedException();
-      if (response.statusCode != 200) {
-        final said = await _shortBody(response);
-        throw ApiException(
-          'The server returned HTTP ${response.statusCode}'
-          '${said.isEmpty ? '' : ': $said'}',
-        );
-      }
-
-      final directory = Directory(
-        '${(await _directory()).path}${Platform.pathSeparator}downloads',
+      return await _fetch(
+        client,
+        session,
+        url,
+        fileName,
+        onProgress,
+        cancellation,
       );
-      await directory.create(recursive: true);
-      final file = File('${directory.path}${Platform.pathSeparator}$fileName');
-
-      final sink = file.openWrite();
-      try {
-        await response.stream.timeout(downloadStallTimeout).pipe(sink);
-      } catch (_) {
-        // pipe may already have closed the sink, in which case closing it
-        // again throws "File closed" — which would replace the real error
-        // and skip the delete, leaving a partial file behind.
-        try {
-          await sink.close();
-        } catch (_) {}
-        if (file.existsSync()) await file.delete();
-        rethrow;
+    } catch (_) {
+      if (cancellation?.isCancelled ?? false) {
+        throw const DownloadCancelledException();
       }
-
-      return file;
+      rethrow;
     } finally {
       client.close();
     }
+  }
+
+  Future<File> _fetch(
+    http.Client client,
+    Session session,
+    String url,
+    String fileName,
+    void Function(int received)? onProgress,
+    DownloadCancellation? cancellation,
+  ) async {
+    final request = http.Request('GET', session.resolve(url))
+      ..headers.addAll(session.headers);
+    final response = await client.send(request).timeout(downloadHeaderTimeout);
+
+    if (response.statusCode == 401) throw const UnauthorizedException();
+    if (response.statusCode == 403) throw const PermissionDeniedException();
+    if (response.statusCode != 200) {
+      final said = await _shortBody(response);
+      throw ApiException(
+        'The server returned HTTP ${response.statusCode}'
+        '${said.isEmpty ? '' : ': $said'}',
+      );
+    }
+
+    final directory = Directory(
+      '${(await _directory()).path}${Platform.pathSeparator}downloads',
+    );
+    await directory.create(recursive: true);
+    final file = File('${directory.path}${Platform.pathSeparator}$fileName');
+
+    var received = 0;
+    final body = cancellation == null
+        ? response.stream
+        : _untilCancelled(response.stream, cancellation);
+    final counted = body.map((chunk) {
+      received += chunk.length;
+      onProgress?.call(received);
+      return chunk;
+    });
+
+    final sink = file.openWrite();
+    try {
+      await counted.timeout(downloadStallTimeout).pipe(sink);
+    } catch (_) {
+      // pipe may already have closed the sink, in which case closing it again
+      // throws "File closed" — which would replace the real error and skip the
+      // delete, leaving a partial file behind.
+      try {
+        await sink.close();
+      } catch (_) {}
+      if (file.existsSync()) await file.delete();
+      rethrow;
+    }
+
+    return file;
+  }
+
+  /// [source], ending with [DownloadCancelledException] as soon as
+  /// [cancellation] fires.
+  ///
+  /// Closing the client normally interrupts the transfer too, but that
+  /// depends on the client; this does not, so a cancelled download stops
+  /// whatever the connection does.
+  static Stream<List<int>> _untilCancelled(
+    Stream<List<int>> source,
+    DownloadCancellation cancellation,
+  ) {
+    late final StreamController<List<int>> out;
+    StreamSubscription<List<int>>? subscription;
+
+    out = StreamController<List<int>>(
+      onListen: () {
+        subscription = source.listen(
+          out.add,
+          onError: out.addError,
+          onDone: out.close,
+        );
+        cancellation.whenCancelled.then((_) {
+          if (out.isClosed) return;
+          subscription?.cancel();
+          out
+            ..addError(const DownloadCancelledException())
+            ..close();
+        });
+      },
+      onCancel: () => subscription?.cancel(),
+    );
+
+    return out.stream;
   }
 
   /// The first line of an error response, shortened. The download endpoints

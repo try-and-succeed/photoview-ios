@@ -33,7 +33,13 @@ class _FakeFetcher extends MediaFileFetcher {
   _FakeFetcher(this.directory, {this.failWith});
 
   @override
-  Future<File> fetch(Session session, String url, {required String fileName}) async {
+  Future<File> fetch(
+    Session session,
+    String url, {
+    required String fileName,
+    void Function(int received)? onProgress,
+    DownloadCancellation? cancellation,
+  }) async {
     fetched.add(url);
     final failure = failWith;
     if (failure != null) throw failure;

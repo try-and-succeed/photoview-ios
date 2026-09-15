@@ -118,6 +118,87 @@ void main() {
     });
   });
 
+  group('MediaFileFetcher.fetch progress and cancelling', () {
+    test('reports the bytes received so far', () async {
+      final progress = <int>[];
+      final fetcher = fetcherWith(
+        (_, _) async => respond(200, [
+          List.filled(1000, 0),
+          List.filled(500, 0),
+        ]),
+      );
+
+      await fetcher.fetch(
+        _session,
+        '/api/download/album/4/original',
+        fileName: 'Screenshots.zip',
+        onProgress: progress.add,
+      );
+
+      expect(progress, [1000, 1500]);
+    });
+
+    test('cancelling mid-transfer stops it and leaves no file', () async {
+      final body = StreamController<List<int>>();
+      final cancellation = DownloadCancellation();
+      final fetcher = fetcherWith(
+        (_, _) async => http.StreamedResponse(body.stream, 200),
+      );
+
+      final download = fetcher.fetch(
+        _session,
+        '/api/download/album/4/original',
+        fileName: 'Screenshots.zip',
+        cancellation: cancellation,
+        onProgress: (received) {
+          // Stop after the first chunk, with the server still sending.
+          if (received >= 3) cancellation.cancel();
+        },
+      );
+      body.add([1, 2, 3]);
+
+      // The body stream is never closed: the download must end on its own.
+      await expectLater(download, throwsA(isA<DownloadCancelledException>()));
+      expect(temp.listSync(recursive: true).whereType<File>(), isEmpty);
+      await body.close();
+    });
+
+    test('a download cancelled before it starts asks nothing', () async {
+      var asked = false;
+      final fetcher = fetcherWith((_, _) async {
+        asked = true;
+        return respond(200, []);
+      });
+
+      await expectLater(
+        fetcher.fetch(
+          _session,
+          '/a.zip',
+          fileName: 'a.zip',
+          cancellation: DownloadCancellation()..cancel(),
+        ),
+        throwsA(isA<DownloadCancelledException>()),
+      );
+      expect(asked, isFalse);
+    });
+  });
+
+  group('album download', () {
+    test('asks for the originals of the album', () {
+      expect(albumDownloadPath('4'), '/api/download/album/4/original');
+    });
+
+    test('an id cannot change the path', () {
+      expect(albumDownloadPath('4/../1'), '/api/download/album/4%2F..%2F1/original');
+    });
+
+    test('names the ZIP after the album', () {
+      expect(albumZipFileName('Screenshots'), 'Screenshots.zip');
+      expect(albumZipFileName('Urlaub 2024/Rom'), 'Urlaub 2024_Rom.zip');
+      expect(albumZipFileName(''), 'album.zip');
+    });
+  });
+
   group('downloadFileName', () {
     test('the original keeps its name in the library', () {
       // Not the storage name with its random suffix.

@@ -5,6 +5,7 @@ import '../api/capabilities.dart';
 import '../state/capabilities.dart';
 import '../state/library.dart';
 import '../state/scanner.dart';
+import '../widgets/album_download.dart';
 import '../widgets/album_grid.dart';
 import '../widgets/async_states.dart';
 import '../widgets/load_more.dart';
@@ -58,6 +59,12 @@ class AlbumScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(title),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.download),
+            tooltip: 'Download album',
+            onPressed: () =>
+                downloadAlbum(context, ref, albumId: albumId, albumTitle: title),
+          ),
           if (ref.watch(hasCapabilityProvider(Capability.scanner)))
             IconButton(
               icon: const Icon(Icons.radar),
