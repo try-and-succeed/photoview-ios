@@ -16,7 +16,6 @@
       "Bash(ls:*)",
       "Bash(rm -f test/probe_riverpod_test.dart)",
       "PowerShell(& \"D:\\Tools\\flutter\\bin\\flutter.bat\":*)",
-      "PowerShell(Copy-Item:*)",
       "PowerShell(Select-Object:*)",
       "PowerShell(Select-String:*)",
       "PowerShell(Get-Content:*)",
