@@ -205,5 +205,153 @@
   "actionRetry": "Retry",
   "@actionRetry": {
     "description": "Button that repeats a failed request."
+  },
+  "navTimeline": "Timeline",
+  "@navTimeline": {
+    "description": "Bottom navigation: the timeline of all media, newest first."
+  },
+  "navAlbums": "Albums",
+  "@navAlbums": {
+    "description": "Bottom navigation, and the albums section of search results."
+  },
+  "navPlaces": "Places",
+  "@navPlaces": {
+    "description": "Bottom navigation: media on a map."
+  },
+  "navPeople": "People",
+  "@navPeople": {
+    "description": "Bottom navigation: recognised faces."
+  },
+  "navSettings": "Settings",
+  "@navSettings": {
+    "description": "Bottom navigation and title of the settings screen."
+  },
+  "timelineEmpty": "No media in your timeline yet",
+  "@timelineEmpty": {
+    "description": "The timeline has no media."
+  },
+  "albumsTitle": "My albums",
+  "@albumsTitle": {
+    "description": "Title of the list of the user's top-level albums."
+  },
+  "albumsTreeTooltip": "Album tree",
+  "@albumsTreeTooltip": {
+    "description": "Tooltip of the button that opens the album hierarchy as a tree."
+  },
+  "albumsEmpty": "No albums found",
+  "@albumsEmpty": {
+    "description": "The user has no albums."
+  },
+  "albumScanStarted": "Scanning this album and its sub-albums.",
+  "@albumScanStarted": {
+    "description": "Confirmation after starting a scan of an album."
+  },
+  "actionShow": "Show",
+  "@actionShow": {
+    "description": "Snackbar action that opens what the message is about."
+  },
+  "albumScanFailed": "Could not start the scan: {error}",
+  "@albumScanFailed": {
+    "description": "Starting a scan failed.",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "The server returned HTTP 500"
+      }
+    }
+  },
+  "albumDownloadTooltip": "Download album",
+  "@albumDownloadTooltip": {
+    "description": "Tooltip of the button that downloads a whole album."
+  },
+  "albumScanTooltip": "Scan for new media",
+  "@albumScanTooltip": {
+    "description": "Tooltip of the button that asks the server to scan an album."
+  },
+  "albumEmpty": "This album is empty",
+  "@albumEmpty": {
+    "description": "An album with neither media nor sub-albums."
+  },
+  "albumTreeFilterHint": "Filter albums",
+  "@albumTreeFilterHint": {
+    "description": "Hint of the field that filters the album tree by name."
+  },
+  "albumTreeEmpty": "No albums yet",
+  "@albumTreeEmpty": {
+    "description": "The album tree has no albums at all."
+  },
+  "albumTreeNoMatch": "No album matches that filter",
+  "@albumTreeNoMatch": {
+    "description": "No album in the tree matches the filter."
+  },
+  "untitledAlbum": "Untitled album",
+  "@untitledAlbum": {
+    "description": "Shown for an album without a title."
+  },
+  "albumTreeSubAlbumsFailed": "Could not load sub-albums",
+  "@albumTreeSubAlbumsFailed": {
+    "description": "Loading one branch of the album tree failed."
+  },
+  "albumTreeCollapse": "Collapse",
+  "@albumTreeCollapse": {
+    "description": "Tooltip: close a branch of the album tree."
+  },
+  "albumTreeExpand": "Expand",
+  "@albumTreeExpand": {
+    "description": "Tooltip: open a branch of the album tree."
+  },
+  "peopleEmpty": "No faces recognised yet.\nFace detection runs on the server.",
+  "@peopleEmpty": {
+    "description": "No faces have been recognised. Two lines."
+  },
+  "personUnlabeled": "Unlabeled",
+  "@personUnlabeled": {
+    "description": "A face group without a name."
+  },
+  "personEmpty": "No media for this person",
+  "@personEmpty": {
+    "description": "A person has no media."
+  },
+  "placesEmpty": "None of your media has location data",
+  "@placesEmpty": {
+    "description": "No media has location data, so the map is empty."
+  },
+  "clusterTitleFallback": "Media at this place",
+  "@clusterTitleFallback": {
+    "description": "Title for media at one map location while its place name is being looked up."
+  },
+  "clusterEmpty": "No media at this location",
+  "@clusterEmpty": {
+    "description": "No media at a map location."
+  },
+  "searchHint": "Search albums and media",
+  "@searchHint": {
+    "description": "Hint of the search field."
+  },
+  "searchPrompt": "Type to search your library",
+  "@searchPrompt": {
+    "description": "Shown before anything has been typed into search."
+  },
+  "searchNoResults": "No results",
+  "@searchNoResults": {
+    "description": "A search found nothing."
+  },
+  "searchMedia": "Media",
+  "@searchMedia": {
+    "description": "Heading of the media section of search results."
+  },
+  "searchHiddenMore": "{count} more not shown. Narrow your search, or set a search result limit in Settings.",
+  "@searchHiddenMore": {
+    "description": "Below a long list of search results: how many more there are and how to see fewer.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "120"
+      }
+    }
+  },
+  "untitledMedia": "Untitled",
+  "@untitledMedia": {
+    "description": "Shown for a photo or video without a title."
   }
 }

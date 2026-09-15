@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../l10n/app_localizations.dart';
 import '../state/library.dart';
 import '../widgets/async_states.dart';
 import '../widgets/media_grid.dart';
@@ -58,7 +59,11 @@ class _ClusterScreenState extends ConsumerState<ClusterScreen> {
     final media = ref.watch(clusterMediaProvider(key));
 
     return Scaffold(
-      appBar: AppBar(title: Text(_locationName ?? 'Places Media')),
+      appBar: AppBar(
+        title: Text(
+          _locationName ?? AppLocalizations.of(context).clusterTitleFallback,
+        ),
+      ),
       body: media.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => ErrorMessage.forError(
@@ -66,7 +71,7 @@ class _ClusterScreenState extends ConsumerState<ClusterScreen> {
           onRetry: () => ref.invalidate(clusterMediaProvider(key)),
         ),
         data: (data) => data.isEmpty
-            ? const EmptyMessage(message: 'No media at this location')
+            ? EmptyMessage(message: AppLocalizations.of(context).clusterEmpty)
             : CustomScrollView(
                 slivers: [
                   SliverPadding(

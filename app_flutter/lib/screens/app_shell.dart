@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import 'albums_screen.dart';
 import 'people_screen.dart';
 import 'places_screen.dart';
@@ -18,6 +19,8 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       // IndexedStack keeps each tab's scroll position and loaded pages alive.
       body: IndexedStack(
@@ -33,31 +36,31 @@ class _AppShellState extends State<AppShell> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (index) => setState(() => _index = index),
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.photo_outlined),
-            selectedIcon: Icon(Icons.photo),
-            label: 'Timeline',
+            icon: const Icon(Icons.photo_outlined),
+            selectedIcon: const Icon(Icons.photo),
+            label: l10n.navTimeline,
           ),
           NavigationDestination(
-            icon: Icon(Icons.photo_album_outlined),
-            selectedIcon: Icon(Icons.photo_album),
-            label: 'Albums',
+            icon: const Icon(Icons.photo_album_outlined),
+            selectedIcon: const Icon(Icons.photo_album),
+            label: l10n.navAlbums,
           ),
           NavigationDestination(
-            icon: Icon(Icons.map_outlined),
-            selectedIcon: Icon(Icons.map),
-            label: 'Places',
+            icon: const Icon(Icons.map_outlined),
+            selectedIcon: const Icon(Icons.map),
+            label: l10n.navPlaces,
           ),
           NavigationDestination(
-            icon: Icon(Icons.people_outline),
-            selectedIcon: Icon(Icons.people),
-            label: 'People',
+            icon: const Icon(Icons.people_outline),
+            selectedIcon: const Icon(Icons.people),
+            label: l10n.navPeople,
           ),
           NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
-            label: 'Settings',
+            icon: const Icon(Icons.settings_outlined),
+            selectedIcon: const Icon(Icons.settings),
+            label: l10n.navSettings,
           ),
         ],
       ),

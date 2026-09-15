@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/app_localizations.dart';
 import '../state/album_tree.dart';
 import '../widgets/async_states.dart';
 import 'album_screen.dart';
@@ -63,8 +64,8 @@ class _AlbumTreeScreenState extends ConsumerState<AlbumTreeScreen> {
       appBar: AppBar(
         title: TextField(
           controller: _controller,
-          decoration: const InputDecoration(
-            hintText: 'Filter albums',
+          decoration: InputDecoration(
+            hintText: AppLocalizations.of(context).albumTreeFilterHint,
             border: InputBorder.none,
           ),
           autocorrect: false,
@@ -102,8 +103,8 @@ class _AlbumTreeScreenState extends ConsumerState<AlbumTreeScreen> {
     if (rows.isEmpty) {
       return EmptyMessage(
         message: _filter.isEmpty
-            ? 'No albums yet'
-            : 'No album matches that filter',
+            ? AppLocalizations.of(context).albumTreeEmpty
+            : AppLocalizations.of(context).albumTreeNoMatch,
         icon: _filter.isEmpty
             ? Icons.photo_album_outlined
             : Icons.search_off,
@@ -145,20 +146,21 @@ class _AlbumTreeTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final album = row.album;
 
     return ListTile(
       contentPadding: EdgeInsets.only(left: 16 + row.depth * 20.0, right: 8),
-      leading: _leading(theme),
+      leading: _leading(theme, l10n),
       title: Text(
-        album.title.isEmpty ? 'Untitled album' : album.title,
+        album.title.isEmpty ? l10n.untitledAlbum : album.title,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
       subtitle: row.error == null
           ? null
           : Text(
-              'Could not load sub-albums',
+              l10n.albumTreeSubAlbumsFailed,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.error,
               ),
@@ -166,7 +168,7 @@ class _AlbumTreeTile extends StatelessWidget {
       trailing: row.error != null
           ? IconButton(
               icon: const Icon(Icons.refresh),
-              tooltip: 'Try again',
+              tooltip: l10n.actionRetry,
               onPressed: onRetry,
             )
           : null,
@@ -181,7 +183,7 @@ class _AlbumTreeTile extends StatelessWidget {
     );
   }
 
-  Widget _leading(ThemeData theme) {
+  Widget _leading(ThemeData theme, AppLocalizations l10n) {
     if (row.isLoading) {
       return const SizedBox(
         width: 24,
@@ -220,7 +222,7 @@ class _AlbumTreeTile extends StatelessWidget {
 
     return IconButton(
       icon: icon,
-      tooltip: row.isExpanded ? 'Collapse' : 'Expand',
+      tooltip: row.isExpanded ? l10n.albumTreeCollapse : l10n.albumTreeExpand,
       onPressed: onToggle,
     );
   }

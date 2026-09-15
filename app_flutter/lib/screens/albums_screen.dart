@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/capabilities.dart';
+import '../l10n/app_localizations.dart';
 import '../state/capabilities.dart';
 import '../state/library.dart';
 import '../widgets/album_grid.dart';
@@ -32,7 +33,7 @@ class AlbumsScreen extends ConsumerWidget {
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             SliverAppBar(
-              title: const Text('My albums'),
+              title: Text(AppLocalizations.of(context).albumsTitle),
               floating: true,
               snap: true,
               actions: [
@@ -42,7 +43,7 @@ class AlbumsScreen extends ConsumerWidget {
                 if (showTree)
                   IconButton(
                     icon: const Icon(Icons.account_tree_outlined),
-                    tooltip: 'Album tree',
+                    tooltip: AppLocalizations.of(context).albumsTreeTooltip,
                     onPressed: () => showAlbumTree(context),
                   ),
                 IconButton(
@@ -69,10 +70,10 @@ class AlbumsScreen extends ConsumerWidget {
               ],
               data: (data) => [
                 if (data.isEmpty)
-                  const SliverFillRemaining(
+                  SliverFillRemaining(
                     hasScrollBody: false,
                     child: EmptyMessage(
-                      message: 'No albums found',
+                      message: AppLocalizations.of(context).albumsEmpty,
                       icon: Icons.photo_album_outlined,
                     ),
                   )
