@@ -157,6 +157,11 @@ query mediaDetails(\$mediaID: ID!) {
     videoWeb {
       url
     }
+    highRes {
+      url
+      width
+      height
+    }
     exif {
       camera
       maker

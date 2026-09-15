@@ -93,8 +93,11 @@ class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
                   );
                 }
 
-                final url = item.thumbnail?.url;
-                if (url == null || url.isEmpty) {
+                final thumbnail = item.thumbnail;
+                if (thumbnail == null ||
+                    thumbnail.url.isEmpty ||
+                    thumbnail.width <= 0 ||
+                    thumbnail.height <= 0) {
                   return PhotoViewGalleryPageOptions.customChild(
                     child: const Center(
                       child: Icon(
@@ -108,11 +111,16 @@ class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
                   );
                 }
 
-                return PhotoViewGalleryPageOptions(
-                  imageProvider: CachedNetworkImageProvider(
-                    session.resolve(url).toString(),
-                    cacheKey: session.cacheKeyFor(url),
-                    headers: session.headers,
+                // A custom child rather than an image provider, so the page
+                // can show the thumbnail at once and fade the full image in
+                // over it. Only the aspect ratio of childSize matters: zoom
+                // scales the canvas, and the full image is drawn from its own
+                // pixels at whatever scale that is.
+                return PhotoViewGalleryPageOptions.customChild(
+                  child: _PhotoPage(item: item, session: session),
+                  childSize: Size(
+                    thumbnail.width.toDouble(),
+                    thumbnail.height.toDouble(),
                   ),
                   heroAttributes: PhotoViewHeroAttributes(tag: item.id),
                   minScale: PhotoViewComputedScale.contained,
@@ -120,6 +128,90 @@ class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
                 );
               },
             ),
+    );
+  }
+}
+
+/// Longest side, in pixels, a full image is decoded at.
+///
+/// The full rendition of a JPEG is the original, and a 24-megapixel original
+/// decodes to around 96 MB; the gallery keeps the neighbouring pages alive as
+/// well. 4096 is still more than twice a phone screen's long side, so zooming
+/// in stays sharp well past the thumbnail.
+const fullImageDecodeLimit = 4096;
+
+/// The renditions a gallery page layers, bottom to top.
+///
+/// The thumbnail is shown at once; the full image, once the details that name
+/// it have arrived, is faded in over it. No full layer when the details are
+/// not in yet, have none, or name the thumbnail itself.
+@visibleForTesting
+List<Thumbnail> galleryLayers(MediaItem item, MediaDetails? details) {
+  final thumbnail = item.thumbnail;
+  final full = details?.highRes;
+
+  return [
+    ?thumbnail,
+    if (full != null && full.url.isNotEmpty && full.url != thumbnail?.url)
+      full,
+  ];
+}
+
+/// One photo: the thumbnail straight away, the full image over it when ready.
+///
+/// The full image comes from the details query, asked per page as it is
+/// shown, rather than from the grid queries — those fetch hundreds of items
+/// at once, and only the few actually opened need it.
+class _PhotoPage extends ConsumerWidget {
+  final MediaItem item;
+  final Session session;
+
+  const _PhotoPage({required this.item, required this.session});
+
+  ImageProvider _provider(Thumbnail rendition) => CachedNetworkImageProvider(
+    session.resolve(rendition.url).toString(),
+    cacheKey: session.cacheKeyFor(rendition.url),
+    headers: session.headers,
+  );
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final details = ref.watch(mediaDetailsProvider(item.id)).valueOrNull;
+    final layers = galleryLayers(item, details);
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        for (final (index, rendition) in layers.indexed)
+          if (index == 0)
+            Image(
+              image: _provider(rendition),
+              fit: BoxFit.contain,
+              gaplessPlayback: true,
+            )
+          else
+            Image(
+              image: ResizeImage(
+                _provider(rendition),
+                width: fullImageDecodeLimit,
+                height: fullImageDecodeLimit,
+                policy: ResizeImagePolicy.fit,
+                allowUpscaling: false,
+              ),
+              fit: BoxFit.contain,
+              frameBuilder: (context, child, frame, synchronous) =>
+                  AnimatedOpacity(
+                    opacity: frame == null ? 0 : 1,
+                    duration: synchronous
+                        ? Duration.zero
+                        : const Duration(milliseconds: 200),
+                    child: child,
+                  ),
+              // A full image that fails to load leaves the thumbnail showing,
+              // which is still a picture of the right thing.
+              errorBuilder: (context, error, stack) => const SizedBox.shrink(),
+            ),
+      ],
     );
   }
 }

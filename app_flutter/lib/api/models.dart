@@ -270,6 +270,12 @@ class MediaDetails {
   final MediaItem media;
   final String title;
   final String? videoWebUrl;
+
+  /// The largest rendition a screen can display. For a JPEG this is the
+  /// original file itself — measured: same URL and size as the "Original"
+  /// download — so it can be large. Only asked for here, one item at a time,
+  /// rather than in the grid queries that fetch hundreds of items at once.
+  final Thumbnail? highRes;
   final MediaExif? exif;
   final List<MediaShare> shares;
   final List<MediaDownload> downloads;
@@ -278,6 +284,7 @@ class MediaDetails {
     required this.media,
     required this.title,
     this.videoWebUrl,
+    this.highRes,
     this.exif,
     this.shares = const [],
     this.downloads = const [],
@@ -286,6 +293,7 @@ class MediaDetails {
   factory MediaDetails.fromJson(Map<String, dynamic> json) {
     final exif = json['exif'] as Map<String, dynamic>?;
     final videoWeb = json['videoWeb'] as Map<String, dynamic>?;
+    final highRes = json['highRes'] as Map<String, dynamic>?;
     final downloads = (json['downloads'] as List<dynamic>? ?? const [])
         .map((e) => MediaDownload.fromJson(e as Map<String, dynamic>))
         .toList();
@@ -297,6 +305,9 @@ class MediaDetails {
       media: MediaItem.fromJson(json),
       title: json['title'] as String? ?? '',
       videoWebUrl: videoWeb?['url'] as String?,
+      highRes: highRes == null || highRes['url'] == null
+          ? null
+          : Thumbnail.fromJson(highRes),
       exif: exif == null ? null : MediaExif.fromJson(exif),
       shares: (json['shares'] as List<dynamic>? ?? const [])
           .map((e) => MediaShare.fromJson(e as Map<String, dynamic>))
