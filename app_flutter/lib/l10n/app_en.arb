@@ -1,0 +1,15 @@
+{
+  "@@locale": "en",
+  "settingsLanguage": "Language",
+  "@settingsLanguage": {
+    "description": "Settings entry that opens the choice of app language."
+  },
+  "settingsLanguageSystemDefault": "System default",
+  "@settingsLanguageSystemDefault": {
+    "description": "Language option: follow the language of the device."
+  },
+  "actionCancel": "Cancel",
+  "@actionCancel": {
+    "description": "Button that dismisses a dialog without doing anything."
+  }
+}

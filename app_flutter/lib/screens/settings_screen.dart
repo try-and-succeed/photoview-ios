@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/capabilities.dart';
 import '../api/trusted_cas.dart';
+import '../l10n/app_localizations.dart';
+import '../l10n/languages.dart';
+import '../state/app_language.dart';
 import '../state/auth.dart';
 import '../state/capabilities.dart';
 import 'scanner_screen.dart';
@@ -75,6 +78,8 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ],
           const Divider(),
+          const _LanguageTile(),
+          const Divider(),
           const _SectionHeader('Security'),
           const _CertificateAuthorities(),
           const _PinnedCertificates(),
@@ -105,6 +110,86 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// The app language: the device's, or one the user picks.
+class _LanguageTile extends ConsumerWidget {
+  const _LanguageTile();
+
+  Future<void> _choose(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
+    final current = ref.read(appLanguageProvider).valueOrNull;
+
+    // A record rather than the language itself, so "follow the device" (null)
+    // can be told apart from dismissing the dialog.
+    final picked = await showDialog<({AppLanguage? language})>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: Text(l10n.settingsLanguage),
+        children: [
+          _LanguageOption(
+            label: l10n.settingsLanguageSystemDefault,
+            selected: current == null,
+            onTap: () => Navigator.of(context).pop((language: null)),
+          ),
+          for (final language in appLanguages)
+            _LanguageOption(
+              label: language.nativeName,
+              selected: current?.code == language.code,
+              onTap: () => Navigator.of(context).pop((language: language)),
+            ),
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: Padding(
+              padding: const EdgeInsetsDirectional.only(end: 16, top: 8),
+              child: TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(l10n.actionCancel),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (picked == null) return;
+    await ref.read(appLanguageProvider.notifier).choose(picked.language);
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final chosen = ref.watch(appLanguageProvider).valueOrNull;
+
+    return ListTile(
+      leading: const Icon(Icons.language),
+      title: Text(l10n.settingsLanguage),
+      subtitle: Text(chosen?.nativeName ?? l10n.settingsLanguageSystemDefault),
+      onTap: () => _choose(context, ref),
+    );
+  }
+}
+
+class _LanguageOption extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _LanguageOption({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      title: Text(label),
+      trailing: selected ? const Icon(Icons.check) : null,
+      selected: selected,
+      onTap: onTap,
     );
   }
 }
