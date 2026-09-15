@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/models.dart';
+import '../l10n/app_localizations.dart';
 import '../state/auth.dart';
 import '../state/library.dart';
 import 'download_button.dart';
@@ -46,6 +47,7 @@ class _MediaDetailsSheetState extends ConsumerState<MediaDetailsSheet> {
   @override
   Widget build(BuildContext context) {
     final details = ref.watch(mediaDetailsProvider(_item.id));
+    final l10n = AppLocalizations.of(context);
 
     return DraggableScrollableSheet(
       initialChildSize: 0.85,
@@ -61,7 +63,7 @@ class _MediaDetailsSheetState extends ConsumerState<MediaDetailsSheet> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
-              details.valueOrNull?.title ?? 'Loading media…',
+              details.valueOrNull?.title ?? l10n.loading,
               style: Theme.of(context).textTheme.titleMedium,
               textAlign: TextAlign.center,
             ),
@@ -80,7 +82,7 @@ class _MediaDetailsSheetState extends ConsumerState<MediaDetailsSheet> {
               Padding(
                 padding: const EdgeInsets.all(24),
                 child: Text(
-                  'Could not load media details: $error',
+                  l10n.mediaDetailsFailed('$error'),
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
@@ -89,13 +91,13 @@ class _MediaDetailsSheetState extends ConsumerState<MediaDetailsSheet> {
             data: (data) => [
               if (data.exif != null) ExifTable(exif: data.exif!),
               if (data.downloads.isNotEmpty) ...[
-                _SectionHeader(title: 'Download'),
+                _SectionHeader(title: l10n.sectionDownload),
                 for (final download in data.downloads)
                   DownloadButton(download: download, mediaTitle: data.title),
               ],
               // Public links, not the share sheet — named apart from the
               // "send to another app" button on each download above.
-              _SectionHeader(title: 'Share links'),
+              _SectionHeader(title: l10n.sectionShareLinks),
               _ShareSection(mediaId: data.media.id, shares: data.shares),
             ],
           ),
@@ -194,7 +196,7 @@ class _ShareSectionState extends ConsumerState<_ShareSection> {
           children: [
             ListTile(
               leading: const Icon(Icons.copy),
-              title: const Text('Copy URL'),
+              title: Text(AppLocalizations.of(context).shareCopyUrl),
               onTap: () {
                 Navigator.of(sheetContext).pop();
                 final session = ref.read(sessionProvider);
@@ -204,7 +206,9 @@ class _ShareSectionState extends ConsumerState<_ShareSection> {
                   ClipboardData(text: session.shareUrl(share.token).toString()),
                 );
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Share link copied')),
+                  SnackBar(
+                    content: Text(AppLocalizations.of(context).shareLinkCopied),
+                  ),
                 );
               },
             ),
@@ -214,7 +218,7 @@ class _ShareSectionState extends ConsumerState<_ShareSection> {
                 color: Theme.of(context).colorScheme.error,
               ),
               title: Text(
-                'Delete share',
+                AppLocalizations.of(context).shareDelete,
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
               onTap: () {
@@ -239,7 +243,7 @@ class _ShareSectionState extends ConsumerState<_ShareSection> {
         if (widget.shares.isEmpty)
           ListTile(
             title: Text(
-              'No shares found',
+              AppLocalizations.of(context).shareNone,
               style: TextStyle(
                 fontStyle: FontStyle.italic,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -256,7 +260,7 @@ class _ShareSectionState extends ConsumerState<_ShareSection> {
         ListTile(
           leading: Icon(Icons.add, color: Theme.of(context).colorScheme.primary),
           title: Text(
-            'Add share',
+            AppLocalizations.of(context).shareAdd,
             style: TextStyle(color: Theme.of(context).colorScheme.primary),
           ),
           onTap: _busy

@@ -353,5 +353,245 @@
   "untitledMedia": "Untitled",
   "@untitledMedia": {
     "description": "Shown for a photo or video without a title."
+  },
+  "galleryInfo": "Info",
+  "@galleryInfo": {
+    "description": "Tooltip of the gallery button that shows a photo's camera data."
+  },
+  "mediaDetailsFailed": "Could not load the details: {error}",
+  "@mediaDetailsFailed": {
+    "description": "Loading a photo's details failed.",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "timeout"
+      }
+    }
+  },
+  "galleryNoCameraData": "No camera data for this photo.",
+  "@galleryNoCameraData": {
+    "description": "A photo has no camera data to show."
+  },
+  "videoPlayFailed": "Could not play video: {error}",
+  "@videoPlayFailed": {
+    "description": "A video could not be played.",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "format not supported"
+      }
+    }
+  },
+  "videoNoRendition": "No playable video rendition available",
+  "@videoNoRendition": {
+    "description": "The server has no version of a video the app can play."
+  },
+  "loading": "Loading…",
+  "@loading": {
+    "description": "Placeholder while something loads."
+  },
+  "sectionDownload": "Download",
+  "@sectionDownload": {
+    "description": "Heading above a photo's download options."
+  },
+  "sectionShareLinks": "Share links",
+  "@sectionShareLinks": {
+    "description": "Heading above a photo's public share links."
+  },
+  "shareCopyUrl": "Copy link",
+  "@shareCopyUrl": {
+    "description": "Copies a public share link."
+  },
+  "shareLinkCopied": "Share link copied",
+  "@shareLinkCopied": {
+    "description": "Confirmation that a share link was copied."
+  },
+  "shareDelete": "Delete share",
+  "@shareDelete": {
+    "description": "Deletes a public share link."
+  },
+  "shareNone": "No shares found",
+  "@shareNone": {
+    "description": "A photo has no public share links."
+  },
+  "shareAdd": "Add share",
+  "@shareAdd": {
+    "description": "Creates a public share link for a photo."
+  },
+  "downloadFailed": "Download failed: {error}",
+  "@downloadFailed": {
+    "description": "Downloading a file failed.",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "The server returned HTTP 500"
+      }
+    }
+  },
+  "sharingFailed": "Sharing failed: {error}",
+  "@sharingFailed": {
+    "description": "Sending a file to another app failed.",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "The server returned HTTP 500"
+      }
+    }
+  },
+  "downloadSaved": "Saved {fileName}",
+  "@downloadSaved": {
+    "description": "A file was saved.",
+    "placeholders": {
+      "fileName": {
+        "type": "String",
+        "example": "screenshots_01.jpg"
+      }
+    }
+  },
+  "downloadSendToApp": "Send to another app",
+  "@downloadSendToApp": {
+    "description": "Tooltip of the button that hands a file to another app."
+  },
+  "albumSaveFailed": "Could not save the album: {error}",
+  "@albumSaveFailed": {
+    "description": "Saving a downloaded album failed.",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "no space left"
+      }
+    }
+  },
+  "downloadCancelled": "Download cancelled",
+  "@downloadCancelled": {
+    "description": "The user stopped a download."
+  },
+  "albumDownloadFailed": "Album download failed: {error}",
+  "@albumDownloadFailed": {
+    "description": "Downloading an album failed.",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "The server returned HTTP 400: no media found"
+      }
+    }
+  },
+  "albumDownloadingTitle": "Downloading album",
+  "@albumDownloadingTitle": {
+    "description": "Title of the dialog while an album downloads."
+  },
+  "downloadStopping": "Stopping…",
+  "@downloadStopping": {
+    "description": "A cancelled download is being stopped."
+  },
+  "downloadReceived": "{size} received",
+  "@downloadReceived": {
+    "description": "How much of a download has arrived.",
+    "placeholders": {
+      "size": {
+        "type": "String",
+        "example": "12.3 MB"
+      }
+    }
+  },
+  "renditionOriginal": "Original",
+  "@renditionOriginal": {
+    "description": "Download option: the original file."
+  },
+  "renditionSmall": "Small",
+  "@renditionSmall": {
+    "description": "Download option: the small preview version."
+  },
+  "exifCamera": "Camera",
+  "@exifCamera": {
+    "description": "Camera data label."
+  },
+  "exifMaker": "Maker",
+  "@exifMaker": {
+    "description": "Camera data label: the camera's manufacturer."
+  },
+  "exifLens": "Lens",
+  "@exifLens": {
+    "description": "Camera data label."
+  },
+  "exifProgram": "Program",
+  "@exifProgram": {
+    "description": "Camera data label: the exposure program."
+  },
+  "exifDateShot": "Date shot",
+  "@exifDateShot": {
+    "description": "Camera data label: when the photo was taken."
+  },
+  "exifExposure": "Exposure",
+  "@exifExposure": {
+    "description": "Camera data label: shutter speed."
+  },
+  "exifAperture": "Aperture",
+  "@exifAperture": {
+    "description": "Camera data label."
+  },
+  "exifIso": "ISO",
+  "@exifIso": {
+    "description": "Camera data label: sensitivity."
+  },
+  "exifFocalLength": "Focal length",
+  "@exifFocalLength": {
+    "description": "Camera data label."
+  },
+  "exposureNotDefined": "Not defined",
+  "@exposureNotDefined": {
+    "description": "Exposure program: not set by the camera."
+  },
+  "exposureManual": "Manual",
+  "@exposureManual": {
+    "description": "Exposure program."
+  },
+  "exposureNormal": "Normal program",
+  "@exposureNormal": {
+    "description": "Exposure program: program automatic."
+  },
+  "exposureAperturePriority": "Aperture priority",
+  "@exposureAperturePriority": {
+    "description": "Exposure program."
+  },
+  "exposureShutterPriority": "Shutter priority",
+  "@exposureShutterPriority": {
+    "description": "Exposure program."
+  },
+  "exposureCreative": "Creative program",
+  "@exposureCreative": {
+    "description": "Exposure program: favours depth of field."
+  },
+  "exposureAction": "Action program",
+  "@exposureAction": {
+    "description": "Exposure program: favours fast shutter speeds."
+  },
+  "exposurePortrait": "Portrait mode",
+  "@exposurePortrait": {
+    "description": "Exposure program: portrait scene mode (not the image orientation)."
+  },
+  "exposureLandscape": "Landscape mode",
+  "@exposureLandscape": {
+    "description": "Exposure program: landscape scene mode (not the image orientation)."
+  },
+  "exposureBulb": "Bulb",
+  "@exposureBulb": {
+    "description": "Exposure program: shutter open as long as the button is held."
+  },
+  "exposureUnknown": "Unknown",
+  "@exposureUnknown": {
+    "description": "Exposure program the app does not know."
+  },
+  "renditionLarge": "Large",
+  "@renditionLarge": {
+    "description": "Download option: the large version the server makes for display (server title \"Large\")."
+  },
+  "renditionVideoThumbnail": "Video thumbnail",
+  "@renditionVideoThumbnail": {
+    "description": "Download option: the still image of a video (server title \"Video thumbnail\")."
+  },
+  "renditionWebVideo": "Web optimized video",
+  "@renditionWebVideo": {
+    "description": "Download option: the video converted for playback in browsers (server title \"Web optimized video\")."
   }
 }

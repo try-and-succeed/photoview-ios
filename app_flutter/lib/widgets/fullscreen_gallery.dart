@@ -9,6 +9,7 @@ import 'package:video_player/video_player.dart';
 
 import '../api/models.dart';
 import '../api/session.dart';
+import '../l10n/app_localizations.dart';
 import '../state/auth.dart';
 import '../state/library.dart';
 import '../util/formatting.dart';
@@ -174,7 +175,7 @@ class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
               actions: [
                 IconButton(
                   icon: const Icon(Icons.info_outline),
-                  tooltip: 'Info',
+                  tooltip: AppLocalizations.of(context).galleryInfo,
                   onPressed: _showInfo,
                 ),
               ],
@@ -253,6 +254,7 @@ class _InfoPanel extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final details = ref.watch(mediaDetailsProvider(item.id));
 
     Widget message(String text, {Color? color}) => Padding(
@@ -284,13 +286,13 @@ class _InfoPanel extends ConsumerWidget {
               child: Center(child: CircularProgressIndicator()),
             ),
             error: (error, _) => message(
-              'Could not load the details: $error',
+              l10n.mediaDetailsFailed('$error'),
               color: theme.colorScheme.error,
             ),
             data: (data) {
               final exif = data.exif;
-              if (exif == null || exifRows(exif).isEmpty) {
-                return message('No camera data for this photo.');
+              if (exif == null || exifRows(exif, l10n).isEmpty) {
+                return message(l10n.galleryNoCameraData);
               }
               return ExifTable(exif: exif);
             },
@@ -442,7 +444,7 @@ class _VideoPageState extends ConsumerState<_VideoPage> {
     if (_error != null) {
       return Center(
         child: Text(
-          'Could not play video: $_error',
+          AppLocalizations.of(context).videoPlayFailed(_error!),
           style: const TextStyle(color: Colors.white70),
           textAlign: TextAlign.center,
         ),
@@ -464,10 +466,10 @@ class _VideoPageState extends ConsumerState<_VideoPage> {
       data: (data) {
         final url = data.videoWebUrl;
         if (url == null || session == null) {
-          return const Center(
+          return Center(
             child: Text(
-              'No playable video rendition available',
-              style: TextStyle(color: Colors.white70),
+              AppLocalizations.of(context).videoNoRendition,
+              style: const TextStyle(color: Colors.white70),
             ),
           );
         }

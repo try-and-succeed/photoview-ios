@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api/models.dart';
+import '../l10n/app_localizations.dart';
 import '../util/formatting.dart';
 
 /// The camera data of one photo as label/value rows. Nothing when there is
@@ -15,7 +16,7 @@ class ExifTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final rows = exifRows(exif);
+    final rows = exifRows(exif, AppLocalizations.of(context));
     if (rows.isEmpty) return const SizedBox.shrink();
 
     final theme = Theme.of(context);
