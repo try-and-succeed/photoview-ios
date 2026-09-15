@@ -74,10 +74,14 @@ class _FakeScannerClient extends PhotoviewClient {
   /// [scanDelay].
   Duration cancelDelay = Duration.zero;
 
+  Object? failCancelWith;
+
   @override
   Future<bool> cancelScanJob(String albumId) async {
     cancelled.add(albumId);
     if (cancelDelay > Duration.zero) await Future<void>.delayed(cancelDelay);
+    final failure = failCancelWith;
+    if (failure != null) throw failure;
     if (!acceptCancel) return false;
 
     if (removeOnCancel) {
@@ -380,6 +384,57 @@ void main() {
       client.failScanWith = null;
       expect(await notifier.scanAlbum('3'), 'Scanner started');
       expect(client.scanned, ['3', '3']);
+    });
+
+    test('a scan after a server switch is not merged into the old one',
+        () async {
+      // Album ids are only unique per server. Album 3 on the new server must
+      // get its own request, not the old server's still in flight.
+      await start([]);
+      client.scanDelay = const Duration(milliseconds: 300);
+
+      final old = container.read(scannerProvider.notifier).scanAlbum('3');
+      await pumpEventQueue();
+
+      // Stand-in for what a server switch does to this provider: the same
+      // notifier is built again.
+      container.invalidate(scannerProvider);
+      await pumpEventQueue();
+
+      final fresh = container.read(scannerProvider.notifier).scanAlbum('3');
+      await Future.wait([old, fresh]);
+
+      expect(client.scanned, ['3', '3']);
+    });
+
+    test('a stop that fails after a server switch leaves the new state alone',
+        () async {
+      await start([_job('8', 'Berge')]);
+      client
+        ..cancelDelay = const Duration(milliseconds: 300)
+        ..failCancelWith = const ApiException('old server said no');
+
+      final pending = container.read(scannerProvider.notifier).cancel('8');
+      await pumpEventQueue();
+
+      // Rebuilt and settled before the old answer arrives — invalidate alone
+      // only rebuilds on the next read, which would let the late error land in
+      // the old state and be overwritten, proving nothing.
+      container.invalidate(scannerProvider);
+      container.read(scannerProvider);
+      await pumpEventQueue();
+      expect(
+        container.read(scannerProvider).error,
+        isNull,
+        reason: 'precondition: the new session starts clean',
+      );
+
+      await pending;
+      await pumpEventQueue();
+
+      final state = container.read(scannerProvider);
+      expect(state.error, isNull);
+      expect(state.stopping, isEmpty);
     });
 
     test('scans of different albums are not merged', () async {

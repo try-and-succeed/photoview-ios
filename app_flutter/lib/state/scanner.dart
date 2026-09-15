@@ -169,43 +169,53 @@ class ScannerNotifier extends AutoDisposeNotifier<ScannerState>
   /// the first instead of sending another. The button stays tappable while the
   /// request is out, and the server runs a repeated request to completion even
   /// though it deduplicates the queue.
+  ///
+  /// Every mutation below belongs to the session it was started in. A server
+  /// switch rebuilds this same notifier, and album ids are only unique per
+  /// server: without that, a scan of album 3 on the new server would join the
+  /// old server's request and never be sent, and an old answer would be
+  /// written into the new server's state.
   Future<String?> scanAlbum(String albumId) {
-    final pending = _scansRequested[albumId];
+    final generation = this.generation;
+    final key = (generation, albumId);
+    final pending = _scansRequested[key];
     if (pending != null) return pending;
 
     final request = _keptAlive(() async {
       final message = await ref.guardedRead((c) => c.scanAlbum(albumId));
-      await refresh();
+      if (!movedOn(generation)) await refresh();
       return message;
     });
 
     // Forgotten once answered, whichever way. whenComplete runs only after
     // the entry is stored, even for a request that fails straight away; the
     // derived future is ignored because the caller handles the error.
-    _scansRequested[albumId] = request;
+    _scansRequested[key] = request;
     request.whenComplete(() {
-      if (identical(_scansRequested[albumId], request)) {
-        _scansRequested.remove(albumId);
+      if (identical(_scansRequested[key], request)) {
+        _scansRequested.remove(key);
       }
     }).ignore();
 
     return request;
   }
 
-  /// Scan requests still waiting for the server, by album.
-  final Map<String, Future<String?>> _scansRequested = {};
+  /// Scan requests still waiting for the server, by session and album.
+  final Map<(int, String), Future<String?>> _scansRequested = {};
 
   /// Asks the server to stop one album's job.
   ///
   /// Held alive like [scanAlbum]: the user can close the scanner screen the
   /// moment they press stop.
   Future<void> cancel(String albumId) => _keptAlive(() async {
+    final generation = this.generation;
     state = state.copyWith(stopping: {...state.stopping, albumId});
 
     try {
       final accepted = await ref.guardedRead(
         (c) => c.cancelScanJob(albumId),
       );
+      if (movedOn(generation)) return;
 
       // False means the server had no job under that album id — the usual
       // answer once it has already finished, and the answer for an album whose
@@ -217,6 +227,7 @@ class ScannerNotifier extends AutoDisposeNotifier<ScannerState>
         );
       }
     } catch (error) {
+      if (movedOn(generation)) return;
       state = state.copyWith(
         stopping: {...state.stopping}..remove(albumId),
         error: '$error',
@@ -231,18 +242,23 @@ class ScannerNotifier extends AutoDisposeNotifier<ScannerState>
   ///
   /// Held alive like [scanAlbum].
   Future<int> cancelAll() => _keptAlive(() async {
+    final generation = this.generation;
     final ids = state.jobs.map((j) => j.albumId).toSet();
     state = state.copyWith(stopping: {...state.stopping, ...ids});
 
     try {
       final cancelled = await ref.guardedRead((c) => c.cancelAllScanJobs());
-      await refresh();
+      if (!movedOn(generation)) await refresh();
       return cancelled;
     } catch (error) {
-      state = state.copyWith(
-        stopping: {...state.stopping}..removeAll(ids),
-        error: '$error',
-      );
+      // Still reported to the caller, who asked; just not into the state of a
+      // session that never made the request.
+      if (!movedOn(generation)) {
+        state = state.copyWith(
+          stopping: {...state.stopping}..removeAll(ids),
+          error: '$error',
+        );
+      }
       rethrow;
     }
   });
