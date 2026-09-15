@@ -2,13 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/models.dart';
 import 'auth.dart';
-import 'pagination_guard.dart';
+import 'stale_response_guard.dart';
 
 const _pageSize = 200;
 
-/// How close to the end of the loaded media the user must scroll before the
-/// next page is requested.
-const timelinePrefetchThreshold = 20;
 
 class TimelineData {
   final List<TimelineGroup> groups;
@@ -65,15 +62,28 @@ List<TimelineGroup> groupTimeline(List<TimelineMedia> items) {
 }
 
 class TimelineNotifier extends AsyncNotifier<TimelineData>
-    with PaginationGuard {
+    with StaleResponseGuard {
   final List<TimelineMedia> _loaded = [];
 
   @override
   Future<TimelineData> build() async {
     beginGeneration(ref);
+    final generation = this.generation;
 
     _loaded.clear();
     final page = await ref.guarded((c) => c.timeline(limit: _pageSize, offset: 0));
+
+    // Same check as in loadMore, for the same reason: the notifier outlives a
+    // rebuild, so a first page that lands after the next build has cleared
+    // _loaded would be appended to that build's timeline. Riverpod ignores
+    // what a superseded build returns, so returning the page alone is harmless.
+    if (movedOn(generation)) {
+      return TimelineData(
+        groups: groupTimeline(page),
+        mediaCount: page.length,
+        hasMore: page.length >= _pageSize,
+      );
+    }
     _loaded.addAll(page);
 
     return TimelineData(

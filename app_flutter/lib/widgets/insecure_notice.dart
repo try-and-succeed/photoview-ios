@@ -2,14 +2,9 @@ import 'package:flutter/material.dart';
 
 /// How exposed the connection to an instance is.
 enum InsecureConnectionRisk {
-  /// HTTPS, or nothing typed yet.
+  /// HTTPS — typed, or implied by an address without a scheme — or nothing
+  /// typed yet.
   none,
-
-  /// No scheme given. HTTPS is tried first, but sign-in falls back to plain
-  /// HTTP if the instance cannot be reached that way — and a bare host name is
-  /// the usual way a LAN instance is entered, so this is the common case, not
-  /// an edge one.
-  possible,
 
   /// An explicit `http://` address: unencrypted for certain.
   certain,
@@ -39,19 +34,12 @@ class InsecureConnectionNotice extends StatelessWidget {
 
   /// Risk for a half-typed address in a text field.
   ///
-  /// A schemeless address counts: warning only about an explicit `http://`
-  /// would stay silent in exactly the case where the password is about to be
-  /// sent in the clear without the user having asked for it.
-  static InsecureConnectionRisk riskOfText(String text) {
-    final trimmed = text.trim();
-    if (trimmed.isEmpty) return InsecureConnectionRisk.none;
-
-    final lower = trimmed.toLowerCase();
-    if (lower.startsWith('http://')) return InsecureConnectionRisk.certain;
-    if (lower.startsWith('https://')) return InsecureConnectionRisk.none;
-
-    return InsecureConnectionRisk.possible;
-  }
+  /// Only an explicit `http://` is unencrypted: an address without a scheme
+  /// is signed in to over HTTPS and never falls back.
+  static InsecureConnectionRisk riskOfText(String text) =>
+      text.trim().toLowerCase().startsWith('http://')
+      ? InsecureConnectionRisk.certain
+      : InsecureConnectionRisk.none;
 
   /// Best effort host for display, for an address that may have no scheme.
   static String hostOfText(String text) {
@@ -72,10 +60,6 @@ class InsecureConnectionNotice extends StatelessWidget {
       InsecureConnectionRisk.certain =>
         'Unencrypted connection to $host. Your sign-in travels with every '
             'request, so use this only on a network you trust.',
-      InsecureConnectionRisk.possible =>
-        'If $host cannot be reached over HTTPS, the app will connect '
-            'unencrypted and your sign-in will travel with every request. '
-            'Type https:// to require encryption.',
       InsecureConnectionRisk.none => '',
     };
 
@@ -88,9 +72,7 @@ class InsecureConnectionNotice extends StatelessWidget {
       child: Row(
         children: [
           Icon(
-            risk == InsecureConnectionRisk.certain
-                ? Icons.lock_open
-                : Icons.info_outline,
+            Icons.lock_open,
             size: 20,
             color: theme.colorScheme.onSurfaceVariant,
           ),

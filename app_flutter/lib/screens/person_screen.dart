@@ -19,8 +19,8 @@ class PersonScreen extends ConsumerWidget {
       appBar: AppBar(title: Text(faceGroup.label ?? 'Unlabeled')),
       body: media.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => ErrorMessage(
-          message: '$error',
+        error: (error, _) => ErrorMessage.forError(
+          error,
           onRetry: () => ref.invalidate(personMediaProvider(faceGroup.id)),
         ),
         data: (data) => data.isEmpty

@@ -9,7 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 ///
 /// Capture [generation] before awaiting and check [movedOn] afterwards, before
 /// touching any accumulated state.
-mixin PaginationGuard {
+mixin StaleResponseGuard {
   int _generation = 0;
 
   /// Identifies the current build. Changes on every rebuild and on disposal.

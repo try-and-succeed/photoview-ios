@@ -11,13 +11,8 @@ const _scaleMultiplier = 0.65;
 
 class FaceSliverGrid extends StatelessWidget {
   final List<FaceGroup> faceGroups;
-  final void Function(int index)? onItemBuilt;
 
-  const FaceSliverGrid({
-    super.key,
-    required this.faceGroups,
-    this.onItemBuilt,
-  });
+  const FaceSliverGrid({super.key, required this.faceGroups});
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +25,6 @@ class FaceSliverGrid extends StatelessWidget {
       ),
       itemCount: faceGroups.length,
       itemBuilder: (context, index) {
-        onItemBuilt?.call(index);
         return _FaceTile(face: faceGroups[index]);
       },
     );

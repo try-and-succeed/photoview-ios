@@ -30,10 +30,17 @@ reviews:
         be written during a widget build.
     - path: 'app_flutter/lib/api/queries.dart'
       instructions: >-
-        These GraphQL documents are copied verbatim from the iOS client's
-        .graphql files so both clients hit the same server API. Do not suggest
-        reformatting or restructuring them; only flag an actual mismatch with
-        the server schema in Photoview/schema.json.
+        Most of these GraphQL documents were copied verbatim from the iOS
+        client's .graphql files, so do not suggest reformatting or
+        restructuring them.
+        Photoview/schema.json is the OLD upstream schema and is no longer the
+        reference: the app deliberately also uses newer server fields
+        (searchResultLimit, showAlbumTree, albumTreeChildren,
+        scannerQueueStatus and the scan mutations) that are absent from it, and
+        detects at runtime whether the server has them. A field missing from
+        schema.json is therefore not a defect — only flag a field that no
+        Photoview server has, or a document that asks for a new field without
+        going through the capability check in lib/api/capabilities.dart.
     - path: 'Photoview/**'
       instructions: >-
         The original SwiftUI client, unmaintained since 2023 and kept only as

@@ -14,11 +14,7 @@ const _gridDelegate = SliverGridDelegateWithMaxCrossAxisExtent(
 class MediaSliverGrid extends StatelessWidget {
   final List<MediaItem> media;
 
-  /// Called with the index of each thumbnail as it is built, so screens can
-  /// request the next page before the user reaches the end.
-  final void Function(int index)? onItemBuilt;
-
-  const MediaSliverGrid({super.key, required this.media, this.onItemBuilt});
+  const MediaSliverGrid({super.key, required this.media});
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +22,6 @@ class MediaSliverGrid extends StatelessWidget {
       gridDelegate: _gridDelegate,
       itemCount: media.length,
       itemBuilder: (context, index) {
-        onItemBuilt?.call(index);
         return MediaThumbnail(media: media, index: index);
       },
     );

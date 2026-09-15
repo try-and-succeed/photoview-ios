@@ -4,13 +4,18 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:graphql/client.dart';
 
+import 'capabilities.dart';
 import 'models.dart';
 import 'queries.dart';
 import 'session.dart';
+import 'trusted_certificates.dart';
 
 /// Raised when the server rejects our credentials and the user must sign in again.
 class UnauthorizedException implements Exception {
   const UnauthorizedException();
+
+  @override
+  String toString() => 'Your sign-in is no longer accepted.';
 }
 
 class ApiException implements Exception {
@@ -19,6 +24,18 @@ class ApiException implements Exception {
 
   @override
   String toString() => message;
+}
+
+/// The server refused this particular request for this user.
+///
+/// The sign-in is still good — an album someone else owns, a scan they may not
+/// start. A subclass of [ApiException] so existing handling keeps working, and
+/// deliberately *not* [UnauthorizedException]: signing out over it would throw
+/// away a working session for something that will be refused just as firmly
+/// after signing in again.
+class PermissionDeniedException extends ApiException {
+  const PermissionDeniedException()
+    : super('Your account is not allowed to do that.');
 }
 
 class LoginFailure implements Exception {
@@ -92,6 +109,8 @@ class PhotoviewClient {
         username: username,
         password: password,
       ),
+      presentsCertificate: (endpoint) async =>
+          await probeCertificate(endpoint) != null,
     );
   }
 
@@ -100,11 +119,16 @@ class PhotoviewClient {
   /// Separate from [login] so the stopping rules can be tested without a
   /// server: which failures are worth trying the next candidate for is a
   /// security property, not a detail.
+  ///
+  /// [presentsCertificate] tells a TLS failure *about a certificate* apart
+  /// from a TLS failure because there was none — Dart reports both as a
+  /// TlsException, but only the first is a question for the user.
   @visibleForTesting
   static Future<Session> attemptCandidates(
     List<Uri> candidates,
-    Future<Session> Function(Uri endpoint) authorize,
-  ) async {
+    Future<Session> Function(Uri endpoint) authorize, {
+    required Future<bool> Function(Uri endpoint) presentsCertificate,
+  }) async {
     Object? lastError;
 
     for (final endpoint in candidates) {
@@ -114,14 +138,21 @@ class PhotoviewClient {
         // The server answered and refused the credentials — no point retrying
         // the other path prefix.
         rethrow;
-      } on CertificateNotTrustedException {
-        // Stop here rather than work down to the plain-HTTP candidate. A bare
-        // host is tried over HTTPS first, so continuing would send the
-        // password — and later the token — in the clear precisely when the
-        // certificate looked suspicious. The user is asked about the
-        // certificate instead, and can still type an explicit http:// address
-        // if that is what they meant.
-        rethrow;
+      } on CertificateNotTrustedException catch (error) {
+        if (await presentsCertificate(endpoint)) {
+          // A certificate the device rejected: the user is asked about it,
+          // which the other path prefix on the same host cannot change.
+          rethrow;
+        }
+
+        // No certificate at all — most likely a port serving plain HTTP. Not
+        // a trust question, so it is reported as what it is, with the way to
+        // connect if plain HTTP is really what the user wants.
+        lastError = ApiException(
+          '${error.endpoint.host} did not complete a TLS handshake. If it '
+          'only serves plain HTTP, type http://${error.endpoint.authority} '
+          'to connect without encryption.',
+        );
       } catch (error) {
         lastError = error;
       }
@@ -171,23 +202,19 @@ class PhotoviewClient {
 
   /// Bases to try for what the user typed.
   ///
-  /// A bare host like `192.168.0.47:8080` gets both schemes, because a
-  /// self-hosted instance is as likely to be plain HTTP on a LAN as HTTPS.
+  /// A bare host like `192.168.0.47:8080` is tried over HTTPS only. Plain HTTP
+  /// is used when the user types `http://` and never as a fallback: whoever
+  /// can make the HTTPS attempt fail on a LAN — refuse it, stall it, or answer
+  /// without TLS — could otherwise answer the HTTP attempt too and receive the
+  /// password in the clear, without the user ever having chosen HTTP.
   /// An explicit scheme is taken at face value.
   @visibleForTesting
   static List<Uri> candidateBases(String raw) {
     final text = raw.trim();
     if (text.isEmpty) return const [];
 
-    if (text.contains('://')) {
-      final uri = _normalizeBase(text);
-      return uri == null ? const [] : [uri];
-    }
-
-    return [
-      _normalizeBase('https://$text'),
-      _normalizeBase('http://$text'),
-    ].whereType<Uri>().toList();
+    final uri = _normalizeBase(text.contains('://') ? text : 'https://$text');
+    return uri == null ? const [] : [uri];
   }
 
   /// Guarantees a trailing slash so [Uri.resolve] appends rather than replaces
@@ -213,11 +240,13 @@ class PhotoviewClient {
 
   static String _describe(Object? error) {
     if (error is OperationException) {
+      // What the server said beats how the transport failed: a non-200 with a
+      // GraphQL body would otherwise be reported as an HTTP status.
+      final errors = graphqlErrorsOf(error);
+      if (errors.isNotEmpty) return errors.map((e) => e.message).join(', ');
+
       final link = error.linkException;
       if (link != null) return _describeLink(link);
-      if (error.graphqlErrors.isNotEmpty) {
-        return error.graphqlErrors.map((e) => e.message).join(', ');
-      }
     }
     if (error is LinkException) return _describeLink(error);
     return _describeCause(error);
@@ -228,6 +257,17 @@ class PhotoviewClient {
       final errors = link.parsedResponse?.errors;
       if (errors != null && errors.isNotEmpty) {
         return errors.map((e) => e.message).join(', ');
+      }
+
+      // No body at all — the connection may never have produced one. Falling
+      // through to toString() here would show the user gql's internal
+      // representation, so say what little is known instead.
+      final cause = link.originalException;
+      final status = link.statusCode;
+      if (cause == null) {
+        return status == null
+            ? 'The server did not answer the request.'
+            : 'The server returned HTTP $status.';
       }
     }
     return _describeCause(link.originalException ?? link);
@@ -263,6 +303,15 @@ class PhotoviewClient {
     return _unwrap(result);
   }
 
+  /// Runs a mutation, exactly once.
+  ///
+  /// Queries are safe to repeat, mutations are not, and the difference is not
+  /// visible at the call site once a failure has been turned into an
+  /// exception — so the rule lives here: **a failed mutation is never retried
+  /// automatically**, a timeout included. A timeout says nothing about whether
+  /// the server carried the change out; retrying would risk doing it twice,
+  /// and the second request runs to completion even when the server
+  /// deduplicates the work. Retrying is the user's decision.
   Future<Map<String, dynamic>> _mutate(
     String document, [
     Map<String, dynamic> variables = const {},
@@ -276,13 +325,28 @@ class PhotoviewClient {
   Map<String, dynamic> _unwrap(QueryResult result) {
     if (result.hasException) {
       final exception = result.exception!;
-      final link = exception.linkException;
-      if (link is ServerException && link.statusCode == 401) {
-        throw const UnauthorizedException();
+
+      // Order matters. A rejected sign-in is decided first, because it is the
+      // only outcome that ends the session; a missing field is decided next,
+      // so a schema mismatch is reported as such instead of reaching the user
+      // as a raw `Cannot query field …`; a refusal of this one request is
+      // reported as such; anything else is generic.
+      if (isUnauthorized(exception)) throw const UnauthorizedException();
+
+      final unsupported = unsupportedFieldException(exception);
+      if (unsupported != null) throw unsupported;
+
+      if (isPermissionDenied(exception)) throw const PermissionDeniedException();
+
+      // A pinned certificate can stop matching mid-session — Caddy's internal
+      // CA renews twice a day — and every request then fails. Raised as the
+      // typed exception rather than a sentence so the screen showing it can
+      // offer to look at the new certificate instead of only "Retry", which
+      // would fail exactly the same way for ever.
+      if (_causeOf(exception) is TlsException) {
+        throw CertificateNotTrustedException(session.endpoint);
       }
-      if (exception.graphqlErrors.any(_isAuthError)) {
-        throw const UnauthorizedException();
-      }
+
       throw ApiException(_describe(exception));
     }
 
@@ -290,6 +354,150 @@ class PhotoviewClient {
     if (data == null) throw const ApiException('No data returned from server');
 
     return data;
+  }
+
+  /// Whether [exception] means the sign-in is no longer accepted, as opposed to
+  /// any other failure.
+  ///
+  /// This is the decision that signs the user out, so it rests on the one
+  /// signal that actually means it. Measured against a live instance:
+  ///
+  ///   * an invalid or expired token is rejected by the HTTP middleware with
+  ///     **401** and the plain body `invalid authorization token`;
+  ///   * being refused a particular album, scan or field comes back as HTTP
+  ///     **200** with the GraphQL error `unauthorized`.
+  ///
+  /// So the message is not evidence of anything. Treating it as such signed a
+  /// perfectly valid user out the moment they touched an album they do not
+  /// own — which is exactly what the scanner and the album tree let them do.
+  ///
+  /// A timeout, a socket error, a 5xx and a permission refusal all fall
+  /// through and leave the session alone.
+  @visibleForTesting
+  static bool isUnauthorized(OperationException exception) =>
+      httpStatusOf(exception) == 401;
+
+  /// The HTTP status behind [exception], whichever shape it arrived in.
+  ///
+  /// Necessary because this server's 401 body is the plain text `invalid
+  /// authorization token`, not GraphQL. The library cannot parse that, so it
+  /// raises `HttpLinkParserException` — a sibling of [ServerException] with no
+  /// `statusCode` of its own, only the raw response. Reading only
+  /// `ServerException.statusCode` meant the single signal that ends a session
+  /// never fired at all: an expired sign-in would have left the user stuck
+  /// with a parser error and no prompt to sign in again.
+  @visibleForTesting
+  static int? httpStatusOf(OperationException exception) {
+    final link = exception.linkException;
+
+    if (link is HttpLinkParserException) return link.response.statusCode;
+    if (link is HttpLinkServerException) return link.response.statusCode;
+    if (link is ServerException) return link.statusCode;
+
+    return null;
+  }
+
+  /// Whether the server refused this particular request to this user.
+  ///
+  /// Distinct from [isUnauthorized]: the sign-in is fine, this one thing is
+  /// not allowed. Signing out over it would be both wrong and useless.
+  @visibleForTesting
+  static bool isPermissionDenied(OperationException exception) =>
+      graphqlErrorsOf(exception).any(_isAuthError);
+
+  /// Every GraphQL error in [exception], from both places they can hide.
+  ///
+  /// `graphqlErrors` is only populated for a 200 response. When the server
+  /// answers with a non-200 status it still returns a GraphQL body, and those
+  /// errors arrive inside the [ServerException]'s parsed response instead.
+  /// Reading only the first list reports the HTTP status as though it were a
+  /// transport failure and loses what the server actually said.
+  @visibleForTesting
+  static List<GraphQLError> graphqlErrorsOf(OperationException exception) {
+    final link = exception.linkException;
+    final parsed = link is ServerException ? link.parsedResponse?.errors : null;
+
+    return [...exception.graphqlErrors, ...?parsed];
+  }
+
+  /// The first "this field does not exist" error in [exception], if any.
+  @visibleForTesting
+  static UnsupportedFieldException? unsupportedFieldException(
+    OperationException exception,
+  ) {
+    for (final error in graphqlErrorsOf(exception)) {
+      final named = unsupportedFieldAndTypeIn(error.message);
+      if (named != null) {
+        return UnsupportedFieldException(
+          field: named.field,
+          type: named.type,
+        );
+      }
+    }
+
+    return null;
+  }
+
+  /// Asks the server which of the newer features it has.
+  ///
+  /// Deliberately does not go through [_unwrap]: a probe must never be able to
+  /// sign the user out. Field-level authorization errors arrive inside an
+  /// otherwise successful response, so running probes through the normal path
+  /// would let a query about, say, the scanner queue end a perfectly good
+  /// session for a non-admin. An unanswerable probe leaves the capability
+  /// [CapabilityState.unknown] and the next real request settles the session
+  /// question on its own.
+  Future<Map<Capability, CapabilityState>> probeCapabilities() async {
+    final batch = await _probe(capabilityProbeDocument);
+    var found = readProbe(data: batch.data, errorMessages: batch.messages);
+
+    // A server that never answered will not answer the follow-ups either, and
+    // each of those waits out the full request timeout: four more in sequence
+    // turn one unreachable server into minutes of every capability-gated
+    // control staying hidden. Everything simply stays unknown.
+    if (!batch.answered) return found;
+
+    // Whatever the batch could not settle is asked again on its own, so one
+    // suppressed or truncated error cannot leave a whole group unknown.
+    for (final capability in ServerCapabilities(found).unresolved) {
+      final single = await _probe(singleCapabilityProbeDocument(capability));
+      if (!single.answered) break;
+
+      found = {
+        ...found,
+        ...readProbe(data: single.data, errorMessages: single.messages),
+      };
+    }
+
+    return found;
+  }
+
+  /// Runs one probe.
+  ///
+  /// [answered] distinguishes "the server said something" — data, GraphQL
+  /// errors, or both — from "nothing came back", which is what a timeout or an
+  /// unreachable host looks like.
+  Future<
+    ({Map<String, dynamic>? data, List<String> messages, bool answered})
+  >
+  _probe(String document) async {
+    final result = await _client.query(
+      QueryOptions(
+        document: gql(document),
+        fetchPolicy: FetchPolicy.networkOnly,
+      ),
+    );
+
+    final exception = result.exception;
+    final messages = exception == null
+        ? const <String>[]
+        : graphqlErrorsOf(exception).map((e) => e.message).toList();
+
+    return (
+      data: result.data,
+      messages: messages,
+      answered: result.data != null || messages.isNotEmpty,
+    );
   }
 
   static bool _isAuthError(GraphQLError error) {
@@ -422,11 +630,146 @@ class PhotoviewClient {
     return MediaDetails.fromJson(media);
   }
 
-  Future<SearchResults> search(String query) async {
-    final data = await _query(mediaSearchQuery, {'query': query});
+  /// Searches, with [limitMedia] and [limitAlbums] passed through as given.
+  ///
+  /// Null leaves them out and the server applies its own default of ten each;
+  /// zero means unlimited. Neither is decided here — the caller knows whether
+  /// the user set a limit.
+  Future<SearchResults> search(
+    String query, {
+    int? limitMedia,
+    int? limitAlbums,
+  }) async {
+    final data = await _query(mediaSearchQuery, {
+      'query': query,
+      'limitMedia': limitMedia,
+      'limitAlbums': limitAlbums,
+    });
+
     final search = data['search'] as Map<String, dynamic>?;
     if (search == null) return SearchResults(query: query);
     return SearchResults.fromJson(search);
+  }
+
+  /// Children of each album in [albumIds], keyed by album id.
+  ///
+  /// Ids are deduplicated before asking: a live instance echoes a repeated id
+  /// as a repeated entry, so sending duplicates would pay for the same album
+  /// twice and then overwrite one answer with the other.
+  ///
+  /// An album that is missing from the answer, or present with no children,
+  /// both mean the same thing to the caller — the server filters out ids the
+  /// user may not see, and a leaf simply has none. Both come back as an empty
+  /// list rather than as an error.
+  Future<Map<String, List<AlbumItem>>> albumTreeChildren(
+    List<String> albumIds,
+  ) async {
+    final unique = albumIds.toSet().toList();
+    if (unique.isEmpty) return {};
+
+    final data = await _query(albumTreeChildrenQuery, {'albumIds': unique});
+    final entries = data['albumTreeChildren'] as List<dynamic>? ?? const [];
+
+    final result = {for (final id in unique) id: <AlbumItem>[]};
+
+    for (final entry in entries) {
+      if (entry is! Map<String, dynamic>) continue;
+
+      final id = entry['albumId']?.toString();
+      if (id == null) continue;
+
+      result[id] = (entry['children'] as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(AlbumItem.fromJson)
+          .toList();
+    }
+
+    return result;
+  }
+
+  Future<List<ScannerJob>> scannerQueue() async {
+    final data = await _query(scannerQueueStatusQuery);
+
+    return (data['scannerQueueStatus'] as List<dynamic>? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .map(ScannerJob.fromJson)
+        .toList();
+  }
+
+  /// Queues [albumId] and its sub-albums, returning the server's message.
+  ///
+  /// Goes through [_mutate], so it is never retried automatically: the server
+  /// deduplicates queued albums, but a repeated request still runs to
+  /// completion, and a timeout says nothing about whether the first one was
+  /// accepted.
+  Future<String?> scanAlbum(String albumId) async {
+    final data = await _mutate(scanAlbumMutation, {'albumId': albumId});
+    final result = data['scanAlbum'] as Map<String, dynamic>?;
+
+    if (result?['success'] != true) {
+      throw ApiException(
+        result?['message'] as String? ?? 'The server refused to start a scan',
+      );
+    }
+
+    return result?['message'] as String?;
+  }
+
+  /// Cancels one album's job. False means there was nothing to cancel — which
+  /// is the normal answer for an album whose sub-albums are the queued ones.
+  Future<bool> cancelScanJob(String albumId) async {
+    final data = await _mutate(cancelScanJobMutation, {'albumId': albumId});
+    return data['cancelScanJob'] as bool? ?? false;
+  }
+
+  /// Cancels everything the user may cancel, returning how many jobs that was.
+  Future<int> cancelAllScanJobs() async {
+    final data = await _mutate(cancelAllScanJobsMutation);
+    return data['cancelAllScanJobs'] as int? ?? 0;
+  }
+
+  /// Reads the preferences record.
+  ///
+  /// [withAlbumTree] asks for `showAlbumTree` as well, and may only be set
+  /// when [Capability.albumTreePreference] says the server has it — otherwise
+  /// the missing field fails the read of everything else too.
+  Future<UserPreferences> userPreferences({bool withAlbumTree = false}) async {
+    final data = await _query(userPreferencesQuery(withAlbumTree: withAlbumTree));
+    final preferences = data['myUserPreferences'] as Map<String, dynamic>?;
+    if (preferences == null) return const UserPreferences();
+    return UserPreferences.fromJson(preferences);
+  }
+
+  /// Writes the whole preferences record.
+  ///
+  /// Every field is always sent because the server replaces rather than
+  /// patches: measured against a live instance, writing only the search limit
+  /// reset a `language` of `English` to null. Callers therefore pass what they
+  /// want the record to *be*, not what they want to change — which is also how
+  /// the search limit is cleared, since a negative value is refused outright.
+  ///
+  /// [withAlbumTree] carries the same rule as on [userPreferences]: set it
+  /// only for a server that has the field. Left unset, `showAlbumTree` is not
+  /// part of the document at all, so the server keeps whatever it holds.
+  Future<UserPreferences> changeUserPreferences({
+    String? language,
+    int? searchResultLimit,
+    bool? showAlbumTree,
+    bool withAlbumTree = false,
+  }) async {
+    final data = await _mutate(
+      changeUserPreferencesMutation(withAlbumTree: withAlbumTree),
+      {
+        'language': language,
+        'searchResultLimit': searchResultLimit,
+        if (withAlbumTree) 'showAlbumTree': showAlbumTree,
+      },
+    );
+
+    final preferences =
+        data['changeUserPreferences'] as Map<String, dynamic>?;
+    if (preferences == null) return const UserPreferences();
+    return UserPreferences.fromJson(preferences);
   }
 
   Future<void> shareMedia(String mediaId) =>

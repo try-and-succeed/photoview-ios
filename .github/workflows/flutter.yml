@@ -4,7 +4,11 @@ name: Flutter client
 # build set up and is left untouched.
 on:
   push:
-    branches: [master, flutter-port]
+    # Only the default branch. Every other branch is covered by the
+    # pull_request trigger below, which has no branch filter — listing feature
+    # branches here just leaves dead entries behind once they are merged, and a
+    # branch that is not listed is silently unchecked until a PR exists.
+    branches: [master]
     paths:
       - 'app_flutter/**'
       - '.github/workflows/flutter.yml'

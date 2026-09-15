@@ -30,5 +30,11 @@ DerivedData/
 # The handoff guide is a personal planning document for the server work and is
 # deliberately not part of this repository; logcat.bat is a local helper.
 HANDOFF_app_guide.md
+HANDOFF_flutter_app.md
 logcat.bat
 .claude/settings.local.json
+
+# Credentials for the local test servers. Never commit these.
+env.txt
+*.env
+.env

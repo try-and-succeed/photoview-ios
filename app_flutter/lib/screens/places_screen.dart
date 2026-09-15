@@ -85,8 +85,8 @@ class _PlacesScreenState extends ConsumerState<PlacesScreen> {
       appBar: AppBar(title: const Text('Places')),
       body: markers.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => ErrorMessage(
-          message: '$error',
+        error: (error, _) => ErrorMessage.forError(
+          error,
           onRetry: () => ref.invalidate(placesMarkersProvider),
         ),
         data: (data) {

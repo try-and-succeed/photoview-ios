@@ -6,6 +6,7 @@ const _mediaItemFragment = r'''
 fragment MediaItem on Media {
   id
   type
+  title
   blurhash
   thumbnail {
     url
@@ -187,9 +188,15 @@ query mediaDetails(\$mediaID: ID!) {
 $_mediaItemFragment
 ''';
 
+/// Search with the limits as variables.
+///
+/// The server applies its own default of 10 each when they are omitted, and
+/// treats 0 as unlimited — both measured against a live instance. The
+/// `searchResultLimit` preference is *not* applied server-side to `search`, so
+/// it is the client that reads the preference and passes it here.
 const mediaSearchQuery = '''
-query mediaSearch(\$query: String!) {
-  search(query: \$query, limitAlbums: 6, limitMedia: 12) {
+query mediaSearch(\$query: String!, \$limitMedia: Int, \$limitAlbums: Int) {
+  search(query: \$query, limitAlbums: \$limitAlbums, limitMedia: \$limitMedia) {
     query
     albums {
       ...AlbumItem
@@ -201,6 +208,120 @@ query mediaSearch(\$query: String!) {
 }
 $_albumItemFragment
 $_mediaItemFragment
+''';
+
+/// Children of many albums in one round trip.
+///
+/// `Album` has no `children` field of its own — verified against a live
+/// instance — so a tree is built one level at a time. That is what this query
+/// is for: asking about a whole level at once instead of one request per node.
+const albumTreeChildrenQuery =
+    '''
+query albumTreeChildren(\$albumIds: [ID!]!) {
+  albumTreeChildren(albumIds: \$albumIds) {
+    albumId
+    children {
+      ...AlbumItem
+    }
+  }
+}
+$_albumItemFragment
+''';
+
+/// What the scanner is working on right now.
+///
+/// A snapshot, not a stream: there is no subscription for it, so the app polls
+/// while anything is running. Admins see every job, everyone else only jobs for
+/// albums they own — so an empty queue can also mean "nothing of yours".
+const scannerQueueStatusQuery = r'''
+query scannerQueueStatus {
+  scannerQueueStatus {
+    album {
+      id
+      title
+    }
+    status
+  }
+}
+''';
+
+/// Queues an album and its sub-albums for scanning.
+///
+/// Returns as soon as the work is queued — measured at about 100 ms against a
+/// live instance — so this needs no special timeout. What lands in the queue
+/// are the *sub-albums*, which is why the queue may never show the album that
+/// was asked for.
+const scanAlbumMutation = r'''
+mutation scanAlbum($albumId: ID!) {
+  scanAlbum(albumId: $albumId) {
+    success
+    message
+  }
+}
+''';
+
+/// Cancels one album's job. False means there was no job for that album.
+const cancelScanJobMutation = r'''
+mutation cancelScanJob($albumId: ID!) {
+  cancelScanJob(albumId: $albumId)
+}
+''';
+
+/// Cancels everything the caller is allowed to cancel, returning how many.
+const cancelAllScanJobsMutation = r'''
+mutation cancelAllScanJobs {
+  cancelAllScanJobs
+}
+''';
+
+/// Reads the preferences the app cares about.
+///
+/// `language` is read even though the app does not use it, because it has to
+/// be written back — see [changeUserPreferencesMutation].
+///
+/// `showAlbumTree` is included only when the server has it, which is why this
+/// is built rather than a constant. Asking for it unconditionally would tie
+/// two separate capabilities together: on a server that has
+/// `searchResultLimit` but not `showAlbumTree`, one missing field would fail
+/// the whole document and take the search limit down with it.
+String userPreferencesQuery({bool withAlbumTree = false}) =>
+    '''
+query myUserPreferences {
+  myUserPreferences {
+    id
+    language
+    searchResultLimit${withAlbumTree ? '\n    showAlbumTree' : ''}
+  }
+}
+''';
+
+/// Writes user preferences.
+///
+/// **Every field has to be sent every time.** This mutation replaces the whole
+/// preferences record rather than patching it: measured against a live
+/// instance, writing only `searchResultLimit` reset a `language` of `English`
+/// to null. So an omitted argument is not "leave alone", it is "clear" — which
+/// is also the only way to clear a field, since the server rejects a negative
+/// limit outright ("search result limit must not be negative").
+///
+/// Same conditional shape as [userPreferencesQuery], and for the same reason:
+/// a server without `showAlbumTree` must still be able to store a search
+/// limit.
+String changeUserPreferencesMutation({bool withAlbumTree = false}) =>
+    '''
+mutation changeUserPreferences(
+  \$language: String
+  \$searchResultLimit: Int${withAlbumTree ? '\n  \$showAlbumTree: Boolean' : ''}
+) {
+  changeUserPreferences(
+    language: \$language
+    searchResultLimit: \$searchResultLimit${withAlbumTree ? '\n    showAlbumTree: \$showAlbumTree' : ''}
+  ) {
+    id
+    language
+    searchResultLimit${withAlbumTree ? '\n    showAlbumTree' : ''}
+  }
+}
 ''';
 
 const shareMediaMutation = r'''

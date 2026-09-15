@@ -111,6 +111,30 @@ void main() {
       expect(data.groups.single.media.single.id, 'fresh');
     });
 
+    test('a first page that arrives after a rebuild is not mixed in', () async {
+      // A server switch or a refresh while the timeline is still loading its
+      // first page. The rebuild clears the accumulated list; the old build's
+      // page must not be appended to it afterwards.
+      container.read(timelineProvider.future).ignore();
+      await Future<void>.delayed(Duration.zero);
+      expect(client.outstanding, 1, reason: 'the first build is in flight');
+
+      container.invalidate(timelineProvider);
+      final rebuilt = container.read(timelineProvider.future);
+      await Future<void>.delayed(Duration.zero);
+      expect(client.outstanding, 2, reason: 'the rebuild is in flight too');
+
+      // The old build answers after the rebuild has already started.
+      client.answer([_entry('stale')]);
+      await Future<void>.delayed(Duration.zero);
+      client.answer([_entry('fresh')]);
+      await rebuilt;
+
+      final data = container.read(timelineProvider).value!;
+      expect(data.mediaCount, 1);
+      expect(data.groups.single.media.single.id, 'fresh');
+    });
+
     test('a late failure does not overwrite the rebuilt state', () async {
       await firstPage([for (var i = 0; i < 200; i++) _entry('$i')]);
 

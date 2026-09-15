@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../api/client.dart';
 import '../api/models.dart';
 import 'auth.dart';
-import 'pagination_guard.dart';
+import 'stale_response_guard.dart';
+import 'search_limit.dart';
 
 const _albumPageSize = 200;
-const albumPrefetchThreshold = 20;
 
 final myAlbumsProvider = FutureProvider<List<AlbumItem>>(
   (ref) => ref.guarded((c) => c.myAlbums()),
@@ -15,7 +15,6 @@ final myAlbumsProvider = FutureProvider<List<AlbumItem>>(
 /// Face groups are fetched in small pages: the server resolves a thumbnail per
 /// group, which is slow enough that asking for all of them at once times out.
 const _faceGroupPageSize = 40;
-const faceGroupPrefetchThreshold = 8;
 
 class FaceGroupsData {
   final List<FaceGroup> groups;
@@ -40,7 +39,7 @@ class FaceGroupsData {
 }
 
 class FaceGroupsNotifier extends AsyncNotifier<FaceGroupsData>
-    with PaginationGuard {
+    with StaleResponseGuard {
   @override
   Future<FaceGroupsData> build() async {
     beginGeneration(ref);
@@ -113,7 +112,25 @@ final mediaDetailsProvider = FutureProvider.family<MediaDetails, String>(
 final searchProvider = FutureProvider.autoDispose
     .family<SearchResults, String>((ref, query) async {
       if (query.trim().isEmpty) return SearchResults(query: query);
-      return ref.guarded((c) => c.search(query));
+
+      // Waiting on the limit rather than firing without it: the limit resolves
+      // from the cache on all but the first search, and starting with the
+      // server default only to re-query would make results jump about.
+      //
+      // The future is watched here and awaited inside the callback, because
+      // `ref.guarded` watches the client — awaiting first would put that watch
+      // after an await, against a build that may already be gone.
+      final limit = ref.watch(searchLimitProvider.future);
+
+      return ref.guarded((c) async {
+        final resolved = await limit;
+
+        return c.search(
+          query,
+          limitMedia: resolved.limitArgument,
+          limitAlbums: resolved.limitArgument,
+        );
+      });
     });
 
 class AlbumData {
@@ -145,7 +162,7 @@ class AlbumData {
 }
 
 class AlbumNotifier extends FamilyAsyncNotifier<AlbumData, String>
-    with PaginationGuard {
+    with StaleResponseGuard {
   @override
   Future<AlbumData> build(String albumId) async {
     beginGeneration(ref);

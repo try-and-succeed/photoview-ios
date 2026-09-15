@@ -29,6 +29,10 @@ class Thumbnail {
 class MediaItem {
   final String id;
   final MediaType type;
+
+  /// Usually the file name. Needed wherever media is listed as text rather
+  /// than as a picture, which is how large result sets are shown.
+  final String title;
   final String? blurhash;
   final Thumbnail? thumbnail;
   final bool favorite;
@@ -36,6 +40,7 @@ class MediaItem {
   const MediaItem({
     required this.id,
     required this.type,
+    this.title = '',
     this.blurhash,
     this.thumbnail,
     this.favorite = false,
@@ -46,6 +51,7 @@ class MediaItem {
     return MediaItem(
       id: json['id'].toString(),
       type: _mediaTypeFrom(json['type'] as String?),
+      title: json['title'] as String? ?? '',
       blurhash: json['blurhash'] as String?,
       thumbnail: thumb == null ? null : Thumbnail.fromJson(thumb),
       favorite: json['favorite'] as bool? ?? false,
@@ -55,6 +61,7 @@ class MediaItem {
   MediaItem copyWith({Thumbnail? thumbnail, bool? favorite}) => MediaItem(
     id: id,
     type: type,
+    title: title,
     blurhash: blurhash,
     thumbnail: thumbnail ?? this.thumbnail,
     favorite: favorite ?? this.favorite,
@@ -297,6 +304,75 @@ class MediaDetails {
       downloads: downloads,
     );
   }
+}
+
+/// What the scanner is doing with one album.
+///
+/// The server has exactly two states. [unknown] is the app's own, for a value
+/// added to the enum later — an unrecognised status must render as "busy",
+/// not crash the screen.
+enum ScannerJobStatus { running, queued, unknown }
+
+/// One album in the scanner queue.
+class ScannerJob {
+  final String albumId;
+  final String albumTitle;
+  final ScannerJobStatus status;
+
+  const ScannerJob({
+    required this.albumId,
+    required this.albumTitle,
+    required this.status,
+  });
+
+  factory ScannerJob.fromJson(Map<String, dynamic> json) {
+    final album = json['album'] as Map<String, dynamic>? ?? const {};
+
+    return ScannerJob(
+      albumId: album['id']?.toString() ?? '',
+      albumTitle: album['title'] as String? ?? '',
+      status: switch ((json['status'] as String?)?.toUpperCase()) {
+        'RUNNING' => ScannerJobStatus.running,
+        'QUEUED' => ScannerJobStatus.queued,
+        _ => ScannerJobStatus.unknown,
+      },
+    );
+  }
+}
+
+/// The server-side user preferences the app reads.
+///
+/// [language] is carried even though the app never shows it: the mutation that
+/// writes preferences replaces the whole record, so anything not sent back is
+/// erased. Holding it here is what lets a write preserve it.
+class UserPreferences {
+  final String? language;
+
+  /// Null when unset, in which case the app falls back to its own default.
+  /// Zero means unlimited.
+  final int? searchResultLimit;
+
+  /// Whether the web interface shows its album tree sidebar.
+  ///
+  /// The app never acts on this — it is a statement about a browser window.
+  /// It is read and written back for the same reason as [language]: so that
+  /// saving the search limit here does not silently switch it off over there.
+  /// Null both when the server has no such field and when it is simply unset;
+  /// the two are told apart by [Capability.albumTreePreference], not here.
+  final bool? showAlbumTree;
+
+  const UserPreferences({
+    this.language,
+    this.searchResultLimit,
+    this.showAlbumTree,
+  });
+
+  factory UserPreferences.fromJson(Map<String, dynamic> json) =>
+      UserPreferences(
+        language: json['language'] as String?,
+        searchResultLimit: json['searchResultLimit'] as int?,
+        showAlbumTree: json['showAlbumTree'] as bool?,
+      );
 }
 
 class SearchResults {

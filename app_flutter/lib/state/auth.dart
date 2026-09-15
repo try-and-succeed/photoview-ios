@@ -5,6 +5,7 @@ import '../api/session.dart';
 import '../api/trusted_cas.dart';
 import '../api/trusted_certificates.dart';
 import '../util/image_cache.dart';
+import 'capabilities.dart';
 
 final sessionStoreProvider = Provider<SessionStore>((ref) => SessionStore());
 
@@ -54,14 +55,33 @@ class AuthNotifier extends AsyncNotifier<Session?> {
       password: password,
     );
 
-    await _activate(
-      SavedServer(
-        endpoint: session.endpoint,
-        username: username,
-        token: session.token,
-        lastUsed: DateTime.now(),
-      ),
+    final server = SavedServer(
+      endpoint: session.endpoint,
+      username: username,
+      token: session.token,
+      lastUsed: DateTime.now(),
     );
+
+    // A password sign-in is the moment the user is most likely to have just
+    // updated their server, so it is the cheapest place to stop trusting what
+    // was remembered about it. Reopening a saved server deliberately does not
+    // do this — that path exists to be instant.
+    //
+    // Before activating, not after: publishing the session first lets the
+    // capability provider read the old entry and start probing, and that
+    // in-flight write would put back what was just cleared.
+    //
+    // Keyed on the saved server, not on the session the login returned: that
+    // session carries no user name, so its id is `endpoint|` and the clear
+    // would miss the account's own entry entirely.
+    try {
+      await ref.read(capabilityStoreProvider).clear(server.id);
+    } catch (_) {
+      // Only costs a stale capability answer; never worth failing a login.
+    }
+
+    await _activate(server);
+    ref.invalidate(serverCapabilitiesProvider);
   }
 
   /// Reopens a remembered server without asking for anything.
@@ -144,9 +164,7 @@ class AuthNotifier extends AsyncNotifier<Session?> {
   }
 
   Future<void> _forgetSession(Session session) async {
-    await ref
-        .read(sessionStoreProvider)
-        .forget('${session.endpoint}|${session.username}');
+    await ref.read(sessionStoreProvider).forget(session.serverId);
     ref.invalidate(savedServersProvider);
   }
 }

@@ -1,10 +1,40 @@
 import 'package:flutter/material.dart';
 
+import '../api/capabilities.dart';
+import '../api/client.dart';
+import 'certificate_error.dart';
+
 class ErrorMessage extends StatelessWidget {
   final String message;
   final VoidCallback? onRetry;
 
   const ErrorMessage({super.key, required this.message, this.onRetry});
+
+  /// Chooses how to present [error], so a screen can hand over whatever it
+  /// caught without having to know the difference.
+  ///
+  /// A server that simply does not have a feature yet is not a failure of the
+  /// app or of the network, and offering "Retry" for it would be a lie — no
+  /// number of retries adds a field to someone else's server.
+  static Widget forError(Object error, {VoidCallback? onRetry}) {
+    if (error is UnsupportedFieldException) {
+      return EmptyMessage(
+        message: error.message,
+        icon: Icons.extension_off_outlined,
+      );
+    }
+
+    // Retrying an untrusted certificate fails identically every time. What the
+    // user needs is to see the certificate and decide about it.
+    if (error is CertificateNotTrustedException) {
+      return CertificateErrorMessage(
+        endpoint: error.endpoint,
+        onRetry: onRetry,
+      );
+    }
+
+    return ErrorMessage(message: '$error', onRetry: onRetry);
+  }
 
   @override
   Widget build(BuildContext context) {

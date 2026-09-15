@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../api/client.dart';
 import '../api/models.dart';
 import '../state/auth.dart';
 import '../util/formatting.dart';
@@ -46,12 +47,21 @@ class _DownloadButtonState extends ConsumerState<DownloadButton> {
 
       final response = await client.send(request).timeout(_headerTimeout);
 
-      if (response.statusCode == 401 || response.statusCode == 403) {
+      if (response.statusCode == 401) {
         // This path bypasses the GraphQL client, so it has to report an
         // expired session itself or the user is left with a download that
-        // silently never works.
+        // silently never works. Raised as the same exception the GraphQL
+        // client uses, so a rejected sign-in looks the same wherever it
+        // surfaces rather than reading as a transport error.
+        //
+        // 401 only, matching the GraphQL path: a 403 here can come from a
+        // proxy or from a permission check on the media URL, and acting on it
+        // would throw away a working session over one file.
         await ref.read(authProvider.notifier).sessionExpired(session);
-        throw const HttpException('Your sign-in is no longer accepted');
+        throw const UnauthorizedException();
+      }
+      if (response.statusCode == 403) {
+        throw const PermissionDeniedException();
       }
       if (response.statusCode != 200) {
         throw HttpException('Server returned ${response.statusCode}');

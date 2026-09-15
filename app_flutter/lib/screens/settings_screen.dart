@@ -2,10 +2,14 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../api/capabilities.dart';
 import '../api/trusted_cas.dart';
 import '../state/auth.dart';
+import '../state/capabilities.dart';
+import 'scanner_screen.dart';
 import '../util/image_cache.dart';
 import '../widgets/insecure_notice.dart';
+import '../widgets/search_limit_field.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -40,6 +44,36 @@ class SettingsScreen extends ConsumerWidget {
             subtitle: const Text('Keeps this sign-in for one-tap return'),
             onTap: () => ref.read(authProvider.notifier).switchServer(),
           ),
+          if (session != null &&
+              ref.watch(hasCapabilityProvider(Capability.scanner))) ...[
+            const Divider(),
+            const _SectionHeader('Library'),
+            ListTile(
+              leading: const Icon(Icons.radar),
+              title: const Text('Scanner'),
+              subtitle: const Text('What the server is indexing right now'),
+              onTap: () => showScanner(Navigator.of(context)),
+            ),
+          ],
+          if (session != null) ...[
+            const Divider(),
+            const _SectionHeader('Search'),
+            const SearchLimitField(),
+            ListTile(
+              leading: const Icon(Icons.refresh),
+              title: const Text('Re-check server features'),
+              subtitle: const Text(
+                'After updating your Photoview server',
+              ),
+              onTap: () async {
+                await ref.read(recheckCapabilitiesProvider)();
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Checking your server again…')),
+                );
+              },
+            ),
+          ],
           const Divider(),
           const _SectionHeader('Security'),
           const _CertificateAuthorities(),

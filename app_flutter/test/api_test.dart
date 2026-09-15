@@ -8,18 +8,12 @@ void main() {
     List<String> bases(String input) =>
         PhotoviewClient.candidateBases(input).map((u) => u.toString()).toList();
 
-    test('tries both schemes for a bare host', () {
-      expect(bases('photoview.lan'), [
-        'https://photoview.lan/',
-        'http://photoview.lan/',
-      ]);
+    test('tries a bare host over HTTPS only, never plain HTTP', () {
+      expect(bases('photoview.lan'), ['https://photoview.lan/']);
     });
 
     test('keeps a port on a bare host', () {
-      expect(bases('192.168.0.47:8080'), [
-        'https://192.168.0.47:8080/',
-        'http://192.168.0.47:8080/',
-      ]);
+      expect(bases('192.168.0.47:8080'), ['https://192.168.0.47:8080/']);
     });
 
     test('honours an explicit scheme instead of guessing', () {
@@ -344,6 +338,27 @@ void main() {
 
       expect(details.media.type, MediaType.video);
       expect(details.videoWebUrl, 'video/clip_web.mp4');
+    });
+  });
+
+  group('MediaItem.copyWith', () {
+    test('keeps every field it is not asked to change', () {
+      const original = MediaItem(
+        id: '7',
+        type: MediaType.video,
+        title: 'IMG_0001.mov',
+        blurhash: 'LEHV6nWB2yk8',
+        thumbnail: Thumbnail(url: 'a.jpg', width: 4, height: 3),
+      );
+
+      final copy = original.copyWith(favorite: true);
+
+      expect(copy.id, original.id);
+      expect(copy.type, original.type);
+      expect(copy.title, original.title);
+      expect(copy.blurhash, original.blurhash);
+      expect(copy.thumbnail, same(original.thumbnail));
+      expect(copy.favorite, isTrue);
     });
   });
 

@@ -1,13 +1,26 @@
 {
   "permissions": {
     "allow": [
-      "Bash(flutter analyze*)",
-      "Bash(flutter test*)",
-      "Bash(adb devices*)",
-      "Bash(adb logcat*)",
-      "Bash(adb exec-out screencap*)",
-      "Bash(openssl x509 *)",
-      "Bash(openssl s_client *)"
+      "Bash(flutter analyze:*)",
+      "Bash(flutter test:*)",
+      "Bash(openssl x509:*)",
+      "Bash(openssl s_client:*)",
+      "Bash(git status:*)",
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Bash(git show:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git branch:*)",
+      "Bash(cd:*)",
+      "Bash(ls:*)",
+      "Bash(rm -f test/probe_riverpod_test.dart)",
+      "PowerShell(& \"D:\\Tools\\flutter\\bin\\flutter.bat\":*)",
+      "PowerShell(Select-Object:*)",
+      "PowerShell(Select-String:*)",
+      "PowerShell(Get-Content:*)",
+      "PowerShell(Get-ChildItem:*)",
+      "PowerShell(Where-Object:*)"
     ]
   }
 }
