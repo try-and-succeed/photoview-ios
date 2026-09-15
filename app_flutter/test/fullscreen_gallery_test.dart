@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:photoview/api/models.dart';
 import 'package:photoview/api/session.dart';
 import 'package:photoview/state/auth.dart';
+import 'package:photoview/state/library.dart';
 import 'package:photoview/widgets/fullscreen_gallery.dart';
 
 final _session = Session(
@@ -19,11 +20,24 @@ final _offlinePages = [
   for (var i = 0; i < 3; i++) MediaItem(id: '$i', type: MediaType.photo),
 ];
 
+/// Details as the server would send them, with camera data unless [exif] is
+/// false.
+MediaDetails _detailsFor(String id, {bool exif = true}) => MediaDetails(
+  media: MediaItem(id: id, type: MediaType.photo),
+  title: 'photo-$id.jpg',
+  exif: exif ? MediaExif(camera: 'Camera $id', iso: 400) : null,
+);
+
 /// Opens the gallery from a home screen, so closing it has somewhere to go.
-Future<void> _openGallery(WidgetTester tester) async {
+Future<void> _openGallery(WidgetTester tester, {bool exif = true}) async {
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [sessionProvider.overrideWithValue(_session)],
+      overrides: [
+        sessionProvider.overrideWithValue(_session),
+        mediaDetailsProvider.overrideWith(
+          (ref, id) async => _detailsFor(id, exif: exif),
+        ),
+      ],
       child: MaterialApp(
         home: Builder(
           builder: (context) => TextButton(
@@ -92,6 +106,7 @@ void main() {
       expect(galleryActionFor(LogicalKeyboardKey.arrowRight), GalleryAction.next);
       expect(galleryActionFor(LogicalKeyboardKey.pageDown), GalleryAction.next);
       expect(galleryActionFor(LogicalKeyboardKey.escape), GalleryAction.close);
+      expect(galleryActionFor(LogicalKeyboardKey.keyI), GalleryAction.info);
     });
 
     test('leaves every other key alone', () {
@@ -141,6 +156,41 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
       await tester.pumpAndSettle();
       expect(find.text('1 / 3'), findsOneWidget);
+    });
+
+    testWidgets('the info button shows the camera data of the photo on screen', (
+      tester,
+    ) async {
+      await _openGallery(tester);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Info'));
+      await tester.pumpAndSettle();
+
+      // Page two is item "1": the panel follows the page, not the photo the
+      // gallery was opened on.
+      expect(find.text('photo-1.jpg'), findsOneWidget);
+      expect(find.text('Camera 1'), findsOneWidget);
+      expect(find.text('Camera 0'), findsNothing);
+    });
+
+    testWidgets('the i key opens the same panel', (tester) async {
+      await _openGallery(tester);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyI);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Camera 0'), findsOneWidget);
+    });
+
+    testWidgets('says so when a photo has no camera data', (tester) async {
+      await _openGallery(tester, exif: false);
+
+      await tester.tap(find.byTooltip('Info'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('No camera data for this photo.'), findsOneWidget);
     });
 
     testWidgets('Escape closes the gallery', (tester) async {

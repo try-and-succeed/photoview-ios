@@ -11,6 +11,8 @@ import '../api/models.dart';
 import '../api/session.dart';
 import '../state/auth.dart';
 import '../state/library.dart';
+import '../util/formatting.dart';
+import 'exif_table.dart';
 
 void showFullscreenGallery(
   BuildContext context, {
@@ -47,7 +49,7 @@ class FullscreenGallery extends ConsumerStatefulWidget {
 }
 
 /// What a key does in the gallery.
-enum GalleryAction { previous, next, close }
+enum GalleryAction { previous, next, close, info }
 
 /// The gallery's keys, for tablets and phones with a keyboard attached.
 @visibleForTesting
@@ -60,6 +62,7 @@ GalleryAction? galleryActionFor(LogicalKeyboardKey key) {
     return GalleryAction.next;
   }
   if (key == LogicalKeyboardKey.escape) return GalleryAction.close;
+  if (key == LogicalKeyboardKey.keyI) return GalleryAction.info;
   return null;
 }
 
@@ -99,6 +102,19 @@ class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
 
   void _toggleControls() => _setControlsVisible(!_controlsVisible);
 
+  /// The camera data of the photo on screen, without leaving the gallery.
+  void _showInfo() {
+    final item = widget.media[_index];
+
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => _InfoPanel(item: item),
+    );
+  }
+
   KeyEventResult _onKey(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
       return KeyEventResult.ignored;
@@ -113,6 +129,9 @@ class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
         return KeyEventResult.handled;
       case GalleryAction.close:
         Navigator.of(context).maybePop();
+        return KeyEventResult.handled;
+      case GalleryAction.info:
+        _showInfo();
         return KeyEventResult.handled;
       case null:
         // Any other key — Tab above all — brings the controls back, so focus
@@ -152,6 +171,13 @@ class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
                 '${_index + 1} / ${widget.media.length}',
                 style: const TextStyle(fontSize: 15),
               ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.info_outline),
+                  tooltip: 'Info',
+                  onPressed: _showInfo,
+                ),
+              ],
             ),
           ),
         ),
@@ -214,6 +240,63 @@ class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
                 );
               },
             ),
+    );
+  }
+}
+
+/// Title and camera data of one photo, for the gallery's info button.
+class _InfoPanel extends ConsumerWidget {
+  final MediaItem item;
+
+  const _InfoPanel({required this.item});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final details = ref.watch(mediaDetailsProvider(item.id));
+
+    Widget message(String text, {Color? color}) => Padding(
+      padding: const EdgeInsets.all(24),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: TextStyle(color: color ?? theme.colorScheme.onSurfaceVariant),
+      ),
+    );
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              details.valueOrNull?.title ?? item.title,
+              style: theme.textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(height: 16),
+          details.when(
+            loading: () => const Padding(
+              padding: EdgeInsets.all(24),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+            error: (error, _) => message(
+              'Could not load the details: $error',
+              color: theme.colorScheme.error,
+            ),
+            data: (data) {
+              final exif = data.exif;
+              if (exif == null || exifRows(exif).isEmpty) {
+                return message('No camera data for this photo.');
+              }
+              return ExifTable(exif: exif);
+            },
+          ),
+        ],
+      ),
     );
   }
 }
