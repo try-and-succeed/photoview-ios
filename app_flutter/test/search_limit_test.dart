@@ -143,6 +143,29 @@ void main() {
       expect(await SettingsStore().searchResultLimit(serverA), isNull);
     });
 
+    test('overlapping saves for two accounts keep both', () async {
+      await Future.wait([
+        SettingsStore().setSearchResultLimit(serverA, 10),
+        SettingsStore().setSearchResultLimit(serverB, 99),
+      ]);
+
+      expect(await SettingsStore().searchResultLimit(serverA), 10);
+      expect(await SettingsStore().searchResultLimit(serverB), 99);
+    });
+
+    test('a failed save does not block the ones after it', () async {
+      FlutterSecureStoragePlatform.instance = _UnreadableStorage({});
+      await expectLater(
+        SettingsStore().setSearchResultLimit(serverA, 10),
+        throwsA(isA<StorageUnavailable>()),
+      );
+
+      FlutterSecureStorage.setMockInitialValues({});
+      await SettingsStore().setSearchResultLimit(serverA, 12);
+
+      expect(await SettingsStore().searchResultLimit(serverA), 12);
+    });
+
     test('a record that is not JSON can be written over', () async {
       // Nothing in it can ever be read back, so refusing would leave the
       // setting unsavable for good — and a raw FormatException would reach

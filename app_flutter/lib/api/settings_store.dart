@@ -39,7 +39,26 @@ class SettingsStore {
   /// Throws [StorageUnavailable] rather than writing if the existing settings
   /// cannot be read: a write rebuilds the whole record, so treating a failed
   /// read as "nothing stored" would discard every other server's settings.
-  Future<void> setSearchResultLimit(String serverId, int? limit) async {
+  ///
+  /// Runs after any change already under way. Every account shares one
+  /// record, so two changes that each read it and write it back would keep
+  /// only the last one's view — and lose the other account's setting.
+  Future<void> setSearchResultLimit(String serverId, int? limit) =>
+      _serialized(() => _setSearchResultLimit(serverId, limit));
+
+  /// The end of the queue of changes. Static because every instance shares
+  /// the same storage record.
+  static Future<void> _queue = Future.value();
+
+  /// Runs [action] after every change queued before it. A failing change
+  /// still releases the queue; its caller hears about the failure.
+  Future<T> _serialized<T>(Future<T> Function() action) {
+    final result = _queue.then((_) => action());
+    _queue = result.then<void>((_) {}, onError: (Object _) {});
+    return result;
+  }
+
+  Future<void> _setSearchResultLimit(String serverId, int? limit) async {
     final all = await _readAllForWrite();
     final entry = all[serverId];
     final updated = <String, dynamic>{
