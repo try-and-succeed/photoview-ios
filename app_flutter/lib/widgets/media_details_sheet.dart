@@ -91,9 +91,11 @@ class _MediaDetailsSheetState extends ConsumerState<MediaDetailsSheet> {
               if (data.downloads.isNotEmpty) ...[
                 _SectionHeader(title: 'Download'),
                 for (final download in data.downloads)
-                  DownloadButton(download: download),
+                  DownloadButton(download: download, mediaTitle: data.title),
               ],
-              _SectionHeader(title: 'Share'),
+              // Public links, not the share sheet — named apart from the
+              // "send to another app" button on each download above.
+              _SectionHeader(title: 'Share links'),
               _ShareSection(mediaId: data.media.id, shares: data.shares),
             ],
           ),
