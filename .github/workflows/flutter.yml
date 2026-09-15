@@ -12,10 +12,11 @@ on:
     paths:
       - 'app_flutter/**'
       - '.github/workflows/flutter.yml'
+  # Every pull request, whatever it touches. master requires these three jobs
+  # to pass before a merge, and a job that never starts never passes: with a
+  # path filter here, a pull request changing only the README or the
+  # Dependabot config could not be merged at all.
   pull_request:
-    paths:
-      - 'app_flutter/**'
-      - '.github/workflows/flutter.yml'
   workflow_dispatch:
 
 # Read-only by default, and the checkout steps below drop the token from
