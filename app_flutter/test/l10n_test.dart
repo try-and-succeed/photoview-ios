@@ -172,6 +172,8 @@ void main() {
 
       expect(find.text('Sprache'), findsOneWidget);
       expect(find.text('Deutsch'), findsOneWidget, reason: 'shown as the choice');
+      expect(find.text('Einstellungen'), findsOneWidget);
+      expect(find.text('Server wechseln'), findsOneWidget);
       expect(await SettingsStore().appLanguage(), 'de');
 
       // Back to the device language.
@@ -181,6 +183,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Language'), findsOneWidget);
+      expect(find.text('Settings'), findsOneWidget);
       expect(await SettingsStore().appLanguage(), isNull);
     });
   });

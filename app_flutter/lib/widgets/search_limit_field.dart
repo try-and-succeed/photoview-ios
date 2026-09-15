@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/app_localizations.dart';
 import '../state/auth.dart';
 import '../state/search_limit.dart';
 
@@ -40,9 +41,11 @@ class _SearchLimitFieldState extends ConsumerState<SearchLimitField> {
   }
 
   Future<void> _save() async {
+    final l10n = AppLocalizations.of(context);
     final parsed = parseSearchLimit(_controller.text);
-    if (parsed.error != null) {
-      setState(() => _error = parsed.error);
+    final refusal = parsed.error;
+    if (refusal != null) {
+      setState(() => _error = _refusal(l10n, refusal));
       return;
     }
 
@@ -57,7 +60,7 @@ class _SearchLimitFieldState extends ConsumerState<SearchLimitField> {
 
       FocusScope.of(context).unfocus();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_describe(parsed.limit))),
+        SnackBar(content: Text(_describe(l10n, parsed.limit))),
       );
     } catch (error) {
       if (mounted) setState(() => _error = '$error');
@@ -66,15 +69,25 @@ class _SearchLimitFieldState extends ConsumerState<SearchLimitField> {
     }
   }
 
-  static String _describe(int? limit) => switch (limit) {
-    null => 'Search limit cleared.',
-    0 => 'Search results are no longer limited.',
-    _ => 'Search limited to $limit results.',
-  };
+  static String _describe(AppLocalizations l10n, int? limit) =>
+      switch (limit) {
+        null => l10n.searchLimitCleared,
+        0 => l10n.searchLimitOff,
+        _ => l10n.searchLimitSaved(limit),
+      };
+
+  static String _refusal(AppLocalizations l10n, SearchLimitError error) =>
+      switch (error) {
+        SearchLimitError.notWholeNumber => l10n.searchLimitNotWholeNumber,
+        SearchLimitError.negative => l10n.searchLimitNegative,
+        SearchLimitError.tooLarge =>
+          l10n.searchLimitTooLarge(maxSearchResultLimit),
+      };
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final limit = ref.watch(searchLimitProvider);
     final serverId = ref.watch(sessionProvider)?.serverId;
 
@@ -90,13 +103,10 @@ class _SearchLimitFieldState extends ConsumerState<SearchLimitField> {
     final failed = limit.hasError;
 
     final subtitle = switch (stored?.source) {
-      SearchLimitSource.server =>
-        'Stored on the server, so it applies in the web interface too.',
-      SearchLimitSource.device =>
-        'Stored on this device: your server is too old to keep this setting.',
-      null => failed
-          ? 'Could not read this setting: ${limit.error}'
-          : 'Loading…',
+      SearchLimitSource.server => l10n.searchLimitOnServer,
+      SearchLimitSource.device => l10n.searchLimitOnDevice,
+      null =>
+        failed ? l10n.searchLimitReadFailed('${limit.error}') : l10n.loading,
     };
 
     return Padding(
@@ -118,9 +128,9 @@ class _SearchLimitFieldState extends ConsumerState<SearchLimitField> {
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   decoration: InputDecoration(
-                    labelText: 'Search result limit',
-                    hintText: 'Leave empty for the default',
-                    helperText: '0 means no limit',
+                    labelText: l10n.searchLimitLabel,
+                    hintText: l10n.searchLimitHint,
+                    helperText: l10n.searchLimitHelper,
                     errorText: _error,
                     border: const OutlineInputBorder(),
                   ),
@@ -137,12 +147,12 @@ class _SearchLimitFieldState extends ConsumerState<SearchLimitField> {
               else if (failed)
                 TextButton(
                   onPressed: () => ref.invalidate(searchLimitProvider),
-                  child: const Text('Retry'),
+                  child: Text(l10n.actionRetry),
                 )
               else
                 TextButton(
                   onPressed: stored == null ? null : _save,
-                  child: const Text('Save'),
+                  child: Text(l10n.actionSave),
                 ),
             ],
           ),
