@@ -7,6 +7,7 @@ import '../api/trusted_certificates.dart';
 import '../state/auth.dart';
 import '../widgets/certificate_dialog.dart';
 import '../widgets/insecure_notice.dart';
+import '../widgets/password_field.dart';
 
 class WelcomeScreen extends ConsumerStatefulWidget {
   const WelcomeScreen({super.key});
@@ -291,14 +292,9 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
       onSubmitted: (_) => _passwordFocus.requestFocus(),
     ),
     const SizedBox(height: 16),
-    TextField(
+    PasswordField(
       controller: _password,
       focusNode: _passwordFocus,
-      decoration: const InputDecoration(
-        labelText: 'Password',
-        border: OutlineInputBorder(),
-      ),
-      obscureText: true,
       textInputAction: TextInputAction.go,
       onSubmitted: (_) => _connect(),
     ),
