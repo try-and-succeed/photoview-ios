@@ -195,5 +195,6 @@
   "certFileUnreadable": "Filen er ikke et certifikat, systemet kan læse. Eksportér din CA som en .pem- eller .crt-fil.",
   "certFileAlreadyTrusted": "Det certifikat er allerede tillidsvækkende.",
   "certFileSeveral": "Filen indeholder flere certifikater ({count}). Importér CA-certifikatet alene, så du kan se, hvilket du har tillid til.",
-  "certFileInvalidBase64": "Certifikatblokken er ikke gyldig base64."
+  "certFileInvalidBase64": "Certifikatblokken er ikke gyldig base64.",
+  "settingsLanguageNotSaved": "Sproget kunne ikke gemmes og gælder kun, indtil appen genstartes: {error}"
 }

@@ -16,12 +16,11 @@ class AppLanguageNotifier extends AsyncNotifier<AppLanguage?> {
   /// Switches the app to [language], or back to the device language for null.
   ///
   /// Takes effect at once, and is stored for the next start. A choice that
-  /// cannot be stored still applies for this session.
+  /// cannot be stored still applies for this session, and the failure is
+  /// rethrown so the screen can say it will not last.
   Future<void> choose(AppLanguage? language) async {
     state = AsyncData(language);
-    try {
-      await ref.read(settingsStoreProvider).setAppLanguage(language?.code);
-    } catch (_) {}
+    await ref.read(settingsStoreProvider).setAppLanguage(language?.code);
   }
 }
 

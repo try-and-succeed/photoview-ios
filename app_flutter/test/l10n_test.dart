@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:photoview/api/session.dart';
 import 'package:photoview/api/settings_store.dart';
 import 'package:photoview/api/trusted_cas.dart';
 import 'package:photoview/api/trusted_certificates.dart';
@@ -13,6 +14,7 @@ import 'package:photoview/l10n/languages.dart';
 import 'package:photoview/main.dart';
 import 'package:photoview/screens/settings_screen.dart';
 import 'package:photoview/state/auth.dart';
+import 'package:photoview/state/search_limit.dart';
 
 /// Every ARB file, by locale, as read from lib/l10n.
 Map<String, Map<String, dynamic>> _arbFiles() {
@@ -146,6 +148,34 @@ void main() {
       expect(await SettingsStore().appLanguage(), isNull);
     });
 
+    testWidgets('a language that cannot be stored applies and says so', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sessionProvider.overrideWithValue(null),
+            settingsStoreProvider.overrideWithValue(_UnwritableSettings()),
+            trustedCasProvider.overrideWithValue(TrustedCaStore()),
+            trustedCertificatesProvider.overrideWithValue(TrustedCertificateStore()),
+          ],
+          child: const PhotoviewApp(home: SettingsScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Language'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Deutsch'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Sprache'), findsOneWidget, reason: 'in use regardless');
+      expect(
+        find.textContaining('Die Sprache konnte nicht gespeichert werden'),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('choosing a language switches the app at once and is kept', (
       tester,
     ) async {
@@ -187,4 +217,12 @@ void main() {
       expect(await SettingsStore().appLanguage(), isNull);
     });
   });
+}
+
+/// A settings store whose writes fail, as they do when secure storage is
+/// unavailable.
+class _UnwritableSettings extends SettingsStore {
+  @override
+  Future<void> setAppLanguage(String? code) async =>
+      throw const StorageUnavailable('locked');
 }

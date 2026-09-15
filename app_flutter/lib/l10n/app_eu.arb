@@ -195,5 +195,6 @@
   "certFileUnreadable": "Fitxategi hori ez da sistemak irakur dezakeen ziurtagiria. Esportatu zure CA .pem edo .crt fitxategi gisa.",
   "certFileAlreadyTrusted": "Ziurtagiri hori fidagarritzat jotzen da dagoeneko.",
   "certFileSeveral": "Fitxategi horrek hainbat ziurtagiri ditu ({count}). Inportatu CA ziurtagiria bakarrik, zeinetaz fidatzen zaren ikus dezazun.",
-  "certFileInvalidBase64": "Ziurtagiri-bloke hori ez da baliozko base64."
+  "certFileInvalidBase64": "Ziurtagiri-bloke hori ez da baliozko base64.",
+  "settingsLanguageNotSaved": "Ezin izan da hizkuntza gorde, eta aplikazioa berrabiarazi arte soilik aplikatuko da: {error}"
 }

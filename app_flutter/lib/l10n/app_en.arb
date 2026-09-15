@@ -990,5 +990,15 @@
   "certFileInvalidBase64": "That certificate block is not valid base64.",
   "@certFileInvalidBase64": {
     "description": "A PEM certificate block is corrupt."
+  },
+  "settingsLanguageNotSaved": "The language could not be saved and applies only until the app restarts: {error}",
+  "@settingsLanguageNotSaved": {
+    "description": "The chosen language is in use but could not be stored for the next start.",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Secure storage is unavailable"
+      }
+    }
   }
 }

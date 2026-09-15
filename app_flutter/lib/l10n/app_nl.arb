@@ -195,5 +195,6 @@
   "certFileUnreadable": "Dat bestand is geen certificaat dat het systeem kan lezen. Exporteer je CA als .pem- of .crt-bestand.",
   "certFileAlreadyTrusted": "Dat certificaat wordt al vertrouwd.",
   "certFileSeveral": "Dat bestand bevat meerdere certificaten ({count}). Importeer het CA-certificaat afzonderlijk, zodat je ziet welk certificaat je vertrouwt.",
-  "certFileInvalidBase64": "Dat certificaatblok is geen geldige base64."
+  "certFileInvalidBase64": "Dat certificaatblok is geen geldige base64.",
+  "settingsLanguageNotSaved": "De taal kon niet worden opgeslagen en geldt alleen tot de app opnieuw start: {error}"
 }

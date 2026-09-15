@@ -195,5 +195,6 @@
   "certFileUnreadable": "Die Datei ist kein Zertifikat, das das System lesen kann. Exportiere deine CA als .pem- oder .crt-Datei.",
   "certFileAlreadyTrusted": "Dieses Zertifikat gilt bereits als vertrauenswürdig.",
   "certFileSeveral": "Die Datei enthält mehrere Zertifikate ({count}). Importiere das CA-Zertifikat einzeln, damit du siehst, welchem du vertraust.",
-  "certFileInvalidBase64": "Der Zertifikatsblock ist kein gültiges Base64."
+  "certFileInvalidBase64": "Der Zertifikatsblock ist kein gültiges Base64.",
+  "settingsLanguageNotSaved": "Die Sprache konnte nicht gespeichert werden und gilt nur bis zum Neustart der App: {error}"
 }

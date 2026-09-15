@@ -195,5 +195,6 @@
   "certFileUnreadable": "该文件不是系统可读取的证书。请将 CA 导出为 .pem 或 .crt 文件。",
   "certFileAlreadyTrusted": "该证书已受信任。",
   "certFileSeveral": "该文件包含多个证书（{count} 个）。请单独导入 CA 证书，以便看清你信任的是哪一个。",
-  "certFileInvalidBase64": "该证书块不是有效的 base64。"
+  "certFileInvalidBase64": "该证书块不是有效的 base64。",
+  "settingsLanguageNotSaved": "无法保存语言设置，仅在应用重启前有效：{error}"
 }

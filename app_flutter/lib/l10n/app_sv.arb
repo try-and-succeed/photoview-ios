@@ -195,5 +195,6 @@
   "certFileUnreadable": "Filen är inte ett certifikat som systemet kan läsa. Exportera din CA som en .pem- eller .crt-fil.",
   "certFileAlreadyTrusted": "Certifikatet är redan betrott.",
   "certFileSeveral": "Filen innehåller flera certifikat ({count}). Importera CA-certifikatet för sig, så att du ser vilket du litar på.",
-  "certFileInvalidBase64": "Certifikatblocket är inte giltig base64."
+  "certFileInvalidBase64": "Certifikatblocket är inte giltig base64.",
+  "settingsLanguageNotSaved": "Språket kunde inte sparas och gäller bara tills appen startas om: {error}"
 }

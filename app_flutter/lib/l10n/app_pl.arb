@@ -195,5 +195,6 @@
   "certFileUnreadable": "Ten plik nie jest certyfikatem, który system może odczytać. Wyeksportuj CA jako plik .pem lub .crt.",
   "certFileAlreadyTrusted": "Ten certyfikat jest już zaufany.",
   "certFileSeveral": "Ten plik zawiera kilka certyfikatów ({count}). Zaimportuj sam certyfikat CA, aby widzieć, któremu ufasz.",
-  "certFileInvalidBase64": "Ten blok certyfikatu nie jest prawidłowym base64."
+  "certFileInvalidBase64": "Ten blok certyfikatu nie jest prawidłowym base64.",
+  "settingsLanguageNotSaved": "Nie udało się zapisać języka; obowiązuje tylko do ponownego uruchomienia aplikacji: {error}"
 }

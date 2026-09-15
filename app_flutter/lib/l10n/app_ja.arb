@@ -195,5 +195,6 @@
   "certFileUnreadable": "そのファイルはシステムが読み取れる証明書ではありません。CA を .pem または .crt ファイルとしてエクスポートしてください。",
   "certFileAlreadyTrusted": "その証明書はすでに信頼されています。",
   "certFileSeveral": "そのファイルには複数の証明書（{count}）が含まれています。どれを信頼するか確認できるよう、CA 証明書を単体でインポートしてください。",
-  "certFileInvalidBase64": "その証明書ブロックは有効な Base64 ではありません。"
+  "certFileInvalidBase64": "その証明書ブロックは有効な Base64 ではありません。",
+  "settingsLanguageNotSaved": "言語を保存できませんでした。アプリを再起動するまでのみ有効です: {error}"
 }

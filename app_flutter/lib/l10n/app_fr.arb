@@ -195,5 +195,6 @@
   "certFileUnreadable": "Ce fichier n'est pas un certificat lisible par le système. Exportez votre autorité au format .pem ou .crt.",
   "certFileAlreadyTrusted": "Ce certificat est déjà approuvé.",
   "certFileSeveral": "Ce fichier contient plusieurs certificats ({count}). Importez le certificat de l'autorité seul, pour voir lequel vous approuvez.",
-  "certFileInvalidBase64": "Ce bloc de certificat n'est pas du base64 valide."
+  "certFileInvalidBase64": "Ce bloc de certificat n'est pas du base64 valide.",
+  "settingsLanguageNotSaved": "La langue n'a pas pu être enregistrée et ne s'applique que jusqu'au redémarrage de l'app : {error}"
 }

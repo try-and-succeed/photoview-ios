@@ -195,5 +195,6 @@
   "certFileUnreadable": "Bu dosya sistemin okuyabildiği bir sertifika değil. CA'nızı .pem veya .crt dosyası olarak dışa aktarın.",
   "certFileAlreadyTrusted": "Bu sertifika zaten güvenilir.",
   "certFileSeveral": "Bu dosyada birden fazla sertifika var ({count}). Hangisine güvendiğinizi görebilmek için CA sertifikasını tek başına içe aktarın.",
-  "certFileInvalidBase64": "Bu sertifika bloğu geçerli base64 değil."
+  "certFileInvalidBase64": "Bu sertifika bloğu geçerli base64 değil.",
+  "settingsLanguageNotSaved": "Dil kaydedilemedi; yalnızca uygulama yeniden başlatılana kadar geçerli: {error}"
 }

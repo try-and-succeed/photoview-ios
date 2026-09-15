@@ -195,5 +195,6 @@
   "certFileUnreadable": "Il file non è un certificato leggibile dal sistema. Esporta la tua CA come file .pem o .crt.",
   "certFileAlreadyTrusted": "Il certificato è già considerato attendibile.",
   "certFileSeveral": "Il file contiene più certificati ({count}). Importa il certificato della CA da solo, così vedi quale stai considerando attendibile.",
-  "certFileInvalidBase64": "Il blocco del certificato non è base64 valido."
+  "certFileInvalidBase64": "Il blocco del certificato non è base64 valido.",
+  "settingsLanguageNotSaved": "Impossibile salvare la lingua: resterà attiva solo fino al riavvio dell'app: {error}"
 }

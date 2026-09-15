@@ -155,7 +155,22 @@ class _LanguageTile extends ConsumerWidget {
     );
 
     if (picked == null) return;
-    await ref.read(appLanguageProvider.notifier).choose(picked.language);
+    try {
+      await ref.read(appLanguageProvider.notifier).choose(picked.language);
+    } catch (error) {
+      // Worded in the language just chosen, which is in use once the frame
+      // that switches to it has been built.
+      await WidgetsBinding.instance.endOfFrame;
+      if (!context.mounted) return;
+      final chosen = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            chosen.settingsLanguageNotSaved(describeError(error, chosen)),
+          ),
+        ),
+      );
+    }
   }
 
   @override
