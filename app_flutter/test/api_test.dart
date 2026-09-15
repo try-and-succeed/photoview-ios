@@ -327,6 +327,34 @@ void main() {
       );
     });
 
+    test('reads the full rendition when the server names one', () {
+      final details = MediaDetails.fromJson({
+        'id': '1',
+        'type': 'Photo',
+        'title': 'screenshots_02.jpg',
+        'highRes': {
+          'url': '/api/photo/screenshots_02_4jrdROju.jpg',
+          'width': 1920,
+          'height': 1080,
+        },
+      });
+
+      expect(details.highRes?.url, '/api/photo/screenshots_02_4jrdROju.jpg');
+      expect(details.highRes?.width, 1920);
+    });
+
+    test('has no full rendition when the server sends none', () {
+      // Videos come back with highRes null.
+      for (final highRes in [null, <String, dynamic>{'url': null}]) {
+        final details = MediaDetails.fromJson({
+          'id': '7',
+          'type': 'Video',
+          'highRes': highRes,
+        });
+        expect(details.highRes, isNull, reason: 'highRes: $highRes');
+      }
+    });
+
     test('maps the video type and web rendition', () {
       final details = MediaDetails.fromJson({
         'id': '7',

@@ -5,8 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../api/models.dart';
 import '../state/auth.dart';
 import '../state/library.dart';
-import '../util/formatting.dart';
 import 'download_button.dart';
+import 'exif_table.dart';
 import 'fullscreen_gallery.dart';
 import 'protected_image.dart';
 
@@ -87,13 +87,15 @@ class _MediaDetailsSheetState extends ConsumerState<MediaDetailsSheet> {
               ),
             ],
             data: (data) => [
-              if (data.exif != null) _ExifTable(exif: data.exif!),
+              if (data.exif != null) ExifTable(exif: data.exif!),
               if (data.downloads.isNotEmpty) ...[
                 _SectionHeader(title: 'Download'),
                 for (final download in data.downloads)
-                  DownloadButton(download: download),
+                  DownloadButton(download: download, mediaTitle: data.title),
               ],
-              _SectionHeader(title: 'Share'),
+              // Public links, not the share sheet — named apart from the
+              // "send to another app" button on each download above.
+              _SectionHeader(title: 'Share links'),
               _ShareSection(mediaId: data.media.id, shares: data.shares),
             ],
           ),
@@ -150,51 +152,6 @@ class _SectionHeader extends StatelessWidget {
           color: Theme.of(context).colorScheme.onSurfaceVariant,
           letterSpacing: 0.8,
         ),
-      ),
-    );
-  }
-}
-
-class _ExifTable extends StatelessWidget {
-  final MediaExif exif;
-
-  const _ExifTable({required this.exif});
-
-  @override
-  Widget build(BuildContext context) {
-    final rows = exifRows(exif);
-    if (rows.isEmpty) return const SizedBox.shrink();
-
-    final theme = Theme.of(context);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        children: [
-          for (final row in rows)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 3),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    width: 110,
-                    child: Text(
-                      row.label,
-                      textAlign: TextAlign.right,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(row.value, style: theme.textTheme.bodyMedium),
-                  ),
-                ],
-              ),
-            ),
-        ],
       ),
     );
   }

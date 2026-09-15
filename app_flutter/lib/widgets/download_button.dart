@@ -1,30 +1,58 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../api/client.dart';
+import '../api/media_files.dart';
 import '../api/models.dart';
 import '../state/auth.dart';
 import '../util/formatting.dart';
 
-/// How long to wait for the response headers.
-const _headerTimeout = Duration(seconds: 30);
+/// Fetches files for saving and sharing, behind a provider so a test can
+/// serve them without a server.
+final mediaFileFetcherProvider = Provider<MediaFileFetcher>(
+  (ref) => MediaFileFetcher(),
+);
 
-/// How long a transfer may stall before it is abandoned. An idle deadline,
-/// not a total one: a large original over a slow link is fine, a server that
-/// stops sending is not — and without it the button stays busy forever.
-const _stallTimeout = Duration(seconds: 60);
+/// Opens the system "save as" dialog for [file], suggesting [fileName].
+/// Returns where it was saved, or null when the user cancelled.
+typedef SaveFile = Future<String?> Function(File file, String fileName);
 
-/// Downloads one rendition through the authenticated session and hands it to
-/// the system share sheet, mirroring the iOS client's download rows.
+/// Hands [file] to the system share sheet.
+typedef ShareFile = Future<void> Function(File file);
+
+/// Behind providers for the same reason as the fetcher: both end in a
+/// platform dialog a widget test cannot show.
+final saveFileProvider = Provider<SaveFile>(
+  (ref) => (file, fileName) => FlutterFileDialog.saveFile(
+    params: SaveFileDialogParams(sourceFilePath: file.path, fileName: fileName),
+  ),
+);
+
+final shareFileProvider = Provider<ShareFile>(
+  (ref) => (file) async {
+    await SharePlus.instance.share(ShareParams(files: [XFile(file.path)]));
+  },
+);
+
+/// One rendition of a photo, with two separate actions: tap to save it into a
+/// folder of the user's choice, or the share button to send it to another
+/// app. Downloading used to open the share sheet directly, so there was no
+/// way to simply keep the file.
 class DownloadButton extends ConsumerStatefulWidget {
   final MediaDownload download;
 
-  const DownloadButton({super.key, required this.download});
+  /// The photo's title, which is its file name in the library.
+  final String mediaTitle;
+
+  const DownloadButton({
+    super.key,
+    required this.download,
+    required this.mediaTitle,
+  });
 
   @override
   ConsumerState<DownloadButton> createState() => _DownloadButtonState();
@@ -33,69 +61,86 @@ class DownloadButton extends ConsumerStatefulWidget {
 class _DownloadButtonState extends ConsumerState<DownloadButton> {
   bool _busy = false;
 
-  Future<void> _download() async {
+  /// The download under way, if any. Closing the sheet stops it: an original
+  /// can be large, and nobody is left to save or share it.
+  DownloadCancellation? _cancellation;
+
+  @override
+  void dispose() {
+    _cancellation?.cancel();
+    super.dispose();
+  }
+
+  void _say(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  /// Fetches the file, then runs [use] on it. One action at a time per row.
+  Future<void> _withFile(
+    String failure,
+    Future<void> Function(File file, String fileName) use,
+  ) async {
     final session = ref.read(sessionProvider);
     if (session == null || _busy) return;
 
     setState(() => _busy = true);
-    final client = http.Client();
+    final fileName = downloadFileName(widget.mediaTitle, widget.download);
+    final cancellation = _cancellation = DownloadCancellation();
+
+    // Taken now: once the sheet is closed, this widget's ref can no longer be
+    // used, and an expired sign-in still has to be reported. The container
+    // outlives the sheet.
+    final fetcher = ref.read(mediaFileFetcherProvider);
+    final container = ProviderScope.containerOf(context, listen: false);
 
     try {
-      final uri = session.resolve(widget.download.url);
-      final request = http.Request('GET', uri)
-        ..headers.addAll(session.headers);
-
-      final response = await client.send(request).timeout(_headerTimeout);
-
-      if (response.statusCode == 401) {
-        // This path bypasses the GraphQL client, so it has to report an
-        // expired session itself or the user is left with a download that
-        // silently never works. Raised as the same exception the GraphQL
-        // client uses, so a rejected sign-in looks the same wherever it
-        // surfaces rather than reading as a transport error.
-        //
-        // 401 only, matching the GraphQL path: a 403 here can come from a
-        // proxy or from a permission check on the media URL, and acting on it
-        // would throw away a working session over one file.
-        await ref.read(authProvider.notifier).sessionExpired(session);
-        throw const UnauthorizedException();
-      }
-      if (response.statusCode == 403) {
-        throw const PermissionDeniedException();
-      }
-      if (response.statusCode != 200) {
-        throw HttpException('Server returned ${response.statusCode}');
-      }
-
-      final directory = await getTemporaryDirectory();
-      final file = File(
-        '${directory.path}${Platform.pathSeparator}${safeFileName(uri)}',
+      final file = await fetcher.fetch(
+        session,
+        widget.download.url,
+        fileName: fileName,
+        cancellation: cancellation,
       );
-
-      // Streamed rather than buffered: the sheet offers the original first,
-      // and holding a few hundred megabytes in memory can end the app.
-      final sink = file.openWrite();
-      try {
-        await response.stream.timeout(_stallTimeout).pipe(sink);
-      } catch (_) {
-        await sink.close();
-        if (file.existsSync()) await file.delete();
-        rethrow;
+      if (!mounted) {
+        // Finished just as the sheet closed: nothing will use it.
+        await discardDownload(file);
+        return;
       }
-
-      if (!mounted) return;
-      await SharePlus.instance.share(ShareParams(files: [XFile(file.path)]));
+      await use(file, fileName);
+    } on DownloadCancelledException {
+      // Only this widget cancels, and only when it goes away.
+    } on UnauthorizedException {
+      // This path bypasses the GraphQL client, so it reports an expired
+      // session itself — the same way, so it looks the same wherever it
+      // surfaces.
+      await container.read(authProvider.notifier).sessionExpired(session);
+      _say('$failure: ${const UnauthorizedException()}');
     } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Download failed: $error')));
-      }
+      _say('$failure: $error');
     } finally {
-      client.close();
+      if (identical(_cancellation, cancellation)) _cancellation = null;
       if (mounted) setState(() => _busy = false);
     }
   }
+
+  Future<void> _save() => _withFile('Download failed', (file, fileName) async {
+    try {
+      final saved = await ref.read(saveFileProvider)(file, fileName);
+      if (saved != null) _say('Saved $fileName');
+    } finally {
+      // The copy the dialog made is the one that matters; the cached file
+      // would only use up space.
+      await discardDownload(file);
+    }
+  });
+
+  // The shared file is left in the temporary directory: the receiving app may
+  // still be reading it after the share sheet has closed, and the system
+  // clears that directory on its own.
+  Future<void> _share() => _withFile(
+    'Sharing failed',
+    (file, _) => ref.read(shareFileProvider)(file),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -120,7 +165,12 @@ class _DownloadButtonState extends ConsumerState<DownloadButton> {
         ].join('  ·  '),
         style: theme.textTheme.bodySmall,
       ),
-      onTap: _busy ? null : _download,
+      onTap: _busy ? null : _save,
+      trailing: IconButton(
+        icon: const Icon(Icons.share),
+        tooltip: 'Send to another app',
+        onPressed: _busy ? null : _share,
+      ),
     );
   }
 }
