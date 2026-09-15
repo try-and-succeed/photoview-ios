@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -32,6 +33,15 @@ class _FakeFetcher extends MediaFileFetcher {
 
   _FakeFetcher(this.directory, {this.failWith});
 
+  /// When set, the download waits for it — a transfer still under way.
+  Completer<void>? hold;
+
+  /// Whether a cancel ends the held download, as a real transfer does.
+  bool honoursCancel = true;
+
+  DownloadCancellation? lastCancellation;
+  File? lastFile;
+
   @override
   Future<File> fetch(
     Session session,
@@ -41,9 +51,23 @@ class _FakeFetcher extends MediaFileFetcher {
     DownloadCancellation? cancellation,
   }) async {
     fetched.add(url);
+    lastCancellation = cancellation;
     final failure = failWith;
     if (failure != null) throw failure;
-    return File('${directory.path}/$fileName')..writeAsBytesSync([1, 2, 3]);
+
+    final held = hold;
+    if (held != null) {
+      await Future.any([
+        held.future,
+        if (honoursCancel && cancellation != null) cancellation.whenCancelled,
+      ]);
+      if (honoursCancel && (cancellation?.isCancelled ?? false)) {
+        throw const DownloadCancelledException();
+      }
+    }
+
+    return lastFile = File('${directory.path}/$fileName')
+      ..writeAsBytesSync([1, 2, 3]);
   }
 }
 
@@ -131,6 +155,46 @@ void main() {
 
     expect(saved, hasLength(1));
     expect(find.textContaining('Saved'), findsNothing);
+  });
+
+  testWidgets('closing the sheet stops a download under way', (tester) async {
+    final fetcher = await pump(tester);
+    fetcher.hold = Completer<void>();
+
+    await tester.tap(find.text('Original'));
+    await tester.pump();
+    expect(fetcher.lastCancellation, isNotNull);
+    expect(fetcher.lastCancellation!.isCancelled, isFalse);
+
+    // The sheet goes away with the download still running.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+
+    expect(fetcher.lastCancellation!.isCancelled, isTrue);
+    expect(saved, isEmpty);
+  });
+
+  testWidgets('a file that arrives after the sheet closed is removed', (
+    tester,
+  ) async {
+    // A transfer that ignores the cancel and completes anyway.
+    final fetcher = await pump(tester);
+    fetcher
+      ..hold = Completer<void>()
+      ..honoursCancel = false;
+
+    await tester.tap(find.text('Original'));
+    await tester.pump();
+    await tester.pumpWidget(const SizedBox.shrink());
+
+    await tester.runAsync(() async {
+      fetcher.hold!.complete();
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    });
+
+    expect(fetcher.lastFile, isNotNull);
+    expect(fetcher.lastFile!.existsSync(), isFalse);
+    expect(saved, isEmpty);
   });
 
   testWidgets('a failed download says so and saves nothing', (tester) async {

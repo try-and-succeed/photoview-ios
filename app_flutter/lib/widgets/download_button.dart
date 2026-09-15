@@ -61,6 +61,16 @@ class DownloadButton extends ConsumerStatefulWidget {
 class _DownloadButtonState extends ConsumerState<DownloadButton> {
   bool _busy = false;
 
+  /// The download under way, if any. Closing the sheet stops it: an original
+  /// can be large, and nobody is left to save or share it.
+  DownloadCancellation? _cancellation;
+
+  @override
+  void dispose() {
+    _cancellation?.cancel();
+    super.dispose();
+  }
+
   void _say(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
@@ -76,22 +86,39 @@ class _DownloadButtonState extends ConsumerState<DownloadButton> {
 
     setState(() => _busy = true);
     final fileName = downloadFileName(widget.mediaTitle, widget.download);
+    final cancellation = _cancellation = DownloadCancellation();
+
+    // Taken now: once the sheet is closed, this widget's ref can no longer be
+    // used, and an expired sign-in still has to be reported. The container
+    // outlives the sheet.
+    final fetcher = ref.read(mediaFileFetcherProvider);
+    final container = ProviderScope.containerOf(context, listen: false);
 
     try {
-      final file = await ref
-          .read(mediaFileFetcherProvider)
-          .fetch(session, widget.download.url, fileName: fileName);
-      if (!mounted) return;
+      final file = await fetcher.fetch(
+        session,
+        widget.download.url,
+        fileName: fileName,
+        cancellation: cancellation,
+      );
+      if (!mounted) {
+        // Finished just as the sheet closed: nothing will use it.
+        await discardDownload(file);
+        return;
+      }
       await use(file, fileName);
+    } on DownloadCancelledException {
+      // Only this widget cancels, and only when it goes away.
     } on UnauthorizedException {
       // This path bypasses the GraphQL client, so it reports an expired
       // session itself — the same way, so it looks the same wherever it
       // surfaces.
-      await ref.read(authProvider.notifier).sessionExpired(session);
+      await container.read(authProvider.notifier).sessionExpired(session);
       _say('$failure: ${const UnauthorizedException()}');
     } catch (error) {
       _say('$failure: $error');
     } finally {
+      if (identical(_cancellation, cancellation)) _cancellation = null;
       if (mounted) setState(() => _busy = false);
     }
   }
