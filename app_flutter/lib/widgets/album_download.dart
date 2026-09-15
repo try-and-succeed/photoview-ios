@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../api/client.dart';
 import '../api/media_files.dart';
 import '../l10n/app_localizations.dart';
+import '../l10n/error_messages.dart';
 import '../state/auth.dart';
 import '../util/formatting.dart';
 import 'download_button.dart';
@@ -42,7 +43,7 @@ Future<void> downloadAlbum(
       }
     } catch (error) {
       messenger.showSnackBar(
-        SnackBar(content: Text(l10n.albumSaveFailed('$error'))),
+        SnackBar(content: Text(l10n.albumSaveFailed(describeError(error, l10n)))),
       );
     } finally {
       await discardDownload(outcome);
@@ -57,7 +58,7 @@ Future<void> downloadAlbum(
 
   if (outcome != null) {
     messenger.showSnackBar(
-      SnackBar(content: Text(l10n.albumDownloadFailed('$outcome'))),
+      SnackBar(content: Text(l10n.albumDownloadFailed(describeError(outcome, l10n)))),
     );
   }
 }

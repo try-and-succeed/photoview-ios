@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
+import '../l10n/error_messages.dart';
 import '../state/auth.dart';
 import '../state/search_limit.dart';
 
@@ -63,7 +64,7 @@ class _SearchLimitFieldState extends ConsumerState<SearchLimitField> {
         SnackBar(content: Text(_describe(l10n, parsed.limit))),
       );
     } catch (error) {
-      if (mounted) setState(() => _error = '$error');
+      if (mounted) setState(() => _error = describeError(error, l10n));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -106,7 +107,7 @@ class _SearchLimitFieldState extends ConsumerState<SearchLimitField> {
       SearchLimitSource.server => l10n.searchLimitOnServer,
       SearchLimitSource.device => l10n.searchLimitOnDevice,
       null =>
-        failed ? l10n.searchLimitReadFailed('${limit.error}') : l10n.loading,
+        failed ? l10n.searchLimitReadFailed(describeError(limit.error, l10n)) : l10n.loading,
     };
 
     return Padding(

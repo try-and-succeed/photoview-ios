@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/models.dart';
 import '../l10n/app_localizations.dart';
+import '../l10n/error_messages.dart';
 import '../state/scanner.dart';
 import '../widgets/async_states.dart';
 
@@ -61,7 +62,7 @@ class ScannerScreen extends ConsumerWidget {
       return ListView(
         children: [
           const SizedBox(height: 80),
-          ErrorMessage(message: error, onRetry: notifier.refresh),
+          ErrorMessage.forError(error, onRetry: notifier.refresh),
         ],
       );
     }
@@ -85,7 +86,10 @@ class ScannerScreen extends ConsumerWidget {
       itemCount: scanner.jobs.length + banner + 1,
       itemBuilder: (context, index) {
         if (banner == 1 && index == 0) {
-          return _StaleBanner(message: error!, onRetry: notifier.refresh);
+          return _StaleBanner(
+            message: describeError(error, l10n),
+            onRetry: notifier.refresh,
+          );
         }
 
         final jobIndex = index - banner;
@@ -159,7 +163,9 @@ class ScannerScreen extends ConsumerWidget {
         SnackBar(content: Text(l10n.scannerStoppedJobs(cancelled))),
       );
     } catch (error) {
-      messenger.showSnackBar(SnackBar(content: Text('$error')));
+      messenger.showSnackBar(
+        SnackBar(content: Text(describeError(error, l10n))),
+      );
     }
   }
 }

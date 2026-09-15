@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/trusted_certificates.dart';
 import '../l10n/app_localizations.dart';
+import '../l10n/error_messages.dart';
 import '../state/auth.dart';
 import 'certificate_dialog.dart';
 
@@ -101,10 +102,9 @@ class _CertificateErrorMessageState
       // writable. Without this the button simply came back and the user tried
       // again forever, never told that the certificate was not saved.
       if (mounted) {
+        final l10n = AppLocalizations.of(context);
         setState(
-          () => _note = AppLocalizations.of(
-            context,
-          ).certificateTrustFailed('$error'),
+          () => _note = l10n.certificateTrustFailed(describeError(error, l10n)),
         );
       }
     } finally {

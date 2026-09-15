@@ -96,7 +96,7 @@ class _AlbumTreeScreenState extends ConsumerState<AlbumTreeScreen> {
 
     final rootsError = tree.rootsError;
     if (rootsError != null) {
-      return ErrorMessage(message: rootsError, onRetry: notifier.loadRoots);
+      return ErrorMessage.forError(rootsError, onRetry: notifier.loadRoots);
     }
 
     final rows = tree.rowsFor(_filter);

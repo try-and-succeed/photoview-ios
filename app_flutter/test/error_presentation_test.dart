@@ -67,6 +67,28 @@ void main() {
       expect(retried, 1);
     });
 
+    testWidgets('words the failure in the app language', (tester) async {
+      await tester.pumpWidget(
+        _host(
+          ErrorMessage.forError(
+            const ApiException(
+              'Could not reach the server: Connection refused',
+              problem: ApiProblem.unreachable,
+              detail: 'Connection refused',
+            ),
+            onRetry: () {},
+          ),
+          locale: const Locale('de'),
+        ),
+      );
+
+      expect(
+        find.text('Der Server ist nicht erreichbar: Connection refused'),
+        findsOneWidget,
+      );
+      expect(find.text('Erneut versuchen'), findsOneWidget);
+    });
+
     testWidgets('offers to review an untrusted certificate, not a retry', (
       tester,
     ) async {

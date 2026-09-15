@@ -9,6 +9,7 @@ import '../api/client.dart';
 import '../api/media_files.dart';
 import '../api/models.dart';
 import '../l10n/app_localizations.dart';
+import '../l10n/error_messages.dart';
 import '../state/auth.dart';
 import '../util/formatting.dart';
 
@@ -116,9 +117,9 @@ class _DownloadButtonState extends ConsumerState<DownloadButton> {
       // session itself — the same way, so it looks the same wherever it
       // surfaces.
       await container.read(authProvider.notifier).sessionExpired(session);
-      _say(failure(l10n, '${const UnauthorizedException()}'));
+      _say(failure(l10n, l10n.errorSignInRejected));
     } catch (error) {
-      _say(failure(l10n, '$error'));
+      _say(failure(l10n, describeError(error, l10n)));
     } finally {
       if (identical(_cancellation, cancellation)) _cancellation = null;
       if (mounted) setState(() => _busy = false);

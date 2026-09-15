@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/capabilities.dart';
 import '../l10n/app_localizations.dart';
+import '../l10n/error_messages.dart';
 import '../state/capabilities.dart';
 import '../state/library.dart';
 import '../state/scanner.dart';
@@ -48,7 +49,7 @@ class AlbumScreen extends ConsumerWidget {
       // Deliberately not retried: the server may already have accepted the
       // request, and a second one would run all the same.
       messenger.showSnackBar(
-        SnackBar(content: Text(l10n.albumScanFailed('$error'))),
+        SnackBar(content: Text(l10n.albumScanFailed(describeError(error, l10n)))),
       );
     }
   }

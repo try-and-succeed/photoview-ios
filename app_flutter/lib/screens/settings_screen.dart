@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../api/capabilities.dart';
 import '../api/trusted_cas.dart';
 import '../l10n/app_localizations.dart';
+import '../l10n/error_messages.dart';
 import '../l10n/languages.dart';
 import '../state/app_language.dart';
 import '../state/auth.dart';
@@ -257,13 +258,13 @@ class _CertificateAuthoritiesState
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('$error')));
+        ).showSnackBar(SnackBar(content: Text(describeError(error, l10n))));
       }
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text(l10n.caImportFailed('$error'))));
+        ).showSnackBar(SnackBar(content: Text(l10n.caImportFailed(describeError(error, l10n)))));
       }
     } finally {
       if (mounted) setState(() => _busy = false);

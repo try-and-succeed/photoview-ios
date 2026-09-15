@@ -10,6 +10,7 @@ import 'package:video_player/video_player.dart';
 import '../api/models.dart';
 import '../api/session.dart';
 import '../l10n/app_localizations.dart';
+import '../l10n/error_messages.dart';
 import '../state/auth.dart';
 import '../state/library.dart';
 import '../util/formatting.dart';
@@ -286,7 +287,7 @@ class _InfoPanel extends ConsumerWidget {
               child: Center(child: CircularProgressIndicator()),
             ),
             error: (error, _) => message(
-              l10n.mediaDetailsFailed('$error'),
+              l10n.mediaDetailsFailed(describeError(error, l10n)),
               color: theme.colorScheme.error,
             ),
             data: (data) {
@@ -425,7 +426,10 @@ class _VideoPageState extends ConsumerState<_VideoPage> {
         );
       });
     } catch (error) {
-      if (mounted) setState(() => _error = '$error');
+      if (mounted) {
+        final l10n = AppLocalizations.of(context);
+        setState(() => _error = describeError(error, l10n));
+      }
     }
   }
 
@@ -458,7 +462,7 @@ class _VideoPageState extends ConsumerState<_VideoPage> {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, _) => Center(
         child: Text(
-          '$error',
+          describeError(error, AppLocalizations.of(context)),
           style: const TextStyle(color: Colors.white70),
           textAlign: TextAlign.center,
         ),

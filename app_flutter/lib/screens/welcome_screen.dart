@@ -5,6 +5,7 @@ import '../api/client.dart';
 import '../api/session.dart';
 import '../api/trusted_certificates.dart';
 import '../l10n/app_localizations.dart';
+import '../l10n/error_messages.dart';
 import '../state/auth.dart';
 import '../widgets/certificate_dialog.dart';
 import '../widgets/insecure_notice.dart';
@@ -64,7 +65,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
     } on CertificateNotTrustedException catch (error) {
       await _offerCertificate(error.endpoint);
     } catch (error) {
-      if (mounted) setState(() => _error = '$error');
+      _showError(error);
     } finally {
       if (mounted) setState(() => _connecting = false);
     }
@@ -89,7 +90,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
 
       await ref.read(authProvider.notifier).openSaved(server);
     } catch (error) {
-      if (mounted) setState(() => _error = '$error');
+      _showError(error);
     } finally {
       if (mounted) setState(() => _connecting = false);
     }
@@ -185,8 +186,15 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
     try {
       await _login();
     } catch (error) {
-      if (mounted) setState(() => _error = '$error');
+      _showError(error);
     }
+  }
+
+  void _showError(Object error) {
+    if (!mounted) return;
+    setState(
+      () => _error = describeError(error, AppLocalizations.of(context)),
+    );
   }
 
   @override

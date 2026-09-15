@@ -838,5 +838,157 @@
         "example": "10000"
       }
     }
+  },
+  "errorSignInRejected": "Your sign-in is no longer accepted.",
+  "@errorSignInRejected": {
+    "description": "The server no longer accepts the saved sign-in."
+  },
+  "errorPermissionDenied": "Your account is not allowed to do that.",
+  "@errorPermissionDenied": {
+    "description": "The server refused one request for this account."
+  },
+  "errorCertificateNotTrusted": "The certificate presented by {host} is not trusted.",
+  "@errorCertificateNotTrusted": {
+    "description": "The server's certificate is not trusted.",
+    "placeholders": {
+      "host": {
+        "type": "String",
+        "example": "photos.example.com"
+      }
+    }
+  },
+  "errorUnsupportedField": "Your Photoview server does not support this yet (it has no \"{field}\").",
+  "@errorUnsupportedField": {
+    "description": "The server is too old for a feature; names the missing GraphQL field.",
+    "placeholders": {
+      "field": {
+        "type": "String",
+        "example": "albumTreeChildren"
+      }
+    }
+  },
+  "errorInvalidInstanceUrl": "That is not a valid server address.",
+  "@errorInvalidInstanceUrl": {
+    "description": "What the user typed is not a usable server address."
+  },
+  "errorNoTlsHandshake": "{address} did not complete a TLS handshake. If it only serves plain HTTP, type http://{address} to connect without encryption.",
+  "@errorNoTlsHandshake": {
+    "description": "HTTPS failed without any certificate; suggests typing http:// on purpose. Keep \"http://{address}\" unchanged.",
+    "placeholders": {
+      "address": {
+        "type": "String",
+        "example": "192.168.0.47:8081"
+      }
+    }
+  },
+  "errorLoginFailed": "Login failed.",
+  "@errorLoginFailed": {
+    "description": "Signing in failed and the server gave no reason."
+  },
+  "errorNoData": "The server returned no data.",
+  "@errorNoData": {
+    "description": "The server answered without any data."
+  },
+  "errorNoAnswer": "The server did not answer the request.",
+  "@errorNoAnswer": {
+    "description": "The request got no response at all."
+  },
+  "errorHttpStatus": "The server returned HTTP {status}.",
+  "@errorHttpStatus": {
+    "description": "The server answered with an HTTP error, possibly followed by its own text.",
+    "placeholders": {
+      "status": {
+        "type": "String",
+        "example": "400: no media found"
+      }
+    }
+  },
+  "errorCertificateReason": "The server's certificate is not trusted ({reason}). Self-hosted instances often use a private certificate authority.",
+  "@errorCertificateReason": {
+    "description": "TLS failed on the certificate; the reason comes from the operating system.",
+    "placeholders": {
+      "reason": {
+        "type": "String",
+        "example": "CERTIFICATE_VERIFY_FAILED"
+      }
+    }
+  },
+  "errorUnreachable": "Could not reach the server: {reason}",
+  "@errorUnreachable": {
+    "description": "The network connection to the server failed; the reason comes from the operating system.",
+    "placeholders": {
+      "reason": {
+        "type": "String",
+        "example": "Connection refused"
+      }
+    }
+  },
+  "errorNotGraphql": "The server did not return GraphQL. Check the instance URL.",
+  "@errorNotGraphql": {
+    "description": "The address answered, but not as a Photoview API."
+  },
+  "errorTimeout": "The server took too long to answer.",
+  "@errorTimeout": {
+    "description": "A request timed out."
+  },
+  "errorUnknown": "Unknown error",
+  "@errorUnknown": {
+    "description": "A failure without any description."
+  },
+  "errorAlbumNotFound": "Album not found.",
+  "@errorAlbumNotFound": {
+    "description": "An album no longer exists or is not visible."
+  },
+  "errorMediaNotFound": "Media not found.",
+  "@errorMediaNotFound": {
+    "description": "A photo or video no longer exists or is not visible."
+  },
+  "errorInvalidMapJson": "The server returned map data that is not valid JSON.",
+  "@errorInvalidMapJson": {
+    "description": "The server's map data could not be parsed."
+  },
+  "errorInvalidMapShape": "The server returned map data in an unexpected shape.",
+  "@errorInvalidMapShape": {
+    "description": "The server's map data has an unexpected structure."
+  },
+  "errorScanRefused": "The server refused to start a scan.",
+  "@errorScanRefused": {
+    "description": "The server declined to start a scan and gave no reason."
+  },
+  "errorStorageUnavailable": "Secure storage is unavailable: {cause}",
+  "@errorStorageUnavailable": {
+    "description": "The device's secure storage could not be used.",
+    "placeholders": {
+      "cause": {
+        "type": "String",
+        "example": "PlatformException(...)"
+      }
+    }
+  },
+  "certFileMissing": "That file no longer exists.",
+  "@certFileMissing": {
+    "description": "The picked certificate file disappeared."
+  },
+  "certFileUnreadable": "That file is not a certificate the system can read. Export your CA as a .pem or .crt file.",
+  "@certFileUnreadable": {
+    "description": "The picked file is not a certificate the system accepts."
+  },
+  "certFileAlreadyTrusted": "That certificate is already trusted.",
+  "@certFileAlreadyTrusted": {
+    "description": "The picked certificate authority was imported before."
+  },
+  "certFileSeveral": "That file holds several certificates ({count}). Import the single CA certificate on its own, so you can see which one you are trusting.",
+  "@certFileSeveral": {
+    "description": "The picked file holds more than one certificate. Worded around the number to avoid plural forms.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "certFileInvalidBase64": "That certificate block is not valid base64.",
+  "@certFileInvalidBase64": {
+    "description": "A PEM certificate block is corrupt."
   }
 }

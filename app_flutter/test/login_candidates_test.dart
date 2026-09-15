@@ -72,14 +72,18 @@ void main() {
           presentsCertificate: _noCertificate,
         ),
         throwsA(
-          isA<LoginFailure>().having(
-            (e) => e.message,
-            'message',
-            allOf(
-              contains('did not complete a TLS handshake'),
-              contains('http://192.168.0.47:8081'),
-            ),
-          ),
+          isA<LoginFailure>()
+              .having(
+                (e) => e.message,
+                'message',
+                allOf(
+                  contains('did not complete a TLS handshake'),
+                  contains('http://192.168.0.47:8081'),
+                ),
+              )
+              // What the app words in the user's language.
+              .having((e) => e.problem, 'problem', ApiProblem.noTlsHandshake)
+              .having((e) => e.detail, 'detail', '192.168.0.47:8081'),
         ),
       );
 

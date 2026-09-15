@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/models.dart';
 import '../l10n/app_localizations.dart';
+import '../l10n/error_messages.dart';
 import '../state/auth.dart';
 import '../state/library.dart';
 import 'download_button.dart';
@@ -82,7 +83,7 @@ class _MediaDetailsSheetState extends ConsumerState<MediaDetailsSheet> {
               Padding(
                 padding: const EdgeInsets.all(24),
                 child: Text(
-                  l10n.mediaDetailsFailed('$error'),
+                  l10n.mediaDetailsFailed(describeError(error, l10n)),
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
@@ -178,9 +179,10 @@ class _ShareSectionState extends ConsumerState<_ShareSection> {
       await action();
     } catch (error) {
       if (mounted) {
+        final message = describeError(error, AppLocalizations.of(context));
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('$error')));
+        ).showSnackBar(SnackBar(content: Text(message)));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
