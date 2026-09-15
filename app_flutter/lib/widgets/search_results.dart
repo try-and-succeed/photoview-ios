@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api/models.dart';
+import '../l10n/app_localizations.dart';
 import '../screens/album_screen.dart';
 import 'media_details_sheet.dart';
 import 'protected_image.dart';
@@ -71,8 +72,7 @@ class HiddenResultsNote extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
       child: Text(
-        '$hidden more not shown. Narrow your search, or set a search result '
-        'limit in Settings.',
+        AppLocalizations.of(context).searchHiddenMore(hidden),
         style: theme.textTheme.bodySmall?.copyWith(
           color: theme.colorScheme.onSurfaceVariant,
         ),
@@ -110,7 +110,9 @@ class MediaResultList extends StatelessWidget {
             ),
           ),
           title: Text(
-            item.title.isEmpty ? 'Untitled' : item.title,
+            item.title.isEmpty
+                ? AppLocalizations.of(context).untitledMedia
+                : item.title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -141,7 +143,9 @@ class AlbumResultList extends StatelessWidget {
         return ListTile(
           leading: const Icon(Icons.photo_album_outlined),
           title: Text(
-            album.title.isEmpty ? 'Untitled album' : album.title,
+            album.title.isEmpty
+                ? AppLocalizations.of(context).untitledAlbum
+                : album.title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),

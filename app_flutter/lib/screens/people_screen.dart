@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/app_localizations.dart';
 import '../state/library.dart';
 import '../widgets/async_states.dart';
 import '../widgets/load_more.dart';
@@ -24,8 +25,8 @@ class PeopleScreen extends ConsumerWidget {
           // refuse the pull-to-refresh gesture.
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-            const SliverAppBar(
-              title: Text('People'),
+            SliverAppBar(
+              title: Text(AppLocalizations.of(context).navPeople),
               floating: true,
               snap: true,
             ),
@@ -47,11 +48,10 @@ class PeopleScreen extends ConsumerWidget {
               ],
               data: (data) => [
                 if (data.groups.isEmpty)
-                  const SliverFillRemaining(
+                  SliverFillRemaining(
                     hasScrollBody: false,
                     child: EmptyMessage(
-                      message:
-                          'No faces recognised yet.\nFace detection runs on the server.',
+                      message: AppLocalizations.of(context).peopleEmpty,
                       icon: Icons.person_outline,
                     ),
                   )

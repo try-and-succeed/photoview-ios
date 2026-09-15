@@ -280,7 +280,7 @@ void main() {
 
       final state = container.read(scannerProvider);
       expect(state.stopping, isEmpty);
-      expect(state.error, contains('nope'));
+      expect('${state.error}', contains('nope'));
       expect(state.jobs, hasLength(1), reason: 'the job is still there');
     });
 
@@ -291,7 +291,7 @@ void main() {
 
       await container.read(scannerProvider.notifier).cancel('8');
 
-      expect(container.read(scannerProvider).error, contains('queue unreadable'));
+      expect('${container.read(scannerProvider).error}', contains('queue unreadable'));
     });
 
     test('a server without the scanner stops the polling', () async {
@@ -320,7 +320,7 @@ void main() {
       await container.read(scannerProvider.notifier).refresh();
 
       final state = container.read(scannerProvider);
-      expect(state.error, contains('server down'));
+      expect('${state.error}', contains('server down'));
       expect(state.jobs, hasLength(1));
     });
 

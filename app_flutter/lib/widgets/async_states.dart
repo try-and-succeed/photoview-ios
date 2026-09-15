@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../api/capabilities.dart';
 import '../api/client.dart';
+import '../l10n/app_localizations.dart';
+import '../l10n/error_messages.dart';
 import 'certificate_error.dart';
 
 class ErrorMessage extends StatelessWidget {
@@ -18,9 +20,11 @@ class ErrorMessage extends StatelessWidget {
   /// number of retries adds a field to someone else's server.
   static Widget forError(Object error, {VoidCallback? onRetry}) {
     if (error is UnsupportedFieldException) {
-      return EmptyMessage(
-        message: error.message,
-        icon: Icons.extension_off_outlined,
+      return Builder(
+        builder: (context) => EmptyMessage(
+          message: describeError(error, AppLocalizations.of(context)),
+          icon: Icons.extension_off_outlined,
+        ),
       );
     }
 
@@ -33,7 +37,12 @@ class ErrorMessage extends StatelessWidget {
       );
     }
 
-    return ErrorMessage(message: '$error', onRetry: onRetry);
+    return Builder(
+      builder: (context) => ErrorMessage(
+        message: describeError(error, AppLocalizations.of(context)),
+        onRetry: onRetry,
+      ),
+    );
   }
 
   @override
@@ -53,7 +62,10 @@ class ErrorMessage extends StatelessWidget {
             Text(message, textAlign: TextAlign.center),
             if (onRetry != null) ...[
               const SizedBox(height: 16),
-              FilledButton.tonal(onPressed: onRetry, child: const Text('Retry')),
+              FilledButton.tonal(
+                onPressed: onRetry,
+                child: Text(AppLocalizations.of(context).actionRetry),
+              ),
             ],
           ],
         ),

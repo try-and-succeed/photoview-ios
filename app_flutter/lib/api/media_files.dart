@@ -160,9 +160,11 @@ class MediaFileFetcher {
     if (response.statusCode == 403) throw const PermissionDeniedException();
     if (response.statusCode != 200) {
       final said = await _shortBody(response);
+      final status = '${response.statusCode}${said.isEmpty ? '' : ': $said'}';
       throw ApiException(
-        'The server returned HTTP ${response.statusCode}'
-        '${said.isEmpty ? '' : ': $said'}',
+        'The server returned HTTP $status',
+        problem: ApiProblem.httpStatus,
+        detail: status,
       );
     }
 

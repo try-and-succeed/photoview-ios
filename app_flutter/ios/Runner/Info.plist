@@ -8,6 +8,27 @@
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
 	<string>Photoview</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>da</string>
+		<string>de</string>
+		<string>es</string>
+		<string>eu</string>
+		<string>fr</string>
+		<string>it</string>
+		<string>ja</string>
+		<string>nl</string>
+		<string>pl</string>
+		<string>pt</string>
+		<string>ru</string>
+		<string>sv</string>
+		<string>tr</string>
+		<string>uk</string>
+		<string>zh-Hans</string>
+		<string>zh-Hant-HK</string>
+		<string>zh-Hant-TW</string>
+	</array>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

@@ -4,9 +4,24 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:path_provider/path_provider.dart';
 
+/// Why a file cannot be imported as a certificate authority.
+enum CertificateFileProblem {
+  missing,
+  unreadable,
+  alreadyTrusted,
+  severalCertificates,
+  invalidBase64,
+}
+
 class InvalidCertificateFile implements Exception {
   final String message;
-  const InvalidCertificateFile(this.message);
+  final CertificateFileProblem problem;
+
+  /// How many certificates the file holds, for
+  /// [CertificateFileProblem.severalCertificates].
+  final int count;
+
+  const InvalidCertificateFile(this.message, this.problem, {this.count = 1});
 
   @override
   String toString() => message;
@@ -81,7 +96,10 @@ class TrustedCaStore {
   Future<TrustedCa> import(String sourcePath) async {
     final source = File(sourcePath);
     if (!source.existsSync()) {
-      throw const InvalidCertificateFile('That file no longer exists.');
+      throw const InvalidCertificateFile(
+        'That file no longer exists.',
+        CertificateFileProblem.missing,
+      );
     }
 
     final bytes = await source.readAsBytes();
@@ -99,6 +117,7 @@ class TrustedCaStore {
       throw const InvalidCertificateFile(
         'That file is not a certificate the system can read. Export your CA '
         'as a .pem or .crt file.',
+        CertificateFileProblem.unreadable,
       );
     }
 
@@ -106,6 +125,7 @@ class TrustedCaStore {
     if (_certificates.any((c) => c.sha256 == fingerprint)) {
       throw const InvalidCertificateFile(
         'That certificate is already trusted.',
+        CertificateFileProblem.alreadyTrusted,
       );
     }
 
@@ -269,6 +289,8 @@ CertificateBytes singleCertificateFrom(List<int> bytes) {
     throw InvalidCertificateFile(
       'That file holds ${blocks.length} certificates. Import the single CA '
       'certificate on its own, so you can see which one you are trusting.',
+      CertificateFileProblem.severalCertificates,
+      count: blocks.length,
     );
   }
 
@@ -279,6 +301,7 @@ CertificateBytes singleCertificateFrom(List<int> bytes) {
     } on FormatException {
       throw const InvalidCertificateFile(
         'That certificate block is not valid base64.',
+        CertificateFileProblem.invalidBase64,
       );
     }
     return CertificateBytes(pem: _wrapPem(blocks.single), der: der);

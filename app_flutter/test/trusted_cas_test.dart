@@ -88,11 +88,14 @@ void main() {
       expect(
         () => singleCertificateFrom(bundle),
         throwsA(
-          isA<InvalidCertificateFile>().having(
-            (e) => e.message,
-            'message',
-            contains('2 certificates'),
-          ),
+          isA<InvalidCertificateFile>()
+              .having((e) => e.message, 'message', contains('2 certificates'))
+              .having(
+                (e) => e.problem,
+                'problem',
+                CertificateFileProblem.severalCertificates,
+              )
+              .having((e) => e.count, 'count', 2),
         ),
       );
     });

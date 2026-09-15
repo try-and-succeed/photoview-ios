@@ -8,6 +8,8 @@ import 'package:photoview/state/auth.dart';
 import 'package:photoview/state/library.dart';
 import 'package:photoview/widgets/fullscreen_gallery.dart';
 
+import 'support/localized_app.dart';
+
 final _session = Session(
   endpoint: Uri.parse('http://host:8081/api/graphql'),
   token: 'tok',
@@ -38,7 +40,7 @@ Future<void> _openGallery(WidgetTester tester, {bool exif = true}) async {
           (ref, id) async => _detailsFor(id, exif: exif),
         ),
       ],
-      child: MaterialApp(
+      child: localizedApp(
         home: Builder(
           builder: (context) => TextButton(
             onPressed: () => showFullscreenGallery(

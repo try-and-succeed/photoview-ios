@@ -1,0 +1,7 @@
+# App translations: one ARB file per language in lib/l10n, English as the
+# template. The Dart code is generated on `flutter pub get` and not committed.
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+nullable-getter: false

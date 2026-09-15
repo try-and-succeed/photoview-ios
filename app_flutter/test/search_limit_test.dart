@@ -37,7 +37,7 @@ void main() {
       // something the user never asked for.
       final parsed = parseSearchLimit('-5');
       expect(parsed.limit, isNull);
-      expect(parsed.error, contains('cannot be negative'));
+      expect(parsed.error, SearchLimitError.negative);
     });
 
     test('refuses something that is not a number', () {
@@ -49,8 +49,11 @@ void main() {
     test('refuses a value above the cap', () {
       // A value past a 32-bit int came back from a live server as unlimited,
       // which would silently turn "as many as possible" into "all of them".
-      expect(parseSearchLimit('2147483648').error, isNotNull);
-      expect(parseSearchLimit('${maxSearchResultLimit + 1}').error, isNotNull);
+      expect(parseSearchLimit('2147483648').error, SearchLimitError.tooLarge);
+      expect(
+        parseSearchLimit('${maxSearchResultLimit + 1}').error,
+        SearchLimitError.tooLarge,
+      );
       expect(parseSearchLimit('$maxSearchResultLimit').limit,
           maxSearchResultLimit);
     });

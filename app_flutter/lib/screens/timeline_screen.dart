@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/models.dart';
+import '../l10n/app_localizations.dart';
 import '../state/timeline.dart';
 import '../util/formatting.dart';
 import '../widgets/async_states.dart';
@@ -33,7 +34,7 @@ class TimelineScreen extends ConsumerWidget {
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             SliverAppBar(
-              title: const Text('Timeline'),
+              title: Text(AppLocalizations.of(context).navTimeline),
               floating: true,
               snap: true,
               actions: [
@@ -75,9 +76,11 @@ class TimelineScreen extends ConsumerWidget {
   ) {
     if (data.groups.isEmpty) {
       return [
-        const SliverFillRemaining(
+        SliverFillRemaining(
           hasScrollBody: false,
-          child: Center(child: Text('No media in your timeline yet')),
+          child: Center(
+            child: Text(AppLocalizations.of(context).timelineEmpty),
+          ),
         ),
       ];
     }

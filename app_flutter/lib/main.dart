@@ -2,11 +2,15 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import 'api/trusted_cas.dart';
 import 'api/trusted_certificates.dart';
+import 'l10n/app_localizations.dart';
+import 'l10n/languages.dart';
 import 'screens/app_shell.dart';
 import 'screens/welcome_screen.dart';
+import 'state/app_language.dart';
 import 'state/auth.dart';
 
 Future<void> main() async {
@@ -35,17 +39,41 @@ Future<void> main() async {
   );
 }
 
-class PhotoviewApp extends StatelessWidget {
-  const PhotoviewApp({super.key});
+class PhotoviewApp extends ConsumerWidget {
+  /// The first screen. Replaceable so a test can show one screen inside the
+  /// real app setup — its languages above all.
+  final Widget home;
+
+  const PhotoviewApp({super.key, this.home = const _Root()});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Null until chosen, and while the stored choice loads: the device
+    // language applies meanwhile.
+    final chosen = ref.watch(appLanguageProvider).valueOrNull;
+
     return MaterialApp(
       title: 'Photoview',
       debugShowCheckedModeBanner: false,
       theme: _theme(Brightness.light),
       darkTheme: _theme(Brightness.dark),
-      home: const _Root(),
+      locale: chosen?.locale,
+      supportedLocales: [for (final language in appLanguages) language.locale],
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      // Replaces Flutter's default, which falls back to the first supported
+      // language and does not tell Traditional from Simplified Chinese
+      // without a region.
+      localeListResolutionCallback: (locales, _) => resolveAppLocale(locales),
+      builder: (context, child) {
+        // DateFormat and NumberFormat without an explicit locale use this;
+        // Flutter's localizations have loaded the formats for every
+        // supported language by the time anything is built.
+        Intl.defaultLocale = Intl.canonicalizedLocale(
+          Localizations.localeOf(context).toString(),
+        );
+        return child!;
+      },
+      home: home,
     );
   }
 

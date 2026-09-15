@@ -25,6 +25,9 @@ DerivedData/
 ## Gcc Patch
 /*.gcno
 
+# Generated from app_flutter/lib/l10n/*.arb on `flutter pub get`.
+app_flutter/lib/l10n/app_localizations*.dart
+
 # Local working files
 #
 # The handoff guide is a personal planning document for the server work and is

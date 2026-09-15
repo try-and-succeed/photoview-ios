@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
+import '../l10n/app_localizations.dart';
 import '../state/library.dart';
 import '../widgets/album_grid.dart';
 import '../widgets/async_states.dart';
@@ -49,8 +51,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         title: TextField(
           controller: _controller,
           autofocus: true,
-          decoration: const InputDecoration(
-            hintText: 'Search albums and media',
+          decoration: InputDecoration(
+            hintText: AppLocalizations.of(context).searchHint,
             border: InputBorder.none,
           ),
           textInputAction: TextInputAction.search,
@@ -69,8 +71,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         ],
       ),
       body: _query.isEmpty
-          ? const EmptyMessage(
-              message: 'Type to search your library',
+          ? EmptyMessage(
+              message: AppLocalizations.of(context).searchPrompt,
               icon: Icons.search,
             )
           : _Results(query: _query),
@@ -95,8 +97,8 @@ class _Results extends ConsumerWidget {
       ),
       data: (data) {
         if (data.albums.isEmpty && data.media.isEmpty) {
-          return const EmptyMessage(
-            message: 'No results',
+          return EmptyMessage(
+            message: AppLocalizations.of(context).searchNoResults,
             icon: Icons.search_off,
           );
         }
@@ -108,7 +110,10 @@ class _Results extends ConsumerWidget {
           slivers: [
             if (albums.shown > 0) ...[
               SliverToBoxAdapter(
-                child: _SectionTitle('Albums', count: data.albums.length),
+                child: _SectionTitle(
+                  AppLocalizations.of(context).navAlbums,
+                  count: data.albums.length,
+                ),
               ),
               if (albums.layout == SearchResultLayout.grid)
                 SliverPadding(
@@ -128,7 +133,10 @@ class _Results extends ConsumerWidget {
             ],
             if (media.shown > 0) ...[
               SliverToBoxAdapter(
-                child: _SectionTitle('Media', count: data.media.length),
+                child: _SectionTitle(
+                  AppLocalizations.of(context).searchMedia,
+                  count: data.media.length,
+                ),
               ),
               if (media.layout == SearchResultLayout.grid)
                 SliverPadding(
@@ -154,6 +162,14 @@ class _Results extends ConsumerWidget {
   }
 }
 
+/// The heading of a result section, with the count once the list is too long
+/// to take in at a glance, written with the app language's digit grouping.
+@visibleForTesting
+String searchSectionLabel(String title, int count) =>
+    count > compactSearchThreshold
+        ? '$title · ${NumberFormat.decimalPattern().format(count)}'
+        : title;
+
 class _SectionTitle extends StatelessWidget {
   final String title;
 
@@ -166,7 +182,7 @@ class _SectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final label = count > compactSearchThreshold ? '$title · $count' : title;
+    final label = searchSectionLabel(title, count);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),

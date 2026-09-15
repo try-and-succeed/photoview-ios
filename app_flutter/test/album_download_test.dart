@@ -12,6 +12,8 @@ import 'package:photoview/util/formatting.dart';
 import 'package:photoview/widgets/album_download.dart';
 import 'package:photoview/widgets/download_button.dart';
 
+import 'support/localized_app.dart';
+
 final _session = Session(
   endpoint: Uri.parse('http://host:8081/api/graphql'),
   token: 'tok',
@@ -73,7 +75,7 @@ void main() {
             return '/storage/emulated/0/Download/$name';
           }),
         ],
-        child: MaterialApp(
+        child: localizedApp(
           home: Scaffold(
             body: Consumer(
               builder: (context, ref, _) => TextButton(

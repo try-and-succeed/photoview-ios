@@ -1,5 +1,10 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart';
+import 'package:photoview/screens/search_screen.dart';
 import 'package:photoview/widgets/search_results.dart';
+
+import 'support/localized_app.dart';
 
 void main() {
   group('planSearchSection', () {
@@ -67,6 +72,49 @@ void main() {
       // Otherwise a capped section would still try to build a grid of 500
       // thumbnails, which is the case the ceiling exists to prevent.
       expect(compactSearchThreshold, lessThan(maxRenderedSearchResults));
+    });
+  });
+
+  group('searchSectionLabel', () {
+    test('adds the count only past the compact threshold', () {
+      expect(searchSectionLabel('Media', compactSearchThreshold), 'Media');
+      expect(
+        searchSectionLabel('Media', compactSearchThreshold + 1),
+        'Media · ${compactSearchThreshold + 1}',
+      );
+    });
+
+    test('groups the digits the way the app language does', () {
+      Intl.withLocale('de', () {
+        expect(searchSectionLabel('Medien', 10000), 'Medien · 10.000');
+      });
+      Intl.withLocale('en', () {
+        expect(searchSectionLabel('Media', 10000), 'Media · 10,000');
+      });
+    });
+  });
+
+  group('HiddenResultsNote', () {
+    Future<void> pumpNote(WidgetTester tester, Locale locale) =>
+        tester.pumpWidget(
+          localizedApp(
+            locale: locale,
+            home: const Scaffold(body: HiddenResultsNote(hidden: 120)),
+          ),
+        );
+
+    testWidgets('says how many more there are, in the app language', (
+      tester,
+    ) async {
+      await pumpNote(tester, const Locale('en'));
+      expect(find.textContaining('120 more not shown.'), findsOneWidget);
+
+      await pumpNote(tester, const Locale('de'));
+      expect(find.textContaining('120 weitere werden nicht angezeigt.'), findsOneWidget);
+
+      // Worded around the number, so no plural form has to agree with it.
+      await pumpNote(tester, const Locale('ru'));
+      expect(find.textContaining('Не показано ещё: 120.'), findsOneWidget);
     });
   });
 }

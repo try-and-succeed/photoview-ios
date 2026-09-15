@@ -1,0 +1,1004 @@
+{
+  "@@locale": "en",
+  "settingsLanguage": "Language",
+  "@settingsLanguage": {
+    "description": "Settings entry that opens the choice of app language."
+  },
+  "settingsLanguageSystemDefault": "System default",
+  "@settingsLanguageSystemDefault": {
+    "description": "Language option: follow the language of the device."
+  },
+  "actionCancel": "Cancel",
+  "@actionCancel": {
+    "description": "Button that dismisses a dialog without doing anything."
+  },
+  "welcomeTitle": "Welcome to Photoview",
+  "@welcomeTitle": {
+    "description": "Heading of the sign-in screen."
+  },
+  "welcomeConnectSubtitle": "Connect to your instance",
+  "@welcomeConnectSubtitle": {
+    "description": "Below the heading when the sign-in form is shown."
+  },
+  "welcomeChooseServer": "Choose a server",
+  "@welcomeChooseServer": {
+    "description": "Below the heading when saved servers are listed."
+  },
+  "welcomeAnotherServer": "Another server",
+  "@welcomeAnotherServer": {
+    "description": "Button below the saved servers that opens the sign-in form for a new one."
+  },
+  "welcomeInstanceLabel": "Instance",
+  "@welcomeInstanceLabel": {
+    "description": "Label of the field for the server address."
+  },
+  "loginUsername": "Username",
+  "@loginUsername": {
+    "description": "Label of the username field."
+  },
+  "loginPassword": "Password",
+  "@loginPassword": {
+    "description": "Label of the password field."
+  },
+  "welcomeConnect": "Connect",
+  "@welcomeConnect": {
+    "description": "Button that signs in."
+  },
+  "welcomeBackToSavedServers": "Back to saved servers",
+  "@welcomeBackToSavedServers": {
+    "description": "Button under the sign-in form that returns to the list of saved servers."
+  },
+  "welcomeSessionExpired": "The saved sign-in for {host} is no longer accepted. Enter your password to sign in again.",
+  "@welcomeSessionExpired": {
+    "description": "Notice when a saved sign-in was rejected by the server.",
+    "placeholders": {
+      "host": {
+        "type": "String",
+        "example": "photoview.lan"
+      }
+    }
+  },
+  "welcomeForgetServerTooltip": "Forget this server",
+  "@welcomeForgetServerTooltip": {
+    "description": "Tooltip of the button that removes a saved server."
+  },
+  "welcomeForgetServerTitle": "Forget {server}?",
+  "@welcomeForgetServerTitle": {
+    "description": "Title of the confirmation before removing a saved server.",
+    "placeholders": {
+      "server": {
+        "type": "String",
+        "example": "photoview.lan"
+      }
+    }
+  },
+  "welcomeForgetServerBody": "The saved sign-in for this server is removed. You can add it again with your password.",
+  "@welcomeForgetServerBody": {
+    "description": "Explanation in the confirmation before removing a saved server."
+  },
+  "actionForget": "Forget",
+  "@actionForget": {
+    "description": "Confirms removing a saved server."
+  },
+  "certificateCouldNotRead": "Could not read the certificate from {host}.",
+  "@certificateCouldNotRead": {
+    "description": "The server's certificate could not be fetched for review.",
+    "placeholders": {
+      "host": {
+        "type": "String",
+        "example": "photoview.lan"
+      }
+    }
+  },
+  "certificateNotAcceptedFor": "Certificate for {host} was not accepted.",
+  "@certificateNotAcceptedFor": {
+    "description": "The user declined a certificate while signing in.",
+    "placeholders": {
+      "host": {
+        "type": "String",
+        "example": "photoview.lan"
+      }
+    }
+  },
+  "certificateChangedTitle": "Certificate has changed",
+  "@certificateChangedTitle": {
+    "description": "Dialog title when a server presents a different certificate than the one accepted before."
+  },
+  "certificateUntrustedTitle": "Untrusted certificate",
+  "@certificateUntrustedTitle": {
+    "description": "Dialog title when a server presents a certificate the device cannot verify."
+  },
+  "certificateChangedBody": "{host} is now presenting a different certificate from the one you accepted. Short-lived certificates are renewed often, so this is usually routine — but it is also what it would look like if something else were answering for this address.",
+  "@certificateChangedBody": {
+    "description": "Explains a changed certificate.",
+    "placeholders": {
+      "host": {
+        "type": "String",
+        "example": "photoview.lan"
+      }
+    }
+  },
+  "certificateUntrustedBody": "{host} identifies itself with a certificate this device cannot verify. That is normal for a self-hosted server using its own certificate authority.",
+  "@certificateUntrustedBody": {
+    "description": "Explains an untrusted certificate.",
+    "placeholders": {
+      "host": {
+        "type": "String",
+        "example": "photoview.lan"
+      }
+    }
+  },
+  "certificateIssuedBy": "Issued by",
+  "@certificateIssuedBy": {
+    "description": "Label: who issued the certificate."
+  },
+  "certificateIssuedTo": "Issued to",
+  "@certificateIssuedTo": {
+    "description": "Label: who the certificate was issued to."
+  },
+  "certificateValid": "Valid",
+  "@certificateValid": {
+    "description": "Label: the period the certificate is valid for."
+  },
+  "certificateFingerprint": "SHA-256 fingerprint",
+  "@certificateFingerprint": {
+    "description": "Label above a certificate's SHA-256 fingerprint."
+  },
+  "certificateTrustWarning": "Only continue if this fingerprint matches your server. This exact certificate will be trusted from now on, and you will be asked again if it changes to another one this device cannot verify on its own.",
+  "@certificateTrustWarning": {
+    "description": "Warning before trusting a certificate."
+  },
+  "certificateTrust": "Trust",
+  "@certificateTrust": {
+    "description": "Button that trusts the shown certificate."
+  },
+  "certificateErrorBody": "The certificate {host} is presenting is not trusted. If it was renewed, you can check the new one and accept it.",
+  "@certificateErrorBody": {
+    "description": "Shown on a screen whose request failed because the certificate is no longer trusted.",
+    "placeholders": {
+      "host": {
+        "type": "String",
+        "example": "photoview.lan"
+      }
+    }
+  },
+  "certificateReview": "Review certificate",
+  "@certificateReview": {
+    "description": "Button that shows the certificate a server presents."
+  },
+  "certificateNotAccepted": "Certificate was not accepted.",
+  "@certificateNotAccepted": {
+    "description": "The user declined the certificate shown."
+  },
+  "certificateTrustFailed": "Could not trust this certificate: {error}",
+  "@certificateTrustFailed": {
+    "description": "Storing the decision to trust a certificate failed.",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "storage unavailable"
+      }
+    }
+  },
+  "insecureConnection": "Unencrypted connection to {host}. Your sign-in travels with every request, so use this only on a network you trust.",
+  "@insecureConnection": {
+    "description": "Warning for a plain HTTP connection.",
+    "placeholders": {
+      "host": {
+        "type": "String",
+        "example": "192.168.0.47"
+      }
+    }
+  },
+  "thisServer": "this server",
+  "@thisServer": {
+    "description": "Stands in for a server address that has not been typed yet, inside a sentence."
+  },
+  "passwordShow": "Show password",
+  "@passwordShow": {
+    "description": "Tooltip of the button that reveals the typed password."
+  },
+  "passwordHide": "Hide password",
+  "@passwordHide": {
+    "description": "Tooltip of the button that hides the typed password again."
+  },
+  "actionRetry": "Retry",
+  "@actionRetry": {
+    "description": "Button that repeats a failed request."
+  },
+  "navTimeline": "Timeline",
+  "@navTimeline": {
+    "description": "Bottom navigation: the timeline of all media, newest first."
+  },
+  "navAlbums": "Albums",
+  "@navAlbums": {
+    "description": "Bottom navigation, and the albums section of search results."
+  },
+  "navPlaces": "Places",
+  "@navPlaces": {
+    "description": "Bottom navigation: media on a map."
+  },
+  "navPeople": "People",
+  "@navPeople": {
+    "description": "Bottom navigation: recognised faces."
+  },
+  "navSettings": "Settings",
+  "@navSettings": {
+    "description": "Bottom navigation and title of the settings screen."
+  },
+  "timelineEmpty": "No media in your timeline yet",
+  "@timelineEmpty": {
+    "description": "The timeline has no media."
+  },
+  "albumsTitle": "My albums",
+  "@albumsTitle": {
+    "description": "Title of the list of the user's top-level albums."
+  },
+  "albumsTreeTooltip": "Album tree",
+  "@albumsTreeTooltip": {
+    "description": "Tooltip of the button that opens the album hierarchy as a tree."
+  },
+  "albumsEmpty": "No albums found",
+  "@albumsEmpty": {
+    "description": "The user has no albums."
+  },
+  "albumScanStarted": "Scanning this album and its sub-albums.",
+  "@albumScanStarted": {
+    "description": "Confirmation after starting a scan of an album."
+  },
+  "actionShow": "Show",
+  "@actionShow": {
+    "description": "Snackbar action that opens what the message is about."
+  },
+  "albumScanFailed": "Could not start the scan: {error}",
+  "@albumScanFailed": {
+    "description": "Starting a scan failed.",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "The server returned HTTP 500"
+      }
+    }
+  },
+  "albumDownloadTooltip": "Download album",
+  "@albumDownloadTooltip": {
+    "description": "Tooltip of the button that downloads a whole album."
+  },
+  "albumScanTooltip": "Scan for new media",
+  "@albumScanTooltip": {
+    "description": "Tooltip of the button that asks the server to scan an album."
+  },
+  "albumEmpty": "This album is empty",
+  "@albumEmpty": {
+    "description": "An album with neither media nor sub-albums."
+  },
+  "albumTreeFilterHint": "Filter albums",
+  "@albumTreeFilterHint": {
+    "description": "Hint of the field that filters the album tree by name."
+  },
+  "albumTreeEmpty": "No albums yet",
+  "@albumTreeEmpty": {
+    "description": "The album tree has no albums at all."
+  },
+  "albumTreeNoMatch": "No album matches that filter",
+  "@albumTreeNoMatch": {
+    "description": "No album in the tree matches the filter."
+  },
+  "untitledAlbum": "Untitled album",
+  "@untitledAlbum": {
+    "description": "Shown for an album without a title."
+  },
+  "albumTreeSubAlbumsFailed": "Could not load sub-albums",
+  "@albumTreeSubAlbumsFailed": {
+    "description": "Loading one branch of the album tree failed."
+  },
+  "albumTreeCollapse": "Collapse",
+  "@albumTreeCollapse": {
+    "description": "Tooltip: close a branch of the album tree."
+  },
+  "albumTreeExpand": "Expand",
+  "@albumTreeExpand": {
+    "description": "Tooltip: open a branch of the album tree."
+  },
+  "peopleEmpty": "No faces recognised yet.\nFace detection runs on the server.",
+  "@peopleEmpty": {
+    "description": "No faces have been recognised. Two lines."
+  },
+  "personUnlabeled": "Unlabeled",
+  "@personUnlabeled": {
+    "description": "A face group without a name."
+  },
+  "personEmpty": "No media for this person",
+  "@personEmpty": {
+    "description": "A person has no media."
+  },
+  "placesEmpty": "None of your media has location data",
+  "@placesEmpty": {
+    "description": "No media has location data, so the map is empty."
+  },
+  "clusterTitleFallback": "Media at this place",
+  "@clusterTitleFallback": {
+    "description": "Title for media at one map location while its place name is being looked up."
+  },
+  "clusterEmpty": "No media at this location",
+  "@clusterEmpty": {
+    "description": "No media at a map location."
+  },
+  "searchHint": "Search albums and media",
+  "@searchHint": {
+    "description": "Hint of the search field."
+  },
+  "searchPrompt": "Type to search your library",
+  "@searchPrompt": {
+    "description": "Shown before anything has been typed into search."
+  },
+  "searchNoResults": "No results",
+  "@searchNoResults": {
+    "description": "A search found nothing."
+  },
+  "searchMedia": "Media",
+  "@searchMedia": {
+    "description": "Heading of the media section of search results."
+  },
+  "searchHiddenMore": "{count} more not shown. Narrow your search, or set a search result limit in Settings.",
+  "@searchHiddenMore": {
+    "description": "Below a long list of search results: how many more there are and how to see fewer.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "120"
+      }
+    }
+  },
+  "untitledMedia": "Untitled",
+  "@untitledMedia": {
+    "description": "Shown for a photo or video without a title."
+  },
+  "galleryInfo": "Info",
+  "@galleryInfo": {
+    "description": "Tooltip of the gallery button that shows a photo's camera data."
+  },
+  "mediaDetailsFailed": "Could not load the details: {error}",
+  "@mediaDetailsFailed": {
+    "description": "Loading a photo's details failed.",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "timeout"
+      }
+    }
+  },
+  "galleryNoCameraData": "No camera data for this photo.",
+  "@galleryNoCameraData": {
+    "description": "A photo has no camera data to show."
+  },
+  "videoPlayFailed": "Could not play video: {error}",
+  "@videoPlayFailed": {
+    "description": "A video could not be played.",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "format not supported"
+      }
+    }
+  },
+  "videoNoRendition": "No playable video rendition available",
+  "@videoNoRendition": {
+    "description": "The server has no version of a video the app can play."
+  },
+  "loading": "Loading…",
+  "@loading": {
+    "description": "Placeholder while something loads."
+  },
+  "sectionDownload": "Download",
+  "@sectionDownload": {
+    "description": "Heading above a photo's download options."
+  },
+  "sectionShareLinks": "Share links",
+  "@sectionShareLinks": {
+    "description": "Heading above a photo's public share links."
+  },
+  "shareCopyUrl": "Copy link",
+  "@shareCopyUrl": {
+    "description": "Copies a public share link."
+  },
+  "shareLinkCopied": "Share link copied",
+  "@shareLinkCopied": {
+    "description": "Confirmation that a share link was copied."
+  },
+  "shareDelete": "Delete share",
+  "@shareDelete": {
+    "description": "Deletes a public share link."
+  },
+  "shareNone": "No shares found",
+  "@shareNone": {
+    "description": "A photo has no public share links."
+  },
+  "shareAdd": "Add share",
+  "@shareAdd": {
+    "description": "Creates a public share link for a photo."
+  },
+  "downloadFailed": "Download failed: {error}",
+  "@downloadFailed": {
+    "description": "Downloading a file failed.",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "The server returned HTTP 500"
+      }
+    }
+  },
+  "sharingFailed": "Sharing failed: {error}",
+  "@sharingFailed": {
+    "description": "Sending a file to another app failed.",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "The server returned HTTP 500"
+      }
+    }
+  },
+  "downloadSaved": "Saved {fileName}",
+  "@downloadSaved": {
+    "description": "A file was saved.",
+    "placeholders": {
+      "fileName": {
+        "type": "String",
+        "example": "screenshots_01.jpg"
+      }
+    }
+  },
+  "downloadSendToApp": "Send to another app",
+  "@downloadSendToApp": {
+    "description": "Tooltip of the button that hands a file to another app."
+  },
+  "albumSaveFailed": "Could not save the album: {error}",
+  "@albumSaveFailed": {
+    "description": "Saving a downloaded album failed.",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "no space left"
+      }
+    }
+  },
+  "downloadCancelled": "Download cancelled",
+  "@downloadCancelled": {
+    "description": "The user stopped a download."
+  },
+  "albumDownloadFailed": "Album download failed: {error}",
+  "@albumDownloadFailed": {
+    "description": "Downloading an album failed.",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "The server returned HTTP 400: no media found"
+      }
+    }
+  },
+  "albumDownloadingTitle": "Downloading album",
+  "@albumDownloadingTitle": {
+    "description": "Title of the dialog while an album downloads."
+  },
+  "downloadStopping": "Stopping…",
+  "@downloadStopping": {
+    "description": "A cancelled download is being stopped."
+  },
+  "downloadReceived": "{size} received",
+  "@downloadReceived": {
+    "description": "How much of a download has arrived.",
+    "placeholders": {
+      "size": {
+        "type": "String",
+        "example": "12.3 MB"
+      }
+    }
+  },
+  "renditionOriginal": "Original",
+  "@renditionOriginal": {
+    "description": "Download option: the original file."
+  },
+  "renditionSmall": "Small",
+  "@renditionSmall": {
+    "description": "Download option: the small preview version."
+  },
+  "exifCamera": "Camera",
+  "@exifCamera": {
+    "description": "Camera data label."
+  },
+  "exifMaker": "Maker",
+  "@exifMaker": {
+    "description": "Camera data label: the camera's manufacturer."
+  },
+  "exifLens": "Lens",
+  "@exifLens": {
+    "description": "Camera data label."
+  },
+  "exifProgram": "Program",
+  "@exifProgram": {
+    "description": "Camera data label: the exposure program."
+  },
+  "exifDateShot": "Date shot",
+  "@exifDateShot": {
+    "description": "Camera data label: when the photo was taken."
+  },
+  "exifExposure": "Exposure",
+  "@exifExposure": {
+    "description": "Camera data label: shutter speed."
+  },
+  "exifAperture": "Aperture",
+  "@exifAperture": {
+    "description": "Camera data label."
+  },
+  "exifIso": "ISO",
+  "@exifIso": {
+    "description": "Camera data label: sensitivity."
+  },
+  "exifFocalLength": "Focal length",
+  "@exifFocalLength": {
+    "description": "Camera data label."
+  },
+  "exposureNotDefined": "Not defined",
+  "@exposureNotDefined": {
+    "description": "Exposure program: not set by the camera."
+  },
+  "exposureManual": "Manual",
+  "@exposureManual": {
+    "description": "Exposure program."
+  },
+  "exposureNormal": "Normal program",
+  "@exposureNormal": {
+    "description": "Exposure program: program automatic."
+  },
+  "exposureAperturePriority": "Aperture priority",
+  "@exposureAperturePriority": {
+    "description": "Exposure program."
+  },
+  "exposureShutterPriority": "Shutter priority",
+  "@exposureShutterPriority": {
+    "description": "Exposure program."
+  },
+  "exposureCreative": "Creative program",
+  "@exposureCreative": {
+    "description": "Exposure program: favours depth of field."
+  },
+  "exposureAction": "Action program",
+  "@exposureAction": {
+    "description": "Exposure program: favours fast shutter speeds."
+  },
+  "exposurePortrait": "Portrait mode",
+  "@exposurePortrait": {
+    "description": "Exposure program: portrait scene mode (not the image orientation)."
+  },
+  "exposureLandscape": "Landscape mode",
+  "@exposureLandscape": {
+    "description": "Exposure program: landscape scene mode (not the image orientation)."
+  },
+  "exposureBulb": "Bulb",
+  "@exposureBulb": {
+    "description": "Exposure program: shutter open as long as the button is held."
+  },
+  "exposureUnknown": "Unknown",
+  "@exposureUnknown": {
+    "description": "Exposure program the app does not know."
+  },
+  "renditionLarge": "Large",
+  "@renditionLarge": {
+    "description": "Download option: the large version the server makes for display (server title \"Large\")."
+  },
+  "renditionVideoThumbnail": "Video thumbnail",
+  "@renditionVideoThumbnail": {
+    "description": "Download option: the still image of a video (server title \"Video thumbnail\")."
+  },
+  "renditionWebVideo": "Web optimized video",
+  "@renditionWebVideo": {
+    "description": "Download option: the video converted for playback in browsers (server title \"Web optimized video\")."
+  },
+  "settingsTitle": "Settings",
+  "@settingsTitle": {
+    "description": "Title of the settings screen."
+  },
+  "settingsConnectedInstance": "Connected instance",
+  "@settingsConnectedInstance": {
+    "description": "Settings row showing the server the app is signed in to."
+  },
+  "settingsSwitchServer": "Switch server",
+  "@settingsSwitchServer": {
+    "description": "Settings action that goes back to the server list."
+  },
+  "settingsSwitchServerSubtitle": "Keeps this sign-in for one-tap return",
+  "@settingsSwitchServerSubtitle": {
+    "description": "Explains that switching servers keeps the current sign-in saved."
+  },
+  "settingsSectionLibrary": "Library",
+  "@settingsSectionLibrary": {
+    "description": "Settings section heading."
+  },
+  "scannerTitle": "Scanner",
+  "@scannerTitle": {
+    "description": "Name of the server's media scanner, as a settings row and screen title."
+  },
+  "settingsScannerSubtitle": "What the server is indexing right now",
+  "@settingsScannerSubtitle": {
+    "description": "Subtitle of the scanner row in settings."
+  },
+  "settingsSectionSearch": "Search",
+  "@settingsSectionSearch": {
+    "description": "Settings section heading."
+  },
+  "settingsRecheckFeatures": "Re-check server features",
+  "@settingsRecheckFeatures": {
+    "description": "Settings action that asks the server again which features it supports."
+  },
+  "settingsRecheckFeaturesSubtitle": "After updating your Photoview server",
+  "@settingsRecheckFeaturesSubtitle": {
+    "description": "When re-checking server features is useful."
+  },
+  "settingsRecheckStarted": "Checking your server again…",
+  "@settingsRecheckStarted": {
+    "description": "Confirmation that the server features are being checked again."
+  },
+  "settingsSectionSecurity": "Security",
+  "@settingsSectionSecurity": {
+    "description": "Settings section heading."
+  },
+  "settingsClearImageCache": "Clear image cache",
+  "@settingsClearImageCache": {
+    "description": "Settings action that deletes cached images."
+  },
+  "settingsImageCacheCleared": "Image cache cleared",
+  "@settingsImageCacheCleared": {
+    "description": "Confirmation after clearing cached images."
+  },
+  "settingsLogOut": "Log out",
+  "@settingsLogOut": {
+    "description": "Settings action that signs out."
+  },
+  "settingsLogOutSubtitle": "Forgets this saved sign-in",
+  "@settingsLogOutSubtitle": {
+    "description": "Explains that logging out removes the saved sign-in."
+  },
+  "caPickerTitle": "Select a CA certificate",
+  "@caPickerTitle": {
+    "description": "Title of the file picker for a certificate authority file."
+  },
+  "caNowTrusting": "Now trusting {name}",
+  "@caNowTrusting": {
+    "description": "A certificate authority was imported.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Caddy Local Authority"
+      }
+    }
+  },
+  "caImportFailed": "Import failed: {error}",
+  "@caImportFailed": {
+    "description": "Importing a certificate authority failed.",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "permission denied"
+      }
+    }
+  },
+  "caFingerprint": "SHA-256 fingerprint",
+  "@caFingerprint": {
+    "description": "Label above a certificate's SHA-256 fingerprint."
+  },
+  "actionClose": "Close",
+  "@actionClose": {
+    "description": "Closes a dialog."
+  },
+  "actionRemove": "Remove",
+  "@actionRemove": {
+    "description": "Removes an item from a list."
+  },
+  "actionSave": "Save",
+  "@actionSave": {
+    "description": "Saves a setting."
+  },
+  "caImportedSubtitle": "Certificate authority you imported",
+  "@caImportedSubtitle": {
+    "description": "Subtitle of an imported certificate authority in the list."
+  },
+  "caImport": "Import certificate authority",
+  "@caImport": {
+    "description": "Settings action to import a certificate authority."
+  },
+  "caImportSubtitle": "A .pem or .crt file — for a server with its own CA",
+  "@caImportSubtitle": {
+    "description": "Which files the import accepts and when it is needed."
+  },
+  "pinnedSubtitle": "Single certificate you accepted",
+  "@pinnedSubtitle": {
+    "description": "Subtitle of a single accepted server certificate in the list."
+  },
+  "pinnedStopTrusting": "Stop trusting",
+  "@pinnedStopTrusting": {
+    "description": "Removes trust in a single accepted certificate."
+  },
+  "scannerStopAll": "Stop all",
+  "@scannerStopAll": {
+    "description": "Stops every scanner job."
+  },
+  "scannerIdle": "The scanner is idle.\nYou only see jobs for albums you own, unless you are an admin.",
+  "@scannerIdle": {
+    "description": "The scanner has nothing to do; explains whose jobs are visible."
+  },
+  "scannerStopAlbum": "Stop this album",
+  "@scannerStopAlbum": {
+    "description": "Tooltip: stops scanning one album."
+  },
+  "scannerStopping": "Stopping after the current file",
+  "@scannerStopping": {
+    "description": "Scanner job status after the user stopped it."
+  },
+  "scannerRunning": "Scanning",
+  "@scannerRunning": {
+    "description": "Scanner job status."
+  },
+  "scannerQueued": "Waiting",
+  "@scannerQueued": {
+    "description": "Scanner job status: in the queue."
+  },
+  "scannerBusy": "Busy",
+  "@scannerBusy": {
+    "description": "Scanner job status the app does not recognise."
+  },
+  "scannerStoppedJobs": "Jobs stopped: {count}.",
+  "@scannerStoppedJobs": {
+    "description": "How many scanner jobs were stopped. Worded around the number to avoid plural forms.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern",
+        "example": "3"
+      }
+    }
+  },
+  "scannerRefreshFailed": "Could not refresh: {error}",
+  "@scannerRefreshFailed": {
+    "description": "The scanner list could not be refreshed; what is shown may be old.",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "timeout"
+      }
+    }
+  },
+  "scannerNote": "Stopping keeps everything already scanned. A running album finishes the file it is on first, so it may take a moment to disappear.",
+  "@scannerNote": {
+    "description": "Explains what stopping a scan does."
+  },
+  "searchLimitLabel": "Search result limit",
+  "@searchLimitLabel": {
+    "description": "Label of the field that caps search results."
+  },
+  "searchLimitHint": "Leave empty for the default",
+  "@searchLimitHint": {
+    "description": "Hint in the empty search limit field."
+  },
+  "searchLimitHelper": "0 means no limit",
+  "@searchLimitHelper": {
+    "description": "Helper text: zero switches the limit off."
+  },
+  "searchLimitCleared": "Search limit cleared.",
+  "@searchLimitCleared": {
+    "description": "The search limit was removed, so the default applies."
+  },
+  "searchLimitOff": "Search results are no longer limited.",
+  "@searchLimitOff": {
+    "description": "The search limit was set to zero, meaning unlimited."
+  },
+  "searchLimitSaved": "Search results limited to {limit}.",
+  "@searchLimitSaved": {
+    "description": "The search limit was saved. Worded around the number to avoid plural forms.",
+    "placeholders": {
+      "limit": {
+        "type": "int",
+        "format": "decimalPattern",
+        "example": "200"
+      }
+    }
+  },
+  "searchLimitOnServer": "Stored on the server, so it applies in the web interface too.",
+  "@searchLimitOnServer": {
+    "description": "Where the search limit is stored: on the server."
+  },
+  "searchLimitOnDevice": "Stored on this device: your server is too old to keep this setting.",
+  "@searchLimitOnDevice": {
+    "description": "Where the search limit is stored: on this device, because the server is too old."
+  },
+  "searchLimitReadFailed": "Could not read this setting: {error}",
+  "@searchLimitReadFailed": {
+    "description": "The stored search limit could not be read.",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "timeout"
+      }
+    }
+  },
+  "searchLimitNotWholeNumber": "Enter a whole number.",
+  "@searchLimitNotWholeNumber": {
+    "description": "Validation: the search limit must be a whole number."
+  },
+  "searchLimitNegative": "A limit cannot be negative. Use 0 for no limit.",
+  "@searchLimitNegative": {
+    "description": "Validation: the search limit cannot be negative."
+  },
+  "searchLimitTooLarge": "At most {max}.",
+  "@searchLimitTooLarge": {
+    "description": "Validation: the search limit is above the maximum.",
+    "placeholders": {
+      "max": {
+        "type": "int",
+        "format": "decimalPattern",
+        "example": "10000"
+      }
+    }
+  },
+  "errorSignInRejected": "Your sign-in is no longer accepted.",
+  "@errorSignInRejected": {
+    "description": "The server no longer accepts the saved sign-in."
+  },
+  "errorPermissionDenied": "Your account is not allowed to do that.",
+  "@errorPermissionDenied": {
+    "description": "The server refused one request for this account."
+  },
+  "errorCertificateNotTrusted": "The certificate presented by {host} is not trusted.",
+  "@errorCertificateNotTrusted": {
+    "description": "The server's certificate is not trusted.",
+    "placeholders": {
+      "host": {
+        "type": "String",
+        "example": "photos.example.com"
+      }
+    }
+  },
+  "errorUnsupportedField": "Your Photoview server does not support this yet (it has no \"{field}\").",
+  "@errorUnsupportedField": {
+    "description": "The server is too old for a feature; names the missing GraphQL field.",
+    "placeholders": {
+      "field": {
+        "type": "String",
+        "example": "albumTreeChildren"
+      }
+    }
+  },
+  "errorInvalidInstanceUrl": "That is not a valid server address.",
+  "@errorInvalidInstanceUrl": {
+    "description": "What the user typed is not a usable server address."
+  },
+  "errorNoTlsHandshake": "{address} did not complete a TLS handshake. If it only serves plain HTTP, type http://{address} to connect without encryption.",
+  "@errorNoTlsHandshake": {
+    "description": "HTTPS failed without any certificate; suggests typing http:// on purpose. Keep \"http://{address}\" unchanged.",
+    "placeholders": {
+      "address": {
+        "type": "String",
+        "example": "192.168.0.47:8081"
+      }
+    }
+  },
+  "errorLoginFailed": "Login failed.",
+  "@errorLoginFailed": {
+    "description": "Signing in failed and the server gave no reason."
+  },
+  "errorNoData": "The server returned no data.",
+  "@errorNoData": {
+    "description": "The server answered without any data."
+  },
+  "errorNoAnswer": "The server did not answer the request.",
+  "@errorNoAnswer": {
+    "description": "The request got no response at all."
+  },
+  "errorHttpStatus": "The server returned HTTP {status}.",
+  "@errorHttpStatus": {
+    "description": "The server answered with an HTTP error, possibly followed by its own text.",
+    "placeholders": {
+      "status": {
+        "type": "String",
+        "example": "400: no media found"
+      }
+    }
+  },
+  "errorCertificateReason": "The server's certificate is not trusted ({reason}). Self-hosted instances often use a private certificate authority.",
+  "@errorCertificateReason": {
+    "description": "TLS failed on the certificate; the reason comes from the operating system.",
+    "placeholders": {
+      "reason": {
+        "type": "String",
+        "example": "CERTIFICATE_VERIFY_FAILED"
+      }
+    }
+  },
+  "errorUnreachable": "Could not reach the server: {reason}",
+  "@errorUnreachable": {
+    "description": "The network connection to the server failed; the reason comes from the operating system.",
+    "placeholders": {
+      "reason": {
+        "type": "String",
+        "example": "Connection refused"
+      }
+    }
+  },
+  "errorNotGraphql": "The server did not return GraphQL. Check the instance URL.",
+  "@errorNotGraphql": {
+    "description": "The address answered, but not as a Photoview API."
+  },
+  "errorTimeout": "The server took too long to answer.",
+  "@errorTimeout": {
+    "description": "A request timed out."
+  },
+  "errorUnknown": "Unknown error",
+  "@errorUnknown": {
+    "description": "A failure without any description."
+  },
+  "errorAlbumNotFound": "Album not found.",
+  "@errorAlbumNotFound": {
+    "description": "An album no longer exists or is not visible."
+  },
+  "errorMediaNotFound": "Media not found.",
+  "@errorMediaNotFound": {
+    "description": "A photo or video no longer exists or is not visible."
+  },
+  "errorInvalidMapJson": "The server returned map data that is not valid JSON.",
+  "@errorInvalidMapJson": {
+    "description": "The server's map data could not be parsed."
+  },
+  "errorInvalidMapShape": "The server returned map data in an unexpected shape.",
+  "@errorInvalidMapShape": {
+    "description": "The server's map data has an unexpected structure."
+  },
+  "errorScanRefused": "The server refused to start a scan.",
+  "@errorScanRefused": {
+    "description": "The server declined to start a scan and gave no reason."
+  },
+  "errorStorageUnavailable": "Secure storage is unavailable: {cause}",
+  "@errorStorageUnavailable": {
+    "description": "The device's secure storage could not be used.",
+    "placeholders": {
+      "cause": {
+        "type": "String",
+        "example": "PlatformException(...)"
+      }
+    }
+  },
+  "certFileMissing": "That file no longer exists.",
+  "@certFileMissing": {
+    "description": "The picked certificate file disappeared."
+  },
+  "certFileUnreadable": "That file is not a certificate the system can read. Export your CA as a .pem or .crt file.",
+  "@certFileUnreadable": {
+    "description": "The picked file is not a certificate the system accepts."
+  },
+  "certFileAlreadyTrusted": "That certificate is already trusted.",
+  "@certFileAlreadyTrusted": {
+    "description": "The picked certificate authority was imported before."
+  },
+  "certFileSeveral": "That file holds several certificates ({count}). Import the single CA certificate on its own, so you can see which one you are trusting.",
+  "@certFileSeveral": {
+    "description": "The picked file holds more than one certificate. Worded around the number to avoid plural forms.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "certFileInvalidBase64": "That certificate block is not valid base64.",
+  "@certFileInvalidBase64": {
+    "description": "A PEM certificate block is corrupt."
+  },
+  "settingsLanguageNotSaved": "The language could not be saved and applies only until the app restarts: {error}",
+  "@settingsLanguageNotSaved": {
+    "description": "The chosen language is in use but could not be stored for the next start.",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Secure storage is unavailable"
+      }
+    }
+  }
+}

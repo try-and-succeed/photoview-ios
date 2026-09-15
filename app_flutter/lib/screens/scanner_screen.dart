@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/models.dart';
+import '../l10n/app_localizations.dart';
+import '../l10n/error_messages.dart';
 import '../state/scanner.dart';
 import '../widgets/async_states.dart';
 
@@ -24,15 +26,16 @@ class ScannerScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final scanner = ref.watch(scannerProvider);
     final notifier = ref.read(scannerProvider.notifier);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Scanner'),
+        title: Text(l10n.scannerTitle),
         actions: [
           if (scanner.jobs.isNotEmpty)
             TextButton(
               onPressed: () => _cancelAll(context, ref),
-              child: const Text('Stop all'),
+              child: Text(l10n.scannerStopAll),
             ),
         ],
       ),
@@ -48,6 +51,8 @@ class ScannerScreen extends ConsumerWidget {
     ScannerState scanner,
     ScannerNotifier notifier,
   ) {
+    final l10n = AppLocalizations.of(context);
+
     if (scanner.isLoading && scanner.jobs.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -57,7 +62,7 @@ class ScannerScreen extends ConsumerWidget {
       return ListView(
         children: [
           const SizedBox(height: 80),
-          ErrorMessage(message: error, onRetry: notifier.refresh),
+          ErrorMessage.forError(error, onRetry: notifier.refresh),
         ],
       );
     }
@@ -65,13 +70,9 @@ class ScannerScreen extends ConsumerWidget {
     if (scanner.jobs.isEmpty) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        children: const [
-          SizedBox(height: 120),
-          EmptyMessage(
-            message: 'The scanner is idle.\n'
-                'You only see jobs for albums you own, unless you are an admin.',
-            icon: Icons.radar,
-          ),
+        children: [
+          const SizedBox(height: 120),
+          EmptyMessage(message: l10n.scannerIdle, icon: Icons.radar),
         ],
       );
     }
@@ -85,7 +86,10 @@ class ScannerScreen extends ConsumerWidget {
       itemCount: scanner.jobs.length + banner + 1,
       itemBuilder: (context, index) {
         if (banner == 1 && index == 0) {
-          return _StaleBanner(message: error!, onRetry: notifier.refresh);
+          return _StaleBanner(
+            message: describeError(error, l10n),
+            onRetry: notifier.refresh,
+          );
         }
 
         final jobIndex = index - banner;
@@ -97,16 +101,16 @@ class ScannerScreen extends ConsumerWidget {
         return ListTile(
           leading: _statusIcon(context, job.status, stopping),
           title: Text(
-            job.albumTitle.isEmpty ? 'Untitled album' : job.albumTitle,
+            job.albumTitle.isEmpty ? l10n.untitledAlbum : job.albumTitle,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          subtitle: Text(_statusLabel(job.status, stopping)),
+          subtitle: Text(_statusLabel(l10n, job.status, stopping)),
           trailing: stopping
               ? null
               : IconButton(
                   icon: const Icon(Icons.stop_circle_outlined),
-                  tooltip: 'Stop this album',
+                  tooltip: l10n.scannerStopAlbum,
                   onPressed: () => notifier.cancel(job.albumId),
                 ),
         );
@@ -135,32 +139,33 @@ class ScannerScreen extends ConsumerWidget {
     };
   }
 
-  static String _statusLabel(ScannerJobStatus status, bool stopping) {
-    if (stopping) return 'Stopping after the current file';
+  static String _statusLabel(
+    AppLocalizations l10n,
+    ScannerJobStatus status,
+    bool stopping,
+  ) {
+    if (stopping) return l10n.scannerStopping;
 
     return switch (status) {
-      ScannerJobStatus.running => 'Scanning',
-      ScannerJobStatus.queued => 'Waiting',
-      ScannerJobStatus.unknown => 'Busy',
+      ScannerJobStatus.running => l10n.scannerRunning,
+      ScannerJobStatus.queued => l10n.scannerQueued,
+      ScannerJobStatus.unknown => l10n.scannerBusy,
     };
   }
 
   Future<void> _cancelAll(BuildContext context, WidgetRef ref) async {
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
 
     try {
       final cancelled = await ref.read(scannerProvider.notifier).cancelAll();
       messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            cancelled == 1
-                ? 'Stopped 1 job.'
-                : 'Stopped $cancelled jobs.',
-          ),
-        ),
+        SnackBar(content: Text(l10n.scannerStoppedJobs(cancelled))),
       );
     } catch (error) {
-      messenger.showSnackBar(SnackBar(content: Text('$error')));
+      messenger.showSnackBar(
+        SnackBar(content: Text(describeError(error, l10n))),
+      );
     }
   }
 }
@@ -175,6 +180,7 @@ class _StaleBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
@@ -187,13 +193,13 @@ class _StaleBanner extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              'Could not refresh: $message',
+              l10n.scannerRefreshFailed(message),
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onErrorContainer,
               ),
             ),
           ),
-          TextButton(onPressed: onRetry, child: const Text('Retry')),
+          TextButton(onPressed: onRetry, child: Text(l10n.actionRetry)),
         ],
       ),
     );
@@ -211,8 +217,7 @@ class _ScannerNote extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
       child: Text(
-        'Stopping keeps everything already scanned. A running album finishes '
-        'the file it is on first, so it may take a moment to disappear.',
+        AppLocalizations.of(context).scannerNote,
         style: theme.textTheme.bodySmall?.copyWith(
           color: theme.colorScheme.onSurfaceVariant,
         ),

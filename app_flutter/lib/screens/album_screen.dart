@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/capabilities.dart';
+import '../l10n/app_localizations.dart';
+import '../l10n/error_messages.dart';
 import '../state/capabilities.dart';
 import '../state/library.dart';
 import '../state/scanner.dart';
@@ -25,6 +27,7 @@ class AlbumScreen extends ConsumerWidget {
   /// user to wonder whether anything happened.
   Future<void> _scan(BuildContext context, WidgetRef ref) async {
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
 
     // Captured before the await: the SnackBar outlives this screen, and its
     // action must not look a Navigator up from a context that is by then
@@ -35,9 +38,9 @@ class AlbumScreen extends ConsumerWidget {
       await ref.read(scannerProvider.notifier).scanAlbum(albumId);
       messenger.showSnackBar(
         SnackBar(
-          content: const Text('Scanning this album and its sub-albums.'),
+          content: Text(l10n.albumScanStarted),
           action: SnackBarAction(
-            label: 'Show',
+            label: l10n.actionShow,
             onPressed: () => showScanner(navigator),
           ),
         ),
@@ -46,7 +49,7 @@ class AlbumScreen extends ConsumerWidget {
       // Deliberately not retried: the server may already have accepted the
       // request, and a second one would run all the same.
       messenger.showSnackBar(
-        SnackBar(content: Text('Could not start the scan: $error')),
+        SnackBar(content: Text(l10n.albumScanFailed(describeError(error, l10n)))),
       );
     }
   }
@@ -61,14 +64,14 @@ class AlbumScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.download),
-            tooltip: 'Download album',
+            tooltip: AppLocalizations.of(context).albumDownloadTooltip,
             onPressed: () =>
                 downloadAlbum(context, ref, albumId: albumId, albumTitle: title),
           ),
           if (ref.watch(hasCapabilityProvider(Capability.scanner)))
             IconButton(
               icon: const Icon(Icons.radar),
-              tooltip: 'Scan for new media',
+              tooltip: AppLocalizations.of(context).albumScanTooltip,
               onPressed: () => _scan(context, ref),
             ),
         ],
@@ -81,7 +84,9 @@ class AlbumScreen extends ConsumerWidget {
         ),
         data: (data) {
           if (data.subAlbums.isEmpty && data.media.isEmpty) {
-            return const EmptyMessage(message: 'This album is empty');
+            return EmptyMessage(
+              message: AppLocalizations.of(context).albumEmpty,
+            );
           }
 
           return LoadMoreOnScroll(

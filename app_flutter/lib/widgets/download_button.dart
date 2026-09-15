@@ -8,6 +8,8 @@ import 'package:share_plus/share_plus.dart';
 import '../api/client.dart';
 import '../api/media_files.dart';
 import '../api/models.dart';
+import '../l10n/app_localizations.dart';
+import '../l10n/error_messages.dart';
 import '../state/auth.dart';
 import '../util/formatting.dart';
 
@@ -78,7 +80,7 @@ class _DownloadButtonState extends ConsumerState<DownloadButton> {
 
   /// Fetches the file, then runs [use] on it. One action at a time per row.
   Future<void> _withFile(
-    String failure,
+    String Function(AppLocalizations l10n, String error) failure,
     Future<void> Function(File file, String fileName) use,
   ) async {
     final session = ref.read(sessionProvider);
@@ -93,6 +95,7 @@ class _DownloadButtonState extends ConsumerState<DownloadButton> {
     // outlives the sheet.
     final fetcher = ref.read(mediaFileFetcherProvider);
     final container = ProviderScope.containerOf(context, listen: false);
+    final l10n = AppLocalizations.of(context);
 
     try {
       final file = await fetcher.fetch(
@@ -114,31 +117,36 @@ class _DownloadButtonState extends ConsumerState<DownloadButton> {
       // session itself — the same way, so it looks the same wherever it
       // surfaces.
       await container.read(authProvider.notifier).sessionExpired(session);
-      _say('$failure: ${const UnauthorizedException()}');
+      _say(failure(l10n, l10n.errorSignInRejected));
     } catch (error) {
-      _say('$failure: $error');
+      _say(failure(l10n, describeError(error, l10n)));
     } finally {
       if (identical(_cancellation, cancellation)) _cancellation = null;
       if (mounted) setState(() => _busy = false);
     }
   }
 
-  Future<void> _save() => _withFile('Download failed', (file, fileName) async {
-    try {
-      final saved = await ref.read(saveFileProvider)(file, fileName);
-      if (saved != null) _say('Saved $fileName');
-    } finally {
-      // The copy the dialog made is the one that matters; the cached file
-      // would only use up space.
-      await discardDownload(file);
-    }
-  });
+  Future<void> _save() => _withFile(
+    (l10n, error) => l10n.downloadFailed(error),
+    (file, fileName) async {
+      try {
+        final saved = await ref.read(saveFileProvider)(file, fileName);
+        if (saved != null && mounted) {
+          _say(AppLocalizations.of(context).downloadSaved(fileName));
+        }
+      } finally {
+        // The copy the dialog made is the one that matters; the cached file
+        // would only use up space.
+        await discardDownload(file);
+      }
+    },
+  );
 
   // The shared file is left in the temporary directory: the receiving app may
   // still be reading it after the share sheet has closed, and the system
   // clears that directory on its own.
   Future<void> _share() => _withFile(
-    'Sharing failed',
+    (l10n, error) => l10n.sharingFailed(error),
     (file, _) => ref.read(shareFileProvider)(file),
   );
 
@@ -146,6 +154,7 @@ class _DownloadButtonState extends ConsumerState<DownloadButton> {
   Widget build(BuildContext context) {
     final download = widget.download;
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final extension = fileExtension(download.url);
 
     return ListTile(
@@ -156,7 +165,7 @@ class _DownloadButtonState extends ConsumerState<DownloadButton> {
               child: CircularProgressIndicator(strokeWidth: 2),
             )
           : const Icon(Icons.download),
-      title: Text(download.title),
+      title: Text(renditionName(download.title, l10n)),
       subtitle: Text(
         [
           formatBytes(download.fileSize),
@@ -168,7 +177,7 @@ class _DownloadButtonState extends ConsumerState<DownloadButton> {
       onTap: _busy ? null : _save,
       trailing: IconButton(
         icon: const Icon(Icons.share),
-        tooltip: 'Send to another app',
+        tooltip: l10n.downloadSendToApp,
         onPressed: _busy ? null : _share,
       ),
     );

@@ -8,11 +8,16 @@ import 'package:photoview/state/auth.dart';
 import 'package:photoview/widgets/async_states.dart';
 import 'package:photoview/widgets/certificate_error.dart';
 
-Widget _host(Widget child, {List<Override> overrides = const []}) =>
-    ProviderScope(
-      overrides: overrides,
-      child: MaterialApp(home: Scaffold(body: child)),
-    );
+import 'support/localized_app.dart';
+
+Widget _host(
+  Widget child, {
+  List<Override> overrides = const [],
+  Locale? locale,
+}) => ProviderScope(
+  overrides: overrides,
+  child: localizedApp(home: Scaffold(body: child), locale: locale),
+);
 
 final _certificate = TrustedCertificate(
   host: 'photoview.lan',
@@ -60,6 +65,28 @@ void main() {
       expect(find.text('Could not reach the server'), findsOneWidget);
       await tester.tap(find.text('Retry'));
       expect(retried, 1);
+    });
+
+    testWidgets('words the failure in the app language', (tester) async {
+      await tester.pumpWidget(
+        _host(
+          ErrorMessage.forError(
+            const ApiException(
+              'Could not reach the server: Connection refused',
+              problem: ApiProblem.unreachable,
+              detail: 'Connection refused',
+            ),
+            onRetry: () {},
+          ),
+          locale: const Locale('de'),
+        ),
+      );
+
+      expect(
+        find.text('Der Server ist nicht erreichbar: Connection refused'),
+        findsOneWidget,
+      );
+      expect(find.text('Erneut versuchen'), findsOneWidget);
     });
 
     testWidgets('offers to review an untrusted certificate, not a retry', (

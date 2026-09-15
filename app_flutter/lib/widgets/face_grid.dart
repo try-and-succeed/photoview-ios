@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api/models.dart';
+import '../l10n/app_localizations.dart';
 import '../screens/person_screen.dart';
 import 'protected_image.dart';
 
@@ -59,7 +60,7 @@ class _FaceTile extends StatelessWidget {
             )
           else
             Text(
-              'Unlabeled',
+              AppLocalizations.of(context).personUnlabeled,
               style: theme.textTheme.bodySmall?.copyWith(
                 fontStyle: FontStyle.italic,
                 color: theme.colorScheme.onSurfaceVariant,
