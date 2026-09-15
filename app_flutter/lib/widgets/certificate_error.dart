@@ -56,11 +56,20 @@ class _CertificateErrorMessageState
       final certificate = await widget.probe(widget.endpoint);
       if (!mounted) return;
 
+      // Nothing to show means the certificate now validates on its own — a CA
+      // imported since, say — or that the host cannot be reached. Neither is a
+      // question about a certificate, and trying again settles both: it
+      // succeeds, or it fails with the error that actually applies.
       if (certificate == null) {
-        setState(
-          () => _note =
-              'Could not read a certificate from ${widget.endpoint.host}.',
-        );
+        final retry = widget.onRetry;
+        if (retry != null) {
+          retry();
+        } else {
+          setState(
+            () => _note =
+                'Could not read a certificate from ${widget.endpoint.host}.',
+          );
+        }
         return;
       }
 

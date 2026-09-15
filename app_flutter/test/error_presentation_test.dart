@@ -140,6 +140,37 @@ void main() {
       expect(retried, 1);
     });
 
+    testWidgets('retries when there is no certificate left to review', (
+      tester,
+    ) async {
+      // The certificate validates by now (a CA was imported) or the host is
+      // gone. A note saying no certificate could be read was a dead end;
+      // retrying either works or reports the error that applies.
+      var retried = 0;
+      var asked = false;
+
+      await tester.pumpWidget(
+        _host(
+          CertificateErrorMessage(
+            endpoint: Uri.parse('https://photoview.lan/api/graphql'),
+            onRetry: () => retried++,
+            probe: (_) async => null,
+            confirm: (_, _, {bool replacesTrusted = false}) async {
+              asked = true;
+              return true;
+            },
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Review certificate'));
+      await tester.pumpAndSettle();
+
+      expect(retried, 1);
+      expect(asked, isFalse, reason: 'there was no certificate to ask about');
+      expect(find.textContaining('Could not read a certificate'), findsNothing);
+    });
+
     testWidgets('presents a missing server feature calmly', (tester) async {
       await tester.pumpWidget(
         _host(
