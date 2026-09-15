@@ -271,14 +271,27 @@ void main() {
     });
 
     test('a failed cancel takes the stopping label back', () async {
+      // The stop request itself fails. The row must not stay "stopping" for a
+      // request the server never took, and the user must be told.
       await start([_job('8', 'Berge')]);
-      client.failWith = const ApiException('nope');
+      client.failCancelWith = const ApiException('nope');
 
-      // The cancel itself succeeds in the fake, the refresh after it fails;
-      // either way the user must not be left with a stuck "stopping" row.
       await container.read(scannerProvider.notifier).cancel('8');
 
-      expect(container.read(scannerProvider).error, isNotNull);
+      final state = container.read(scannerProvider);
+      expect(state.stopping, isEmpty);
+      expect(state.error, contains('nope'));
+      expect(state.jobs, hasLength(1), reason: 'the job is still there');
+    });
+
+    test('a refresh failing after a stop is reported', () async {
+      // The stop is accepted, the queue read after it fails.
+      await start([_job('8', 'Berge')]);
+      client.failWith = const ApiException('queue unreadable');
+
+      await container.read(scannerProvider.notifier).cancel('8');
+
+      expect(container.read(scannerProvider).error, contains('queue unreadable'));
     });
 
     test('a server without the scanner stops the polling', () async {
