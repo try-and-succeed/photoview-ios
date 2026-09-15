@@ -158,7 +158,7 @@
   "scannerStoppedJobs": "Gestoppte Aufträge: {count}.",
   "scannerRefreshFailed": "Aktualisierung fehlgeschlagen: {error}",
   "scannerNote": "Beim Stoppen bleibt alles bereits Gescannte erhalten. Ein laufendes Album beendet zuerst die aktuelle Datei, daher kann es einen Moment dauern, bis es verschwindet.",
-  "searchLimitLabel": "Grenze für Suchergebnisse",
+  "searchLimitLabel": "Suchgrenze",
   "searchLimitHint": "Leer lassen für den Standardwert",
   "searchLimitHelper": "0 bedeutet keine Grenze",
   "searchLimitCleared": "Suchgrenze entfernt.",

@@ -45,7 +45,7 @@ void main() {
   testWidgets('refuses and confirms in the app language', (tester) async {
     await pump(tester, const Locale('de'));
 
-    expect(find.text('Grenze für Suchergebnisse'), findsOneWidget);
+    expect(find.text('Suchgrenze'), findsOneWidget);
     expect(
       find.text('Auf dem Server gespeichert, gilt also auch in der Weboberfläche.'),
       findsOneWidget,
