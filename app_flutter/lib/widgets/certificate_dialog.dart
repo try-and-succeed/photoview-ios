@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../api/trusted_certificates.dart';
+import '../l10n/app_localizations.dart';
 
 /// Asks the user whether to trust one specific certificate, showing enough of
 /// it that the decision is informed rather than blind.
@@ -41,12 +42,15 @@ class _CertificateDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final dates = DateFormat.yMMMd();
 
     return AlertDialog(
       icon: Icon(Icons.gpp_maybe, color: theme.colorScheme.error, size: 36),
       title: Text(
-        replacesTrusted ? 'Certificate has changed' : 'Untrusted certificate',
+        replacesTrusted
+            ? l10n.certificateChangedTitle
+            : l10n.certificateUntrustedTitle,
       ),
       content: SingleChildScrollView(
         child: Column(
@@ -55,29 +59,28 @@ class _CertificateDialog extends StatelessWidget {
           children: [
             Text(
               replacesTrusted
-                  ? '${certificate.host} is now presenting a different '
-                        'certificate from the one you accepted. Short-lived '
-                        'certificates are renewed often, so this is usually '
-                        'routine — but it is also what it would look like if '
-                        'something else were answering for this address.'
-                  : '${certificate.host} identifies itself with a certificate '
-                        'this device cannot verify. That is normal for a '
-                        'self-hosted server using its own certificate '
-                        'authority.',
+                  ? l10n.certificateChangedBody(certificate.host)
+                  : l10n.certificateUntrustedBody(certificate.host),
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),
-            _Row(label: 'Issued by', value: _clean(certificate.issuer)),
-            if (_clean(certificate.subject).isNotEmpty)
-              _Row(label: 'Issued to', value: _clean(certificate.subject)),
             _Row(
-              label: 'Valid',
+              label: l10n.certificateIssuedBy,
+              value: _clean(certificate.issuer),
+            ),
+            if (_clean(certificate.subject).isNotEmpty)
+              _Row(
+                label: l10n.certificateIssuedTo,
+                value: _clean(certificate.subject),
+              ),
+            _Row(
+              label: l10n.certificateValid,
               value: '${dates.format(certificate.validFrom)} – '
                   '${dates.format(certificate.validTo)}',
             ),
             const SizedBox(height: 12),
             Text(
-              'SHA-256 fingerprint',
+              l10n.certificateFingerprint,
               style: theme.textTheme.labelMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -92,10 +95,7 @@ class _CertificateDialog extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Only continue if this fingerprint matches your server. This '
-              'exact certificate will be trusted from now on, and you will be '
-              'asked again if it changes to another one this device cannot '
-              'verify on its own.',
+              l10n.certificateTrustWarning,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -106,11 +106,11 @@ class _CertificateDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('Cancel'),
+          child: Text(l10n.actionCancel),
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(true),
-          child: const Text('Trust'),
+          child: Text(l10n.certificateTrust),
         ),
       ],
     );

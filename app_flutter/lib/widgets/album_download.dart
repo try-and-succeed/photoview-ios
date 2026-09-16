@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/client.dart';
 import '../api/media_files.dart';
+import '../l10n/app_localizations.dart';
+import '../l10n/error_messages.dart';
 import '../state/auth.dart';
 import '../util/formatting.dart';
 import 'download_button.dart';
@@ -22,6 +24,7 @@ Future<void> downloadAlbum(
   required String albumTitle,
 }) async {
   final messenger = ScaffoldMessenger.of(context);
+  final l10n = AppLocalizations.of(context);
   final fileName = albumZipFileName(albumTitle);
 
   final outcome = await showDialog<Object?>(
@@ -34,11 +37,13 @@ Future<void> downloadAlbum(
     try {
       final saved = await ref.read(saveFileProvider)(outcome, fileName);
       if (saved != null) {
-        messenger.showSnackBar(SnackBar(content: Text('Saved $fileName')));
+        messenger.showSnackBar(
+          SnackBar(content: Text(l10n.downloadSaved(fileName))),
+        );
       }
     } catch (error) {
       messenger.showSnackBar(
-        SnackBar(content: Text('Could not save the album: $error')),
+        SnackBar(content: Text(l10n.albumSaveFailed(describeError(error, l10n)))),
       );
     } finally {
       await discardDownload(outcome);
@@ -47,13 +52,13 @@ Future<void> downloadAlbum(
   }
 
   if (outcome is DownloadCancelledException) {
-    messenger.showSnackBar(const SnackBar(content: Text('Download cancelled')));
+    messenger.showSnackBar(SnackBar(content: Text(l10n.downloadCancelled)));
     return;
   }
 
   if (outcome != null) {
     messenger.showSnackBar(
-      SnackBar(content: Text('Album download failed: $outcome')),
+      SnackBar(content: Text(l10n.albumDownloadFailed(describeError(outcome, l10n)))),
     );
   }
 }
@@ -126,6 +131,8 @@ class _AlbumDownloadDialogState extends ConsumerState<_AlbumDownloadDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return PopScope(
       // Back stops the download rather than hiding a transfer that keeps
       // going with nothing on screen to stop it.
@@ -134,7 +141,7 @@ class _AlbumDownloadDialogState extends ConsumerState<_AlbumDownloadDialog> {
         if (!didPop) _cancellation.cancel();
       },
       child: AlertDialog(
-        title: const Text('Downloading album'),
+        title: Text(l10n.albumDownloadingTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -145,8 +152,8 @@ class _AlbumDownloadDialogState extends ConsumerState<_AlbumDownloadDialog> {
             const SizedBox(height: 8),
             Text(
               _cancellation.isCancelled
-                  ? 'Stopping…'
-                  : '${formatBytes(_received)} received',
+                  ? l10n.downloadStopping
+                  : l10n.downloadReceived(formatBytes(_received)),
             ),
           ],
         ),
@@ -155,7 +162,7 @@ class _AlbumDownloadDialogState extends ConsumerState<_AlbumDownloadDialog> {
             onPressed: _cancellation.isCancelled
                 ? null
                 : () => setState(_cancellation.cancel),
-            child: const Text('Cancel'),
+            child: Text(l10n.actionCancel),
           ),
         ],
       ),

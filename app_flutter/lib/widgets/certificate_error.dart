@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/trusted_certificates.dart';
+import '../l10n/app_localizations.dart';
+import '../l10n/error_messages.dart';
 import '../state/auth.dart';
 import 'certificate_dialog.dart';
 
@@ -66,8 +68,9 @@ class _CertificateErrorMessageState
           retry();
         } else {
           setState(
-            () => _note =
-                'Could not read a certificate from ${widget.endpoint.host}.',
+            () => _note = AppLocalizations.of(
+              context,
+            ).certificateCouldNotRead(widget.endpoint.host),
           );
         }
         return;
@@ -84,7 +87,9 @@ class _CertificateErrorMessageState
       if (!mounted) return;
 
       if (!accepted) {
-        setState(() => _note = 'Certificate was not accepted.');
+        setState(
+          () => _note = AppLocalizations.of(context).certificateNotAccepted,
+        );
         return;
       }
 
@@ -97,7 +102,10 @@ class _CertificateErrorMessageState
       // writable. Without this the button simply came back and the user tried
       // again forever, never told that the certificate was not saved.
       if (mounted) {
-        setState(() => _note = 'Could not trust this certificate: $error');
+        final l10n = AppLocalizations.of(context);
+        setState(
+          () => _note = l10n.certificateTrustFailed(describeError(error, l10n)),
+        );
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -121,9 +129,9 @@ class _CertificateErrorMessageState
             ),
             const SizedBox(height: 16),
             Text(
-              'The certificate ${widget.endpoint.host} is presenting is not '
-              'trusted. If it was renewed, you can check the new one and '
-              'accept it.',
+              AppLocalizations.of(
+                context,
+              ).certificateErrorBody(widget.endpoint.host),
               textAlign: TextAlign.center,
             ),
             if (_note != null) ...[
@@ -142,7 +150,7 @@ class _CertificateErrorMessageState
             else
               FilledButton.tonal(
                 onPressed: _review,
-                child: const Text('Review certificate'),
+                child: Text(AppLocalizations.of(context).certificateReview),
               ),
           ],
         ),

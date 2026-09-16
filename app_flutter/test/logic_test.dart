@@ -1,5 +1,8 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart';
 import 'package:photoview/api/models.dart';
+import 'package:photoview/l10n/app_localizations.dart';
 import 'package:photoview/screens/places_screen.dart';
 import 'package:photoview/state/timeline.dart';
 import 'package:photoview/util/formatting.dart';
@@ -10,6 +13,9 @@ TimelineMedia _entry(String id, String albumId, DateTime date) => TimelineMedia(
   albumId: albumId,
   albumTitle: 'Album $albumId',
 );
+
+final _en = lookupAppLocalizations(const Locale('en'));
+final _de = lookupAppLocalizations(const Locale('de'));
 
 PlacesMarker _marker(double lat, double lng) => PlacesMarker(
   mediaId: '$lat:$lng',
@@ -116,6 +122,22 @@ void main() {
       expect(formatBytes(9000000), '9.0 MB');
     });
 
+    test('uses the decimal separator of the app language', () {
+      Intl.withLocale('de', () {
+        expect(formatBytes(2500), '2,5 kB');
+        expect(formatBytes(9000000), '9,0 MB');
+      });
+    });
+
+    test('names the server renditions in the app language', () {
+      expect(renditionName('Original', _en), 'Original');
+      expect(renditionName('Large', _de), 'Groß');
+      expect(renditionName('Small', _de), 'Klein');
+      expect(renditionName('Web optimized video', _de), 'Fürs Web optimiertes Video');
+      // A title the app does not know yet is shown as the server sent it.
+      expect(renditionName('Panorama', _de), 'Panorama');
+    });
+
     test('extracts the file extension from a media URL', () {
       expect(fileExtension('photo/original_abc.JPG'), 'jpg');
       expect(fileExtension('photo/noext'), '');
@@ -150,17 +172,29 @@ void main() {
     });
 
     test('names known exposure programs', () {
-      expect(exposureProgramName(3), 'Aperture priority');
-      expect(exposureProgramName(99), 'Unknown');
+      expect(exposureProgramName(3, _en), 'Aperture priority');
+      expect(exposureProgramName(99, _en), 'Unknown');
+      expect(exposureProgramName(4, _de), 'Zeitpriorität');
     });
 
     test('lists EXIF rows in display order, skipping absent fields', () {
       final rows = exifRows(
         const MediaExif(camera: 'X-T5', iso: 400, aperture: 2.8),
+        _en,
       );
 
       expect(rows.map((r) => r.label), ['Camera', 'Aperture', 'ISO']);
       expect(rows.map((r) => r.value), ['X-T5', 'f/2.8', '400']);
+    });
+
+    test('labels EXIF rows and numbers in the app language', () {
+      final rows = Intl.withLocale(
+        'de',
+        () => exifRows(const MediaExif(aperture: 2.8, focalLength: 4.5), _de),
+      );
+
+      expect(rows.map((r) => r.label), ['Blende', 'Brennweite']);
+      expect(rows.map((r) => r.value), ['f/2,8', '4,5 mm']);
     });
   });
 }

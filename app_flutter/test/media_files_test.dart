@@ -86,11 +86,14 @@ void main() {
       await expectLater(
         fetcher.fetch(_session, '/a.jpg', fileName: 'a.jpg'),
         throwsA(
-          isA<ApiException>().having(
-            (e) => e.message,
-            'message',
-            allOf(contains('400'), contains('no media found')),
-          ),
+          isA<ApiException>()
+              .having(
+                (e) => e.message,
+                'message',
+                allOf(contains('400'), contains('no media found')),
+              )
+              .having((e) => e.problem, 'problem', ApiProblem.httpStatus)
+              .having((e) => e.detail, 'detail', '400: no media found'),
         ),
       );
       expect(

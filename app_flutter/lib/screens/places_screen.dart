@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../api/models.dart';
+import '../l10n/app_localizations.dart';
 import '../state/library.dart';
 import '../widgets/async_states.dart';
 import '../widgets/protected_image.dart';
@@ -82,7 +83,7 @@ class _PlacesScreenState extends ConsumerState<PlacesScreen> {
     final markers = ref.watch(placesMarkersProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Places')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context).navPlaces)),
       body: markers.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => ErrorMessage.forError(
@@ -91,8 +92,8 @@ class _PlacesScreenState extends ConsumerState<PlacesScreen> {
         ),
         data: (data) {
           if (data.isEmpty) {
-            return const EmptyMessage(
-              message: 'None of your media has location data',
+            return EmptyMessage(
+              message: AppLocalizations.of(context).placesEmpty,
               icon: Icons.map_outlined,
             );
           }

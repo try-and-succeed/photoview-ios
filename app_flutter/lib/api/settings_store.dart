@@ -19,10 +19,30 @@ import 'session.dart' show StorageUnavailable;
 class SettingsStore {
   static const _key = 'device-settings';
 
+  /// The app language, under a key of its own: it belongs to the device, not
+  /// to any server account, so it stays out of the per-account record.
+  static const _languageKey = 'app-language';
+
   final FlutterSecureStorage _storage;
 
   SettingsStore({FlutterSecureStorage? storage})
     : _storage = storage ?? photoviewSecureStorage;
+
+  /// The app language the user chose, as a code like `de` or `zh_TW`; null
+  /// means "follow the device", also when the setting cannot be read — the
+  /// app is then merely in the device language.
+  Future<String?> appLanguage() async {
+    try {
+      return await _storage.read(key: _languageKey);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Stores the chosen language [code]; null goes back to the device language.
+  Future<void> setAppLanguage(String? code) => code == null
+      ? _storage.delete(key: _languageKey)
+      : _storage.write(key: _languageKey, value: code);
 
   /// The locally stored search limit for [serverId], or null if none is set.
   Future<int?> searchResultLimit(String serverId) async {

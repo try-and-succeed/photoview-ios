@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -18,9 +19,37 @@ class UnauthorizedException implements Exception {
   String toString() => 'Your sign-in is no longer accepted.';
 }
 
+/// A failure the app itself can name, so it can be said in the user's
+/// language. The English message stays for logs and tests.
+enum ApiProblem {
+  invalidInstanceUrl,
+  noTlsHandshake,
+  loginFailed,
+  noData,
+  noAnswer,
+  httpStatus,
+  certificateNotTrusted,
+  unreachable,
+  notGraphql,
+  timeout,
+  unknown,
+  albumNotFound,
+  mediaNotFound,
+  invalidMapJson,
+  invalidMapShape,
+  scanRefused,
+}
+
 class ApiException implements Exception {
   final String message;
-  const ApiException(this.message);
+
+  /// Null when [message] is the server's own words, which are shown as sent.
+  final ApiProblem? problem;
+
+  /// What the problem is about: an address, a status code, an OS error.
+  final String? detail;
+
+  const ApiException(this.message, {this.problem, this.detail});
 
   @override
   String toString() => message;
@@ -40,7 +69,19 @@ class PermissionDeniedException extends ApiException {
 
 class LoginFailure implements Exception {
   final String message;
-  const LoginFailure(this.message);
+
+  /// As on [ApiException]: null when [message] is the server's own words.
+  final ApiProblem? problem;
+  final String? detail;
+
+  const LoginFailure(this.message, {this.problem, this.detail});
+
+  LoginFailure.from(ApiException failure)
+    : this(
+        failure.message,
+        problem: failure.problem,
+        detail: failure.detail,
+      );
 
   @override
   String toString() => message;
@@ -92,7 +133,10 @@ class PhotoviewClient {
   }) async {
     final bases = candidateBases(instance);
     if (bases.isEmpty) {
-      throw const LoginFailure('Invalid instance URL');
+      throw const LoginFailure(
+        'Invalid instance URL',
+        problem: ApiProblem.invalidInstanceUrl,
+      );
     }
 
     final candidates = [
@@ -152,13 +196,15 @@ class PhotoviewClient {
           '${error.endpoint.host} did not complete a TLS handshake. If it '
           'only serves plain HTTP, type http://${error.endpoint.authority} '
           'to connect without encryption.',
+          problem: ApiProblem.noTlsHandshake,
+          detail: error.endpoint.authority,
         );
       } catch (error) {
         lastError = error;
       }
     }
 
-    throw LoginFailure(_describe(lastError));
+    throw LoginFailure.from(_describe(lastError));
   }
 
   static Future<Session> _authorize({
@@ -184,17 +230,23 @@ class PhotoviewClient {
       if (_causeOf(result.exception!) is TlsException) {
         throw CertificateNotTrustedException(endpoint);
       }
-      throw ApiException(_describe(result.exception));
+      throw _describe(result.exception);
     }
 
     final auth = result.data?['authorizeUser'] as Map<String, dynamic>?;
     if (auth == null) {
-      throw const ApiException('No data returned from server');
+      throw const ApiException(
+        'No data returned from server',
+        problem: ApiProblem.noData,
+      );
     }
 
     final token = auth['token'] as String?;
     if (auth['success'] != true || token == null) {
-      throw LoginFailure(auth['status'] as String? ?? 'Login failed');
+      final said = auth['status'] as String?;
+      throw said == null
+          ? const LoginFailure('Login failed', problem: ApiProblem.loginFailed)
+          : LoginFailure(said);
     }
 
     return Session(endpoint: endpoint, token: token);
@@ -238,12 +290,15 @@ class PhotoviewClient {
     return error;
   }
 
-  static String _describe(Object? error) {
+  static ApiException _describe(Object? error) {
+    if (error is ApiException) return error;
     if (error is OperationException) {
       // What the server said beats how the transport failed: a non-200 with a
       // GraphQL body would otherwise be reported as an HTTP status.
       final errors = graphqlErrorsOf(error);
-      if (errors.isNotEmpty) return errors.map((e) => e.message).join(', ');
+      if (errors.isNotEmpty) {
+        return ApiException(errors.map((e) => e.message).join(', '));
+      }
 
       final link = error.linkException;
       if (link != null) return _describeLink(link);
@@ -252,11 +307,11 @@ class PhotoviewClient {
     return _describeCause(error);
   }
 
-  static String _describeLink(LinkException link) {
+  static ApiException _describeLink(LinkException link) {
     if (link is ServerException) {
       final errors = link.parsedResponse?.errors;
       if (errors != null && errors.isNotEmpty) {
-        return errors.map((e) => e.message).join(', ');
+        return ApiException(errors.map((e) => e.message).join(', '));
       }
 
       // No body at all — the connection may never have produced one. Falling
@@ -266,8 +321,15 @@ class PhotoviewClient {
       final status = link.statusCode;
       if (cause == null) {
         return status == null
-            ? 'The server did not answer the request.'
-            : 'The server returned HTTP $status.';
+            ? const ApiException(
+                'The server did not answer the request.',
+                problem: ApiProblem.noAnswer,
+              )
+            : ApiException(
+                'The server returned HTTP $status.',
+                problem: ApiProblem.httpStatus,
+                detail: '$status',
+              );
       }
     }
     return _describeCause(link.originalException ?? link);
@@ -276,19 +338,40 @@ class PhotoviewClient {
   /// Names the underlying cause. Collapsing everything into one "could not
   /// reach the server" hides the two failures self-hosted instances actually
   /// hit: an untrusted certificate, and a URL that is not the GraphQL endpoint.
-  static String _describeCause(Object? error) {
+  static ApiException _describeCause(Object? error) {
     if (error is TlsException) {
-      return "The server's certificate is not trusted "
-          '(${error.osError?.message ?? error.message}). Self-hosted instances '
-          'often use a private certificate authority.';
+      final reason = error.osError?.message ?? error.message;
+      return ApiException(
+        "The server's certificate is not trusted ($reason). Self-hosted "
+        'instances often use a private certificate authority.',
+        problem: ApiProblem.certificateNotTrusted,
+        detail: reason,
+      );
     }
     if (error is SocketException) {
-      return 'Could not reach the server: ${error.message}';
+      return ApiException(
+        'Could not reach the server: ${error.message}',
+        problem: ApiProblem.unreachable,
+        detail: error.message,
+      );
     }
     if (error is FormatException) {
-      return 'The server did not return GraphQL. Check the instance URL.';
+      return const ApiException(
+        'The server did not return GraphQL. Check the instance URL.',
+        problem: ApiProblem.notGraphql,
+      );
     }
-    return error?.toString() ?? 'Unknown error';
+    if (error is TimeoutException) {
+      return const ApiException(
+        'The server took too long to answer.',
+        problem: ApiProblem.timeout,
+      );
+    }
+    return ApiException(
+      error?.toString() ?? 'Unknown error',
+      problem: ApiProblem.unknown,
+      detail: error?.toString(),
+    );
   }
 
   // ------------------------------------------------------------- querying
@@ -347,11 +430,16 @@ class PhotoviewClient {
         throw CertificateNotTrustedException(session.endpoint);
       }
 
-      throw ApiException(_describe(exception));
+      throw _describe(exception);
     }
 
     final data = result.data;
-    if (data == null) throw const ApiException('No data returned from server');
+    if (data == null) {
+      throw const ApiException(
+        'No data returned from server',
+        problem: ApiProblem.noData,
+      );
+    }
 
     return data;
   }
@@ -541,7 +629,12 @@ class PhotoviewClient {
     });
 
     final album = data['album'] as Map<String, dynamic>?;
-    if (album == null) throw const ApiException('Album not found');
+    if (album == null) {
+      throw const ApiException(
+        'Album not found',
+        problem: ApiProblem.albumNotFound,
+      );
+    }
 
     return AlbumPage(
       title: album['title'] as String? ?? '',
@@ -595,6 +688,7 @@ class PhotoviewClient {
       } on FormatException {
         throw const ApiException(
           'The server returned map data that is not valid JSON.',
+          problem: ApiProblem.invalidMapJson,
         );
       }
     } else {
@@ -604,6 +698,7 @@ class PhotoviewClient {
     if (decoded is! Map<String, dynamic>) {
       throw const ApiException(
         'The server returned map data in an unexpected shape.',
+        problem: ApiProblem.invalidMapShape,
       );
     }
     final geojson = decoded;
@@ -626,7 +721,12 @@ class PhotoviewClient {
   Future<MediaDetails> mediaDetails(String mediaId) async {
     final data = await _query(mediaDetailsQuery, {'mediaID': mediaId});
     final media = data['media'] as Map<String, dynamic>?;
-    if (media == null) throw const ApiException('Media not found');
+    if (media == null) {
+      throw const ApiException(
+        'Media not found',
+        problem: ApiProblem.mediaNotFound,
+      );
+    }
     return MediaDetails.fromJson(media);
   }
 
@@ -707,9 +807,13 @@ class PhotoviewClient {
     final result = data['scanAlbum'] as Map<String, dynamic>?;
 
     if (result?['success'] != true) {
-      throw ApiException(
-        result?['message'] as String? ?? 'The server refused to start a scan',
-      );
+      final said = result?['message'] as String?;
+      throw said == null
+          ? const ApiException(
+              'The server refused to start a scan',
+              problem: ApiProblem.scanRefused,
+            )
+          : ApiException(said);
     }
 
     return result?['message'] as String?;

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
+
 /// How exposed the connection to an instance is.
 enum InsecureConnectionRisk {
   /// HTTPS — typed, or implied by an address without a scheme — or nothing
@@ -42,24 +44,25 @@ class InsecureConnectionNotice extends StatelessWidget {
       : InsecureConnectionRisk.none;
 
   /// Best effort host for display, for an address that may have no scheme.
+  /// Empty when there is none yet; the notice then names "this server" in the
+  /// app language.
   static String hostOfText(String text) {
     final trimmed = text.trim();
-    if (trimmed.isEmpty) return 'this server';
+    if (trimmed.isEmpty) return '';
 
     final withScheme = trimmed.contains('://') ? trimmed : 'https://$trimmed';
-    final host = Uri.tryParse(withScheme)?.host ?? '';
-
-    return host.isEmpty ? 'this server' : host;
+    return Uri.tryParse(withScheme)?.host ?? '';
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     final message = switch (risk) {
-      InsecureConnectionRisk.certain =>
-        'Unencrypted connection to $host. Your sign-in travels with every '
-            'request, so use this only on a network you trust.',
+      InsecureConnectionRisk.certain => l10n.insecureConnection(
+        host.isEmpty ? l10n.thisServer : host,
+      ),
       InsecureConnectionRisk.none => '',
     };
 

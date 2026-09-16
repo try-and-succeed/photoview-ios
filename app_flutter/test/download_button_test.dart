@@ -11,6 +11,8 @@ import 'package:photoview/api/session.dart';
 import 'package:photoview/state/auth.dart';
 import 'package:photoview/widgets/download_button.dart';
 
+import 'support/localized_app.dart';
+
 final _session = Session(
   endpoint: Uri.parse('http://host:8081/api/graphql'),
   token: 'tok',
@@ -85,7 +87,12 @@ void main() {
   });
   tearDown(() => temp.deleteSync(recursive: true));
 
-  Future<_FakeFetcher> pump(WidgetTester tester, {Object? failWith}) async {
+  Future<_FakeFetcher> pump(
+    WidgetTester tester, {
+    Object? failWith,
+    Locale? locale,
+    MediaDownload download = _original,
+  }) async {
     final fetcher = _FakeFetcher(temp, failWith: failWith);
     await tester.pumpWidget(
       ProviderScope(
@@ -98,10 +105,11 @@ void main() {
           }),
           shareFileProvider.overrideWithValue((file) async => shared.add(file.path)),
         ],
-        child: const MaterialApp(
+        child: localizedApp(
+          locale: locale,
           home: Scaffold(
             body: DownloadButton(
-              download: _original,
+              download: download,
               mediaTitle: 'screenshots_01.jpg',
             ),
           ),
@@ -110,6 +118,34 @@ void main() {
     );
     return fetcher;
   }
+
+  testWidgets('speaks the app language, rendition name included', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      locale: const Locale('de'),
+      download: const MediaDownload(
+        title: 'Large',
+        url: '/api/photo/screenshots_01_large.jpg',
+        width: 1200,
+        height: 1600,
+        fileSize: 2500,
+      ),
+    );
+
+    expect(find.text('Groß'), findsOneWidget);
+    expect(find.textContaining('2,5 kB'), findsOneWidget);
+    expect(find.byTooltip('An andere App senden'), findsOneWidget);
+
+    await tester.runAsync(() async {
+      await tester.tap(find.text('Groß'));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    });
+    await tester.pumpAndSettle();
+
+    expect(find.text('screenshots_01_large.jpg gespeichert'), findsOneWidget);
+  });
 
   testWidgets('tapping saves the file under its library name', (tester) async {
     await pump(tester);

@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../api/client.dart';
 import '../api/session.dart';
 import '../api/trusted_certificates.dart';
+import '../l10n/app_localizations.dart';
+import '../l10n/error_messages.dart';
 import '../state/auth.dart';
 import '../widgets/certificate_dialog.dart';
 import '../widgets/insecure_notice.dart';
@@ -63,7 +65,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
     } on CertificateNotTrustedException catch (error) {
       await _offerCertificate(error.endpoint);
     } catch (error) {
-      if (mounted) setState(() => _error = '$error');
+      _showError(error);
     } finally {
       if (mounted) setState(() => _connecting = false);
     }
@@ -88,7 +90,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
 
       await ref.read(authProvider.notifier).openSaved(server);
     } catch (error) {
-      if (mounted) setState(() => _error = '$error');
+      _showError(error);
     } finally {
       if (mounted) setState(() => _connecting = false);
     }
@@ -123,7 +125,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
 
     if (!accepted) {
       setState(
-        () => _error = 'Certificate for ${certificate.host} was not accepted.',
+        () => _error = AppLocalizations.of(context).certificateNotAcceptedFor(certificate.host),
       );
       return false;
     }
@@ -133,22 +135,20 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
   }
 
   Future<void> _forget(SavedServer server) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Forget ${server.label}?'),
-        content: const Text(
-          'The saved sign-in for this server is removed. You can add it again '
-          'with your password.',
-        ),
+        title: Text(l10n.welcomeForgetServerTitle(server.label)),
+        content: Text(l10n.welcomeForgetServerBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.actionCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Forget'),
+            child: Text(l10n.actionForget),
           ),
         ],
       ),
@@ -166,7 +166,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
 
     if (certificate == null) {
       setState(
-        () => _error = "Could not read the certificate from ${endpoint.host}.",
+        () => _error = AppLocalizations.of(context).certificateCouldNotRead(endpoint.host),
       );
       return;
     }
@@ -176,7 +176,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
 
     if (!accepted) {
       setState(
-        () => _error = 'Certificate for ${certificate.host} was not accepted.',
+        () => _error = AppLocalizations.of(context).certificateNotAcceptedFor(certificate.host),
       );
       return;
     }
@@ -186,8 +186,15 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
     try {
       await _login();
     } catch (error) {
-      if (mounted) setState(() => _error = '$error');
+      _showError(error);
     }
+  }
+
+  void _showError(Object error) {
+    if (!mounted) return;
+    setState(
+      () => _error = describeError(error, AppLocalizations.of(context)),
+    );
   }
 
   @override
@@ -205,6 +212,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
     }
 
     final showForm = servers.isEmpty || _addingServer;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       body: SafeArea(
@@ -217,8 +225,8 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _Header(subtitle: showForm
-                      ? 'Connect to your instance'
-                      : 'Choose a server'),
+                      ? l10n.welcomeConnectSubtitle
+                      : l10n.welcomeChooseServer),
                   if (expired != null) _ExpiredNotice(session: expired),
                   if (!showForm) ...[
                     for (final server in servers)
@@ -234,7 +242,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                           ? null
                           : () => setState(() => _addingServer = true),
                       icon: const Icon(Icons.add),
-                      label: const Text('Another server'),
+                      label: Text(l10n.welcomeAnotherServer),
                     ),
                   ] else
                     ..._formFields(context, canGoBack: servers.isNotEmpty),
@@ -257,11 +265,13 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
     );
   }
 
-  List<Widget> _formFields(BuildContext context, {required bool canGoBack}) => [
+  List<Widget> _formFields(BuildContext context, {required bool canGoBack}) {
+    final l10n = AppLocalizations.of(context);
+    return [
     TextField(
       controller: _instance,
-      decoration: const InputDecoration(
-        labelText: 'Instance',
+      decoration: InputDecoration(
+        labelText: l10n.welcomeInstanceLabel,
         hintText: 'https://example.com',
         border: OutlineInputBorder(),
       ),
@@ -283,8 +293,8 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
     TextField(
       controller: _username,
       focusNode: _usernameFocus,
-      decoration: const InputDecoration(
-        labelText: 'Username',
+      decoration: InputDecoration(
+        labelText: l10n.loginUsername,
         border: OutlineInputBorder(),
       ),
       autocorrect: false,
@@ -310,7 +320,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
               height: 20,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          : const Text('Connect'),
+          : Text(l10n.welcomeConnect),
     ),
     if (canGoBack) ...[
       const SizedBox(height: 8),
@@ -321,10 +331,11 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                 _addingServer = false;
                 _error = null;
               }),
-        child: const Text('Back to saved servers'),
+        child: Text(l10n.welcomeBackToSavedServers),
       ),
     ],
   ];
+  }
 }
 
 class _Header extends StatelessWidget {
@@ -343,7 +354,7 @@ class _Header extends StatelessWidget {
         Icon(Icons.photo_library, size: 88, color: theme.colorScheme.primary),
         const SizedBox(height: 20),
         Text(
-          'Welcome to Photoview',
+          AppLocalizations.of(context).welcomeTitle,
           style: theme.textTheme.headlineSmall,
           textAlign: TextAlign.center,
         ),
@@ -383,8 +394,9 @@ class _ExpiredNotice extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'The saved sign-in for ${session.instanceUrl.host} is no longer '
-              'accepted. Enter your password to sign in again.',
+              AppLocalizations.of(context).welcomeSessionExpired(
+                session.instanceUrl.host,
+              ),
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onErrorContainer,
               ),
@@ -426,7 +438,7 @@ class _SavedServerTile extends StatelessWidget {
         onTap: enabled ? onOpen : null,
         trailing: IconButton(
           icon: const Icon(Icons.close),
-          tooltip: 'Forget this server',
+          tooltip: AppLocalizations.of(context).welcomeForgetServerTooltip,
           onPressed: enabled ? onForget : null,
         ),
       ),

@@ -168,23 +168,26 @@ final setSearchLimitProvider = Provider<Future<void> Function(int?)>((ref) {
   };
 });
 
+/// Why a typed limit was refused; the settings screen words it.
+enum SearchLimitError { notWholeNumber, negative, tooLarge }
+
 /// Reads what the user typed as a limit.
 ///
 /// Returns null for "clear the setting", which is what an empty field means.
 /// Anything that is not a non-negative number is rejected rather than
 /// guessed at: the server refuses a negative limit outright, so silently
 /// turning -5 into 5 or 0 would store something the user did not ask for.
-({int? limit, String? error}) parseSearchLimit(String text) {
+({int? limit, SearchLimitError? error}) parseSearchLimit(String text) {
   final trimmed = text.trim();
   if (trimmed.isEmpty) return (limit: null, error: null);
 
   final parsed = int.tryParse(trimmed);
-  if (parsed == null) return (limit: null, error: 'Enter a whole number.');
-  if (parsed < 0) {
-    return (limit: null, error: 'A limit cannot be negative. Use 0 for no limit.');
+  if (parsed == null) {
+    return (limit: null, error: SearchLimitError.notWholeNumber);
   }
+  if (parsed < 0) return (limit: null, error: SearchLimitError.negative);
   if (parsed > maxSearchResultLimit) {
-    return (limit: null, error: 'At most $maxSearchResultLimit.');
+    return (limit: null, error: SearchLimitError.tooLarge);
   }
 
   return (limit: parsed, error: null);

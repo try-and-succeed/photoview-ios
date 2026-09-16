@@ -1,6 +1,9 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:photoview/api/client.dart';
 import 'package:photoview/widgets/insecure_notice.dart';
+
+import 'support/localized_app.dart';
 
 void main() {
   group('InsecureConnectionNotice.riskOfText', () {
@@ -107,8 +110,41 @@ void main() {
       );
     });
 
-    test('falls back to wording that still reads as a sentence', () {
-      expect(InsecureConnectionNotice.hostOfText('   '), 'this server');
+    test('is empty while there is no host yet', () {
+      expect(InsecureConnectionNotice.hostOfText('   '), isEmpty);
+      expect(InsecureConnectionNotice.hostOfText('http://'), isEmpty);
+    });
+  });
+
+  group('InsecureConnectionNotice', () {
+    testWidgets('names "this server" in the app language when there is no host', (
+      tester,
+    ) async {
+      // The sentence must still read naturally, in whatever language.
+      await tester.pumpWidget(
+        localizedApp(
+          locale: const Locale('de'),
+          home: const Scaffold(body: InsecureConnectionNotice(host: '')),
+        ),
+      );
+
+      expect(
+        find.textContaining('Unverschlüsselte Verbindung zu diesem Server.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('names the host when there is one', (tester) async {
+      await tester.pumpWidget(
+        localizedApp(
+          home: const Scaffold(body: InsecureConnectionNotice(host: '192.168.0.47')),
+        ),
+      );
+
+      expect(
+        find.textContaining('Unencrypted connection to 192.168.0.47.'),
+        findsOneWidget,
+      );
     });
   });
 }

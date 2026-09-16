@@ -36,7 +36,9 @@ class ScannerState {
   final Set<String> stopping;
 
   final bool isLoading;
-  final String? error;
+
+  /// What went wrong last, kept as caught so the screen can word it.
+  final Object? error;
 
   const ScannerState({
     this.jobs = const [],
@@ -51,7 +53,7 @@ class ScannerState {
     List<ScannerJob>? jobs,
     Set<String>? stopping,
     bool? isLoading,
-    String? error,
+    Object? error,
     bool clearError = false,
   }) => ScannerState(
     jobs: jobs ?? this.jobs,
@@ -144,11 +146,11 @@ class ScannerNotifier extends AutoDisposeNotifier<ScannerState>
       }
 
       if (superseded()) return;
-      state = state.copyWith(isLoading: false, error: '$failure');
+      state = state.copyWith(isLoading: false, error: failure);
       return;
     } catch (error) {
       if (superseded()) return;
-      state = state.copyWith(isLoading: false, error: '$error');
+      state = state.copyWith(isLoading: false, error: error);
     }
 
     _reschedule();
@@ -230,7 +232,7 @@ class ScannerNotifier extends AutoDisposeNotifier<ScannerState>
       if (movedOn(generation)) return;
       state = state.copyWith(
         stopping: {...state.stopping}..remove(albumId),
-        error: '$error',
+        error: error,
       );
       return;
     }
@@ -256,7 +258,7 @@ class ScannerNotifier extends AutoDisposeNotifier<ScannerState>
       if (!movedOn(generation)) {
         state = state.copyWith(
           stopping: {...state.stopping}..removeAll(ids),
-          error: '$error',
+          error: error,
         );
       }
       rethrow;

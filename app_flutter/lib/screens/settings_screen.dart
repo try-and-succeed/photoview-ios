@@ -4,6 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/capabilities.dart';
 import '../api/trusted_cas.dart';
+import '../l10n/app_localizations.dart';
+import '../l10n/error_messages.dart';
+import '../l10n/languages.dart';
+import '../state/app_language.dart';
 import '../state/auth.dart';
 import '../state/capabilities.dart';
 import 'scanner_screen.dart';
@@ -17,15 +21,16 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(sessionProvider);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(title: Text(l10n.settingsTitle)),
       body: ListView(
         children: [
           if (session != null)
             ListTile(
               leading: const Icon(Icons.dns),
-              title: const Text('Connected instance'),
+              title: Text(l10n.settingsConnectedInstance),
               subtitle: Text(
                 session.username.isEmpty
                     ? session.instanceUrl.toString()
@@ -40,53 +45,53 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ListTile(
             leading: const Icon(Icons.swap_horiz),
-            title: const Text('Switch server'),
-            subtitle: const Text('Keeps this sign-in for one-tap return'),
+            title: Text(l10n.settingsSwitchServer),
+            subtitle: Text(l10n.settingsSwitchServerSubtitle),
             onTap: () => ref.read(authProvider.notifier).switchServer(),
           ),
           if (session != null &&
               ref.watch(hasCapabilityProvider(Capability.scanner))) ...[
             const Divider(),
-            const _SectionHeader('Library'),
+            _SectionHeader(l10n.settingsSectionLibrary),
             ListTile(
               leading: const Icon(Icons.radar),
-              title: const Text('Scanner'),
-              subtitle: const Text('What the server is indexing right now'),
+              title: Text(l10n.scannerTitle),
+              subtitle: Text(l10n.settingsScannerSubtitle),
               onTap: () => showScanner(Navigator.of(context)),
             ),
           ],
           if (session != null) ...[
             const Divider(),
-            const _SectionHeader('Search'),
+            _SectionHeader(l10n.settingsSectionSearch),
             const SearchLimitField(),
             ListTile(
               leading: const Icon(Icons.refresh),
-              title: const Text('Re-check server features'),
-              subtitle: const Text(
-                'After updating your Photoview server',
-              ),
+              title: Text(l10n.settingsRecheckFeatures),
+              subtitle: Text(l10n.settingsRecheckFeaturesSubtitle),
               onTap: () async {
                 await ref.read(recheckCapabilitiesProvider)();
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Checking your server again…')),
+                  SnackBar(content: Text(l10n.settingsRecheckStarted)),
                 );
               },
             ),
           ],
           const Divider(),
-          const _SectionHeader('Security'),
+          const _LanguageTile(),
+          const Divider(),
+          _SectionHeader(l10n.settingsSectionSecurity),
           const _CertificateAuthorities(),
           const _PinnedCertificates(),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.cleaning_services),
-            title: const Text('Clear image cache'),
+            title: Text(l10n.settingsClearImageCache),
             onTap: () async {
               await clearImageCache();
               if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Image cache cleared')),
+                SnackBar(content: Text(l10n.settingsImageCacheCleared)),
               );
             },
           ),
@@ -97,14 +102,109 @@ class SettingsScreen extends ConsumerWidget {
               color: Theme.of(context).colorScheme.error,
             ),
             title: Text(
-              'Log out',
+              l10n.settingsLogOut,
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
-            subtitle: const Text('Forgets this saved sign-in'),
+            subtitle: Text(l10n.settingsLogOutSubtitle),
             onTap: () => ref.read(authProvider.notifier).logOut(),
           ),
         ],
       ),
+    );
+  }
+}
+
+/// The app language: the device's, or one the user picks.
+class _LanguageTile extends ConsumerWidget {
+  const _LanguageTile();
+
+  Future<void> _choose(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
+    final current = ref.read(appLanguageProvider).valueOrNull;
+
+    // A record rather than the language itself, so "follow the device" (null)
+    // can be told apart from dismissing the dialog.
+    final picked = await showDialog<({AppLanguage? language})>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: Text(l10n.settingsLanguage),
+        children: [
+          _LanguageOption(
+            label: l10n.settingsLanguageSystemDefault,
+            selected: current == null,
+            onTap: () => Navigator.of(context).pop((language: null)),
+          ),
+          for (final language in appLanguages)
+            _LanguageOption(
+              label: language.nativeName,
+              selected: current?.code == language.code,
+              onTap: () => Navigator.of(context).pop((language: language)),
+            ),
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: Padding(
+              padding: const EdgeInsetsDirectional.only(end: 16, top: 8),
+              child: TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(l10n.actionCancel),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (picked == null) return;
+    try {
+      await ref.read(appLanguageProvider.notifier).choose(picked.language);
+    } catch (error) {
+      // Worded in the language just chosen, which is in use once the frame
+      // that switches to it has been built.
+      await WidgetsBinding.instance.endOfFrame;
+      if (!context.mounted) return;
+      final chosen = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            chosen.settingsLanguageNotSaved(describeError(error, chosen)),
+          ),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final chosen = ref.watch(appLanguageProvider).valueOrNull;
+
+    return ListTile(
+      leading: const Icon(Icons.language),
+      title: Text(l10n.settingsLanguage),
+      subtitle: Text(chosen?.nativeName ?? l10n.settingsLanguageSystemDefault),
+      onTap: () => _choose(context, ref),
+    );
+  }
+}
+
+class _LanguageOption extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _LanguageOption({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      title: Text(label),
+      trailing: selected ? const Icon(Icons.check) : null,
+      selected: selected,
+      onTap: onTap,
     );
   }
 }
@@ -149,13 +249,14 @@ class _CertificateAuthoritiesState
   bool _busy = false;
 
   Future<void> _import() async {
+    final l10n = AppLocalizations.of(context);
     setState(() => _busy = true);
 
     try {
       // Certificate files are not reliably typed by the system picker, so any
       // file is offered and validated after the fact.
       final picked = await FilePicker.pickFile(
-        dialogTitle: 'Select a CA certificate',
+        dialogTitle: l10n.caPickerTitle,
         type: FileType.any,
       );
 
@@ -166,19 +267,19 @@ class _CertificateAuthoritiesState
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Now trusting ${imported.name}')),
+        SnackBar(content: Text(l10n.caNowTrusting(imported.name))),
       );
     } on InvalidCertificateFile catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('$error')));
+        ).showSnackBar(SnackBar(content: Text(describeError(error, l10n))));
       }
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Import failed: $error')));
+        ).showSnackBar(SnackBar(content: Text(l10n.caImportFailed(describeError(error, l10n)))));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -200,7 +301,7 @@ class _CertificateAuthoritiesState
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'SHA-256 fingerprint',
+              AppLocalizations.of(context).caFingerprint,
               style: Theme.of(context).textTheme.labelMedium,
             ),
             const SizedBox(height: 6),
@@ -216,7 +317,7 @@ class _CertificateAuthoritiesState
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
+            child: Text(AppLocalizations.of(context).actionClose),
           ),
         ],
       ),
@@ -226,6 +327,7 @@ class _CertificateAuthoritiesState
   @override
   Widget build(BuildContext context) {
     final authorities = ref.read(trustedCasProvider).certificates;
+    final l10n = AppLocalizations.of(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -234,11 +336,11 @@ class _CertificateAuthoritiesState
           ListTile(
             leading: const Icon(Icons.workspace_premium),
             title: Text(certificate.name),
-            subtitle: const Text('Certificate authority you imported'),
+            subtitle: Text(l10n.caImportedSubtitle),
             onTap: () => _showDetails(certificate),
             trailing: IconButton(
               icon: const Icon(Icons.delete_outline),
-              tooltip: 'Remove',
+              tooltip: l10n.actionRemove,
               onPressed: _busy ? null : () => _remove(certificate),
             ),
           ),
@@ -250,10 +352,8 @@ class _CertificateAuthoritiesState
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Icon(Icons.add_moderator),
-          title: const Text('Import certificate authority'),
-          subtitle: const Text(
-            'A .pem or .crt file — for a server with its own CA',
-          ),
+          title: Text(l10n.caImport),
+          subtitle: Text(l10n.caImportSubtitle),
           onTap: _busy ? null : _import,
         ),
       ],
@@ -275,6 +375,7 @@ class _PinnedCertificatesState extends ConsumerState<_PinnedCertificates> {
   Widget build(BuildContext context) {
     final store = ref.read(trustedCertificatesProvider);
     final hosts = store.accepted.keys.toList()..sort();
+    final l10n = AppLocalizations.of(context);
 
     if (hosts.isEmpty) return const SizedBox.shrink();
 
@@ -285,10 +386,10 @@ class _PinnedCertificatesState extends ConsumerState<_PinnedCertificates> {
           ListTile(
             leading: const Icon(Icons.verified_user),
             title: Text(host),
-            subtitle: const Text('Single certificate you accepted'),
+            subtitle: Text(l10n.pinnedSubtitle),
             trailing: IconButton(
               icon: const Icon(Icons.delete_outline),
-              tooltip: 'Stop trusting',
+              tooltip: l10n.pinnedStopTrusting,
               onPressed: () async {
                 await store.forget(host);
                 if (mounted) setState(() {});

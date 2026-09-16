@@ -38,7 +38,7 @@ class AlbumTreeState {
 
   /// Error from loading the roots, kept apart from the per-node errors: a
   /// failure to load one branch must not look like the whole tree is broken.
-  final String? rootsError;
+  final Object? rootsError;
 
   /// albumId -> its children, for every album already asked about.
   final Map<String, List<AlbumItem>> children;
@@ -58,7 +58,7 @@ class AlbumTreeState {
 
   AlbumTreeState copyWith({
     List<AlbumItem>? roots,
-    String? rootsError,
+    Object? rootsError,
     bool clearRootsError = false,
     Map<String, List<AlbumItem>>? children,
     Set<String>? expanded,
@@ -169,7 +169,7 @@ class AlbumTreeNotifier extends Notifier<AlbumTreeState>
       await _fetchChildrenOf(roots.map((a) => a.id).toList());
     } catch (error) {
       if (movedOn(generation)) return;
-      state = state.copyWith(rootsError: '$error');
+      state = state.copyWith(rootsError: error);
     }
   }
 
