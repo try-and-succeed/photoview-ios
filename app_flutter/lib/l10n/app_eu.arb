@@ -2,6 +2,8 @@
   "@@locale": "eu",
   "settingsLanguage": "Hizkuntza",
   "settingsLanguageSystemDefault": "Sistemaren lehenetsia",
+  "settingsSlideshowSeconds": "Segundo irudiko",
+  "settingsSlideshowNotSaved": "Ezin izan da ezarpena gorde: {error}",
   "actionCancel": "Utzi",
   "welcomeTitle": "Ongi etorri Photoview-ra",
   "welcomeConnectSubtitle": "Konektatu zure instantziara",

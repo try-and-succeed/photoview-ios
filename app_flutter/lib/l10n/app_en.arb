@@ -8,6 +8,19 @@
   "@settingsLanguageSystemDefault": {
     "description": "Language option: follow the language of the device."
   },
+  "settingsSlideshowSeconds": "Seconds per picture",
+  "@settingsSlideshowSeconds": {
+    "description": "How long a slideshow rests on each picture. The unit is in the label, so the choices are bare numbers and no plural form has to agree."
+  },
+  "settingsSlideshowNotSaved": "Could not save the setting: {error}",
+  "@settingsSlideshowNotSaved": {
+    "description": "The chosen interval applies but could not be stored on the device.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "actionCancel": "Cancel",
   "@actionCancel": {
     "description": "Button that dismisses a dialog without doing anything."

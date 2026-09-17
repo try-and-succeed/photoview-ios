@@ -2,6 +2,8 @@
   "@@locale": "tr",
   "settingsLanguage": "Dil",
   "settingsLanguageSystemDefault": "Sistem varsayılanı",
+  "settingsSlideshowSeconds": "Resim başına saniye",
+  "settingsSlideshowNotSaved": "Ayar kaydedilemedi: {error}",
   "actionCancel": "İptal",
   "welcomeTitle": "Photoview'a hoş geldiniz",
   "welcomeConnectSubtitle": "Sunucunuza bağlanın",

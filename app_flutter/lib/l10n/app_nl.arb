@@ -2,6 +2,8 @@
   "@@locale": "nl",
   "settingsLanguage": "Taal",
   "settingsLanguageSystemDefault": "Systeemstandaard",
+  "settingsSlideshowSeconds": "Seconden per afbeelding",
+  "settingsSlideshowNotSaved": "Kan de instelling niet opslaan: {error}",
   "actionCancel": "Annuleren",
   "welcomeTitle": "Welkom bij Photoview",
   "welcomeConnectSubtitle": "Verbind met je instantie",

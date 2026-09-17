@@ -2,6 +2,8 @@
   "@@locale": "da",
   "settingsLanguage": "Sprog",
   "settingsLanguageSystemDefault": "Systemstandard",
+  "settingsSlideshowSeconds": "Sekunder pr. billede",
+  "settingsSlideshowNotSaved": "Indstillingen kunne ikke gemmes: {error}",
   "actionCancel": "Annuller",
   "welcomeTitle": "Velkommen til Photoview",
   "welcomeConnectSubtitle": "Opret forbindelse til din instans",

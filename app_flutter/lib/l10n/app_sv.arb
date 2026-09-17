@@ -2,6 +2,8 @@
   "@@locale": "sv",
   "settingsLanguage": "Språk",
   "settingsLanguageSystemDefault": "Systemstandard",
+  "settingsSlideshowSeconds": "Sekunder per bild",
+  "settingsSlideshowNotSaved": "Det gick inte att spara inställningen: {error}",
   "actionCancel": "Avbryt",
   "welcomeTitle": "Välkommen till Photoview",
   "welcomeConnectSubtitle": "Anslut till din instans",

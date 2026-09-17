@@ -15,6 +15,7 @@ import '../l10n/app_localizations.dart';
 import '../l10n/error_messages.dart';
 import '../state/auth.dart';
 import '../state/library.dart';
+import '../state/slideshow.dart';
 import 'media_details_sheet.dart';
 
 void showFullscreenGallery(
@@ -71,12 +72,6 @@ GalleryAction? galleryActionFor(LogicalKeyboardKey key) {
 
 const _pageTurn = Duration(milliseconds: 250);
 
-/// How long a slideshow rests on each photo.
-///
-/// Long enough to take a picture in, short enough that a room full of people
-/// does not start talking about the wait.
-const slideshowInterval = Duration(seconds: 5);
-
 class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
   late final PageController _controller = PageController(
     initialPage: widget.initialIndex,
@@ -87,10 +82,14 @@ class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
   /// photo toggles it, so nothing lies over the picture while looking at it.
   bool _controlsVisible = true;
 
-  /// Ticking while the slideshow runs, null while it does not.
+  /// Waiting out the current picture, when there is a slideshow running.
   Timer? _slideshow;
 
-  bool get _playing => _slideshow != null;
+  bool _playing = false;
+
+  /// Read afresh in `build`, so a change made in the settings takes hold on
+  /// the next picture instead of only on the next slideshow.
+  Duration _interval = const Duration(seconds: defaultSlideshowSeconds);
 
   /// Captured while the widget is alive. `ref` is not usable from `dispose`,
   /// and leaving the screen held awake after the gallery closes would be the
@@ -136,17 +135,27 @@ class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
   void _toggleSlideshow() {
     if (_playing) {
       _slideshow?.cancel();
-      setState(() => _slideshow = null);
+      _slideshow = null;
+      setState(() => _playing = false);
       _keepScreenAwake(false);
       return;
     }
 
     _keepScreenAwake(true);
-    setState(() {
-      _slideshow = Timer.periodic(slideshowInterval, (_) => _advance());
-    });
+    setState(() => _playing = true);
+    _scheduleNext();
     // Nothing should lie over the pictures once they are showing themselves.
     _setControlsVisible(false);
+  }
+
+  /// One picture at a time rather than a periodic timer: the interval is read
+  /// again for each, so changing the setting mid-slideshow is felt at once.
+  void _scheduleNext() {
+    _slideshow = Timer(_interval, () {
+      if (!mounted || !_playing) return;
+      _advance();
+      _scheduleNext();
+    });
   }
 
   void _advance() {
@@ -216,6 +225,26 @@ class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
   @override
   Widget build(BuildContext context) {
     final session = ref.watch(sessionProvider);
+
+    _interval = Duration(
+      seconds:
+          ref.watch(slideshowSecondsProvider).valueOrNull ??
+          defaultSlideshowSeconds,
+    );
+
+    // A change made while the slideshow runs takes hold at once, rather than
+    // after the picture on screen has waited out the old interval — which,
+    // when the old one was a minute, feels like the setting did nothing.
+    ref.listen(slideshowSecondsProvider, (_, next) {
+      // Taken from the notification rather than from the field: this runs
+      // before the rebuild that would have set it.
+      final seconds = next.valueOrNull;
+      if (seconds != null) _interval = Duration(seconds: seconds);
+
+      if (!_playing) return;
+      _slideshow?.cancel();
+      _scheduleNext();
+    });
 
     return Focus(
       autofocus: true,

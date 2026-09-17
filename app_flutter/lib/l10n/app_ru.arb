@@ -2,6 +2,8 @@
   "@@locale": "ru",
   "settingsLanguage": "Язык",
   "settingsLanguageSystemDefault": "Как в системе",
+  "settingsSlideshowSeconds": "Секунд на снимок",
+  "settingsSlideshowNotSaved": "Не удалось сохранить настройку: {error}",
   "actionCancel": "Отменить",
   "welcomeTitle": "Добро пожаловать в Photoview",
   "welcomeConnectSubtitle": "Подключитесь к своему серверу",

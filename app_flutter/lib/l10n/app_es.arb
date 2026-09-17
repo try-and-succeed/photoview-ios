@@ -2,6 +2,8 @@
   "@@locale": "es",
   "settingsLanguage": "Idioma",
   "settingsLanguageSystemDefault": "Predeterminado del sistema",
+  "settingsSlideshowSeconds": "Segundos por imagen",
+  "settingsSlideshowNotSaved": "No se pudo guardar el ajuste: {error}",
   "actionCancel": "Cancelar",
   "welcomeTitle": "Bienvenido a Photoview",
   "welcomeConnectSubtitle": "Conéctate a tu instancia",

@@ -2,6 +2,8 @@
   "@@locale": "zh_TW",
   "settingsLanguage": "語言",
   "settingsLanguageSystemDefault": "跟隨系統",
+  "settingsSlideshowSeconds": "每張圖片的秒數",
+  "settingsSlideshowNotSaved": "無法儲存設定：{error}",
   "actionCancel": "取消",
   "welcomeTitle": "歡迎使用 Photoview",
   "welcomeConnectSubtitle": "連線到你的伺服器",

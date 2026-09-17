@@ -2,6 +2,8 @@
   "@@locale": "it",
   "settingsLanguage": "Lingua",
   "settingsLanguageSystemDefault": "Predefinita di sistema",
+  "settingsSlideshowSeconds": "Secondi per immagine",
+  "settingsSlideshowNotSaved": "Impossibile salvare l’impostazione: {error}",
   "actionCancel": "Annulla",
   "welcomeTitle": "Benvenuto in Photoview",
   "welcomeConnectSubtitle": "Connettiti alla tua istanza",
