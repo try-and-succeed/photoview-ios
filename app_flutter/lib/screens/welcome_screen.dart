@@ -131,6 +131,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
     }
 
     await store.trust(certificate);
+    ref.read(tlsTrustGenerationProvider.notifier).state++;
     return true;
   }
 
@@ -182,6 +183,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
     }
 
     await ref.read(trustedCertificatesProvider).trust(certificate);
+    ref.read(tlsTrustGenerationProvider.notifier).state++;
 
     try {
       await _login();

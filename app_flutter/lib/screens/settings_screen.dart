@@ -266,6 +266,10 @@ class _CertificateAuthoritiesState
       final imported = await ref.read(trustedCasProvider).import(path);
       if (!mounted) return;
 
+      // Importing the server's authority is the other way a screen stuck on an
+      // untrusted certificate becomes servable again.
+      ref.read(tlsTrustGenerationProvider.notifier).state++;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.caNowTrusting(imported.name))),
       );

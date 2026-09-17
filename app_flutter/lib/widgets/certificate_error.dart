@@ -96,6 +96,10 @@ class _CertificateErrorMessageState
       await store.trust(certificate);
       if (!mounted) return;
 
+      // Every other screen that failed on this certificate is still holding
+      // that failure; this is what sends them back to the server.
+      ref.read(tlsTrustGenerationProvider.notifier).state++;
+
       widget.onRetry?.call();
     } catch (error) {
       // Storing the decision can fail — secure storage is not guaranteed to be
