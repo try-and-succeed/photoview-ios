@@ -11,6 +11,7 @@ import '../l10n/languages.dart';
 import '../state/app_language.dart';
 import '../state/auth.dart';
 import '../state/capabilities.dart';
+import '../state/people_order.dart';
 import '../state/slideshow.dart';
 import 'scanner_screen.dart';
 import '../util/image_cache.dart';
@@ -82,6 +83,7 @@ class SettingsScreen extends ConsumerWidget {
           const Divider(),
           const _LanguageTile(),
           const _SlideshowTile(),
+          const _PeopleOrderTile(),
           const Divider(),
           _SectionHeader(l10n.settingsSectionSecurity),
           const _CertificateAuthorities(),
@@ -113,6 +115,75 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// In what order the people who have a name are shown.
+class _PeopleOrderTile extends ConsumerWidget {
+  const _PeopleOrderTile();
+
+  static String _label(AppLocalizations l10n, PeopleOrder order) =>
+      switch (order) {
+        PeopleOrder.alphabetical => l10n.settingsPeopleOrderAlphabetical,
+        PeopleOrder.byCount => l10n.settingsPeopleOrderByCount,
+      };
+
+  Future<void> _choose(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
+    final current = ref.read(peopleOrderProvider).valueOrNull;
+
+    final picked = await showDialog<PeopleOrder>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: Text(l10n.settingsPeopleOrder),
+        children: [
+          for (final order in PeopleOrder.values)
+            _ChoiceOption(
+              label: _label(l10n, order),
+              selected: order == current,
+              onTap: () => Navigator.of(context).pop(order),
+            ),
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: Padding(
+              padding: const EdgeInsetsDirectional.only(end: 16, top: 8),
+              child: TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(l10n.actionCancel),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (picked == null) return;
+    try {
+      await ref.read(peopleOrderProvider.notifier).choose(picked);
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n.settingsPeopleOrderNotSaved(describeError(error, l10n)),
+          ),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final order =
+        ref.watch(peopleOrderProvider).valueOrNull ?? PeopleOrder.alphabetical;
+
+    return ListTile(
+      leading: const Icon(Icons.sort_by_alpha),
+      title: Text(l10n.settingsPeopleOrder),
+      subtitle: Text(_label(l10n, order)),
+      onTap: () => _choose(context, ref),
     );
   }
 }

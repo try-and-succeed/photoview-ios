@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../api/models.dart';
 import 'auth.dart';
 import 'stale_response_guard.dart';
+import 'people_order.dart' show faceGroupIsNamed;
 import 'search_limit.dart';
 
 const _albumPageSize = 200;
@@ -43,14 +44,39 @@ class FaceGroupsNotifier extends AsyncNotifier<FaceGroupsData>
   Future<FaceGroupsData> build() async {
     beginGeneration(ref);
 
-    final page = await ref.guarded(
+    final first = await ref.guarded(
       (c) => c.faceGroups(limit: _faceGroupPageSize, offset: 0),
     );
 
-    return FaceGroupsData(
-      groups: page,
-      hasMore: page.length >= _faceGroupPageSize,
-    );
+    return _throughTheNamed(first);
+  }
+
+  /// Keeps fetching while a page holds nothing but named people.
+  ///
+  /// The server sends every named person before the first unnamed one, and the
+  /// app puts the named ones in its own order — by name, normally. That order
+  /// can only be right once they are all here; a name arriving with a later
+  /// page would otherwise have to slot in above wherever the user has scrolled
+  /// to, moving the list under their thumb.
+  ///
+  /// This costs extra requests only for someone who has named more than a page
+  /// full of people, which is who it is for.
+  Future<FaceGroupsData> _throughTheNamed(List<FaceGroup> first) async {
+    final groups = [...first];
+    var lastPage = first;
+    var hasMore = first.length >= _faceGroupPageSize;
+
+    while (hasMore && lastPage.isNotEmpty && lastPage.every(faceGroupIsNamed)) {
+      // `guardedRead`, not `guarded`: watching the client after an await would
+      // attach to a build that has already finished.
+      lastPage = await ref.guardedRead(
+        (c) => c.faceGroups(limit: _faceGroupPageSize, offset: groups.length),
+      );
+      groups.addAll(lastPage);
+      hasMore = lastPage.length >= _faceGroupPageSize;
+    }
+
+    return FaceGroupsData(groups: groups, hasMore: hasMore);
   }
 
   Future<void> loadMore() async {

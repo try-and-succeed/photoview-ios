@@ -21,6 +21,27 @@
       }
     }
   },
+  "settingsPeopleOrder": "Order of named people",
+  "@settingsPeopleOrder": {
+    "description": "Setting: in what order the people who have a name are listed."
+  },
+  "settingsPeopleOrderAlphabetical": "Alphabetical",
+  "@settingsPeopleOrderAlphabetical": {
+    "description": "Ordering option: by name."
+  },
+  "settingsPeopleOrderByCount": "By number of photos",
+  "@settingsPeopleOrderByCount": {
+    "description": "Ordering option: most photos first, which is what the server sends."
+  },
+  "settingsPeopleOrderNotSaved": "Could not save the setting: {error}",
+  "@settingsPeopleOrderNotSaved": {
+    "description": "The chosen order applies but could not be stored on the device.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "actionCancel": "Cancel",
   "@actionCancel": {
     "description": "Button that dismisses a dialog without doing anything."

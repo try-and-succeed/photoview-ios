@@ -26,6 +26,9 @@ class SettingsStore {
   /// The slideshow interval, on the device for the same reason.
   static const _slideshowKey = 'slideshow-seconds';
 
+  /// How named people are ordered, likewise a display preference.
+  static const _peopleOrderKey = 'people-order';
+
   final FlutterSecureStorage _storage;
 
   SettingsStore({FlutterSecureStorage? storage})
@@ -69,6 +72,21 @@ class SettingsStore {
   Future<void> setSlideshowSeconds(int? seconds) => seconds == null
       ? _storage.delete(key: _slideshowKey)
       : _storage.write(key: _slideshowKey, value: '$seconds');
+
+  /// How named people are ordered, as the name of the chosen option; null
+  /// means the app's default. Unreadable storage reads as null, which costs
+  /// nothing but the default order.
+  Future<String?> peopleOrder() async {
+    try {
+      return await _storage.read(key: _peopleOrderKey);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> setPeopleOrder(String? order) => order == null
+      ? _storage.delete(key: _peopleOrderKey)
+      : _storage.write(key: _peopleOrderKey, value: order);
 
   /// The locally stored search limit for [serverId], or null if none is set.
   Future<int?> searchResultLimit(String serverId) async {

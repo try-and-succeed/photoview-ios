@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
 import '../state/library.dart';
+import '../state/people_order.dart';
 import '../widgets/async_states.dart';
 import '../widgets/load_more.dart';
 import '../widgets/face_grid.dart';
@@ -58,7 +59,13 @@ class PeopleScreen extends ConsumerWidget {
                 else
                   SliverPadding(
                     padding: const EdgeInsets.all(16),
-                    sliver: FaceSliverGrid(faceGroups: data.groups),
+                    sliver: FaceSliverGrid(
+                      faceGroups: orderedFaceGroups(
+                        data.groups,
+                        ref.watch(peopleOrderProvider).valueOrNull ??
+                            PeopleOrder.alphabetical,
+                      ),
+                    ),
                   ),
                 if (data.loadingMore)
                   const SliverToBoxAdapter(
