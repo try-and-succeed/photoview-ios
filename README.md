@@ -7,6 +7,8 @@
 
 ## A second client, for iOS and Android
 
+![screenshots of the Flutter client](./screenshots/app_flutter.png)
+
 This fork adds a **rewritten client in [`app_flutter/`](./app_flutter)**, built
 with Flutter so that a single codebase serves both iOS and Android. It talks to
 the same Photoview server: the GraphQL operations are taken verbatim from the
@@ -25,3 +27,7 @@ source.
 
 See [`app_flutter/README.md`](./app_flutter/README.md) for what differs from
 the original in detail, and for how to build it.
+
+The screenshots above were taken on Android, against a demo library whose
+photos come from [picsum.photos](https://picsum.photos) under the Unsplash
+licence.
