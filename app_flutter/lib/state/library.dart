@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../api/client.dart';
 import '../api/models.dart';
 import 'auth.dart';
 import 'stale_response_guard.dart';
@@ -225,21 +224,41 @@ class ShareActions {
   final Ref _ref;
   const ShareActions(this._ref);
 
-  /// Read, not watched: these run from button taps rather than a provider
-  /// build, where `watch` is not allowed.
-  PhotoviewClient get _client {
-    final client = _ref.read(clientProvider);
-    if (client == null) throw const UnauthorizedException();
-    return client;
-  }
-
   Future<void> addShare(String mediaId) async {
-    await _client.shareMedia(mediaId);
+    await _ref.requireClient.shareMedia(mediaId);
     _ref.invalidate(mediaDetailsProvider(mediaId));
   }
 
   Future<void> deleteShare(String mediaId, String token) async {
-    await _client.deleteShareToken(token);
+    await _ref.requireClient.deleteShareToken(token);
     _ref.invalidate(mediaDetailsProvider(mediaId));
+  }
+}
+
+/// Naming people.
+///
+/// Face groups belong to the user who owns the photos, so this is not a
+/// permission question and needs nothing the upstream server lacks:
+/// `setFaceGroupLabel` has always been part of the schema. The app simply
+/// never used it, and names could only be given in the web interface.
+final faceActionsProvider = Provider<FaceActions>((ref) => FaceActions(ref));
+
+class FaceActions {
+  final Ref _ref;
+  const FaceActions(this._ref);
+
+  /// Names [faceGroupId], or removes the name when [label] is null.
+  ///
+  /// Returns what the server stored, which is what the People tab will show —
+  /// not what was sent.
+  Future<String?> rename(String faceGroupId, String? label) async {
+    final stored = await _ref.requireClient.setFaceGroupLabel(
+      faceGroupId,
+      label,
+    );
+
+    // The grid holds the old name until it is fetched again.
+    _ref.invalidate(faceGroupsProvider);
+    return stored;
   }
 }

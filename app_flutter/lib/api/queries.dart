@@ -137,6 +137,17 @@ query singlePerson(\$faceGroupID: ID!) {
 $_mediaItemFragment
 ''';
 
+/// Naming a person. A null label removes the name — the server's own way of
+/// saying "no name", not an omission.
+const setFaceGroupLabelMutation = r'''
+mutation setFaceGroupLabel($faceGroupID: ID!, $label: String) {
+  setFaceGroupLabel(faceGroupID: $faceGroupID, label: $label) {
+    id
+    label
+  }
+}
+''';
+
 const mediaGeoJsonQuery = r'''
 query mediaGeoJson {
   myMediaGeoJson

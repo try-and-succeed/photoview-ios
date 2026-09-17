@@ -660,6 +660,20 @@ class PhotoviewClient {
         .toList();
   }
 
+  /// Names a person, or clears the name with null.
+  ///
+  /// Returns the label as the server stored it, rather than the one that was
+  /// sent: the server is what the People tab will show next.
+  Future<String?> setFaceGroupLabel(String faceGroupId, String? label) async {
+    final data = await _mutate(setFaceGroupLabelMutation, {
+      'faceGroupID': faceGroupId,
+      'label': label,
+    });
+
+    final group = data['setFaceGroupLabel'] as Map<String, dynamic>?;
+    return group?['label'] as String?;
+  }
+
   Future<List<MediaItem>> personMedia(String faceGroupId) async {
     final data = await _query(singlePersonQuery, {'faceGroupID': faceGroupId});
     final group = data['faceGroup'] as Map<String, dynamic>?;

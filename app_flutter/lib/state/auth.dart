@@ -217,6 +217,17 @@ extension ClientRef on Ref {
   Future<T> guardedRead<T>(Future<T> Function(PhotoviewClient client) run) =>
       _guard(read(clientProvider), run);
 
+  /// The signed-in client, for an action run from a button rather than from a
+  /// provider build.
+  ///
+  /// Throws when there is no session: a screen that can be tapped without one
+  /// should not have been on screen.
+  PhotoviewClient get requireClient {
+    final client = read(clientProvider);
+    if (client == null) throw const UnauthorizedException();
+    return client;
+  }
+
   Future<T> _guard<T>(
     PhotoviewClient? client,
     Future<T> Function(PhotoviewClient client) run,

@@ -312,6 +312,23 @@
   "@personEmpty": {
     "description": "A person has no media."
   },
+  "personName": "Name this person",
+  "@personName": {
+    "description": "Title and tooltip of the action that names a face group."
+  },
+  "personNameField": "Name",
+  "@personNameField": {
+    "description": "Label of the text field holding a person's name."
+  },
+  "personNameFailed": "Could not save the name: {error}",
+  "@personNameFailed": {
+    "description": "The name could not be stored on the server.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "placesEmpty": "None of your media has location data",
   "@placesEmpty": {
     "description": "No media has location data, so the map is empty."
