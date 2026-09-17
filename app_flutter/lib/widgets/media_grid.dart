@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api/models.dart';
-import 'media_details_sheet.dart';
+import 'fullscreen_gallery.dart';
 import 'protected_image.dart';
 
 const _gridDelegate = SliverGridDelegateWithMaxCrossAxisExtent(
@@ -63,7 +63,11 @@ class MediaThumbnail extends StatelessWidget {
     final item = media[index];
 
     return GestureDetector(
-      onTap: () => showMediaDetails(context, media: media, initialIndex: index),
+      // The picture first: it is what the tap was about. Camera data,
+      // downloads and links sit behind the gallery's info button, which is
+      // where they are wanted far less often.
+      onTap: () =>
+          showFullscreenGallery(context, media: media, initialIndex: index),
       child: Stack(
         fit: StackFit.expand,
         children: [

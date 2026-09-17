@@ -7,6 +7,7 @@ import '../l10n/app_localizations.dart';
 import '../l10n/error_messages.dart';
 import '../state/auth.dart';
 import '../state/library.dart';
+import '../util/formatting.dart';
 import 'download_button.dart';
 import 'exif_table.dart';
 import 'fullscreen_gallery.dart';
@@ -16,13 +17,18 @@ void showMediaDetails(
   BuildContext context, {
   required List<MediaItem> media,
   required int initialIndex,
+  bool showPreview = true,
 }) {
   showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
     useSafeArea: true,
-    builder: (_) => MediaDetailsSheet(media: media, initialIndex: initialIndex),
+    builder: (_) => MediaDetailsSheet(
+      media: media,
+      initialIndex: initialIndex,
+      showPreview: showPreview,
+    ),
   );
 }
 
@@ -30,10 +36,18 @@ class MediaDetailsSheet extends ConsumerStatefulWidget {
   final List<MediaItem> media;
   final int initialIndex;
 
+  /// Whether to head the sheet with the picture.
+  ///
+  /// False when the gallery opens it: the photo is already on screen behind
+  /// the sheet, and a preview that reopens the gallery would stack a second
+  /// one on top of the first.
+  final bool showPreview;
+
   const MediaDetailsSheet({
     super.key,
     required this.media,
     required this.initialIndex,
+    this.showPreview = true,
   });
 
   @override
@@ -59,8 +73,10 @@ class _MediaDetailsSheetState extends ConsumerState<MediaDetailsSheet> {
         controller: scrollController,
         padding: const EdgeInsets.only(bottom: 32),
         children: [
-          _preview(context),
-          const SizedBox(height: 12),
+          if (widget.showPreview) ...[
+            _preview(context),
+            const SizedBox(height: 12),
+          ],
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
@@ -90,7 +106,22 @@ class _MediaDetailsSheetState extends ConsumerState<MediaDetailsSheet> {
               ),
             ],
             data: (data) => [
-              if (data.exif != null) ExifTable(exif: data.exif!),
+              // Saying that there is none beats a gap the reader has to
+              // interpret — a photo without EXIF is common enough (a
+              // screenshot, an export that stripped it).
+              if (data.exif == null || exifRows(data.exif!, l10n).isEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Text(
+                    l10n.galleryNoCameraData,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                )
+              else
+                ExifTable(exif: data.exif!),
               if (data.downloads.isNotEmpty) ...[
                 _SectionHeader(title: l10n.sectionDownload),
                 for (final download in data.downloads)

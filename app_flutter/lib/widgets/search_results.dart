@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../api/models.dart';
 import '../l10n/app_localizations.dart';
 import '../screens/album_screen.dart';
-import 'media_details_sheet.dart';
+import 'fullscreen_gallery.dart';
 import 'protected_image.dart';
 
 /// Above this many hits in one section, thumbnails stop being useful.
@@ -120,7 +120,7 @@ class MediaResultList extends StatelessWidget {
               ? const Icon(Icons.play_circle_outline, size: 20)
               : null,
           onTap: () =>
-              showMediaDetails(context, media: media, initialIndex: index),
+              showFullscreenGallery(context, media: media, initialIndex: index),
         );
       },
     );
