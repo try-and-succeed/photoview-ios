@@ -266,10 +266,58 @@ class MediaDownload {
   }
 }
 
+/// Where a photo sits in the library: its album, and the albums above it.
+///
+/// The server's `path` is the ancestors only, nearest parent first, and it
+/// stops at the highest album the user owns — a shared album does not disclose
+/// the folders above it. [crumbs] puts that the way it reads, root first and
+/// ending in the album the photo is in.
+class MediaAlbum {
+  final String id;
+  final String title;
+  final List<AlbumRef> ancestors;
+
+  const MediaAlbum({
+    required this.id,
+    required this.title,
+    this.ancestors = const [],
+  });
+
+  List<AlbumRef> get crumbs => [
+    ...ancestors.reversed,
+    AlbumRef(id: id, title: title),
+  ];
+
+  factory MediaAlbum.fromJson(Map<String, dynamic> json) => MediaAlbum(
+    id: json['id'].toString(),
+    title: json['title'] as String? ?? '',
+    ancestors: (json['path'] as List<dynamic>? ?? const [])
+        .map((e) => AlbumRef.fromJson(e as Map<String, dynamic>))
+        .toList(),
+  );
+}
+
+/// An album named only well enough to show it and open it.
+class AlbumRef {
+  final String id;
+  final String title;
+
+  const AlbumRef({required this.id, required this.title});
+
+  factory AlbumRef.fromJson(Map<String, dynamic> json) => AlbumRef(
+    id: json['id'].toString(),
+    title: json['title'] as String? ?? '',
+  );
+}
+
 class MediaDetails {
   final MediaItem media;
   final String title;
   final String? videoWebUrl;
+
+  /// Null when the server did not send one — an older server, or a share link
+  /// that resolves the media without its album.
+  final MediaAlbum? album;
 
   /// The largest rendition a screen can display. For a JPEG this is the
   /// original file itself — measured: same URL and size as the "Original"
@@ -283,6 +331,7 @@ class MediaDetails {
   const MediaDetails({
     required this.media,
     required this.title,
+    this.album,
     this.videoWebUrl,
     this.highRes,
     this.exif,
@@ -291,6 +340,7 @@ class MediaDetails {
   });
 
   factory MediaDetails.fromJson(Map<String, dynamic> json) {
+    final album = json['album'] as Map<String, dynamic>?;
     final exif = json['exif'] as Map<String, dynamic>?;
     final videoWeb = json['videoWeb'] as Map<String, dynamic>?;
     final highRes = json['highRes'] as Map<String, dynamic>?;
@@ -304,6 +354,7 @@ class MediaDetails {
     return MediaDetails(
       media: MediaItem.fromJson(json),
       title: json['title'] as String? ?? '',
+      album: album == null ? null : MediaAlbum.fromJson(album),
       videoWebUrl: videoWeb?['url'] as String?,
       highRes: highRes == null || highRes['url'] == null
           ? null

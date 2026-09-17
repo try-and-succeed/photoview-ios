@@ -85,6 +85,22 @@ class _MediaDetailsSheetState extends ConsumerState<MediaDetailsSheet> {
               textAlign: TextAlign.center,
             ),
           ),
+          // Where the photo lives. Worth saying in the gallery above all,
+          // which can be reached from a search or the map, where the album
+          // never appears on screen at all.
+          if (details.valueOrNull?.album case final album?) ...[
+            const SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                album.crumbs.map((a) => a.title).join(' / '),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
           ...details.when(
             loading: () => [
