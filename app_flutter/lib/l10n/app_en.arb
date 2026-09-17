@@ -375,6 +375,14 @@
   "@galleryInfo": {
     "description": "Tooltip of the gallery button that shows a photo's camera data."
   },
+  "slideshowStart": "Start slideshow",
+  "@slideshowStart": {
+    "description": "Tooltip of the gallery button that starts the slideshow."
+  },
+  "slideshowStop": "Stop slideshow",
+  "@slideshowStop": {
+    "description": "Tooltip of the same button while the slideshow runs."
+  },
   "mediaDetailsFailed": "Could not load the details: {error}",
   "@mediaDetailsFailed": {
     "description": "Loading a photo's details failed.",

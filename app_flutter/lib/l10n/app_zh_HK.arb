@@ -76,6 +76,8 @@
   "searchHiddenMore": "尚有 {count} 項未顯示。請縮窄搜尋範圍，或在設定中設定搜尋結果上限。",
   "untitledMedia": "未命名",
   "galleryInfo": "資訊",
+  "slideshowStart": "開始投影播放",
+  "slideshowStop": "停止投影播放",
   "mediaDetailsFailed": "無法載入詳細資料：{error}",
   "galleryNoCameraData": "此相片沒有相機資料。",
   "videoPlayFailed": "無法播放影片：{error}",

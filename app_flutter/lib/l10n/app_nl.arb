@@ -76,6 +76,8 @@
   "searchHiddenMore": "Nog {count} niet getoond. Verfijn je zoekopdracht of stel een limiet voor zoekresultaten in bij Instellingen.",
   "untitledMedia": "Naamloos",
   "galleryInfo": "Info",
+  "slideshowStart": "Diavoorstelling starten",
+  "slideshowStop": "Diavoorstelling stoppen",
   "mediaDetailsFailed": "De details konden niet worden geladen: {error}",
   "galleryNoCameraData": "Geen cameragegevens voor deze foto.",
   "videoPlayFailed": "De video kon niet worden afgespeeld: {error}",

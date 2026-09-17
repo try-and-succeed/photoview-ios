@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
@@ -69,6 +71,12 @@ GalleryAction? galleryActionFor(LogicalKeyboardKey key) {
 
 const _pageTurn = Duration(milliseconds: 250);
 
+/// How long a slideshow rests on each photo.
+///
+/// Long enough to take a picture in, short enough that a room full of people
+/// does not start talking about the wait.
+const slideshowInterval = Duration(seconds: 5);
+
 class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
   late final PageController _controller = PageController(
     initialPage: widget.initialIndex,
@@ -79,13 +87,77 @@ class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
   /// photo toggles it, so nothing lies over the picture while looking at it.
   bool _controlsVisible = true;
 
+  /// Ticking while the slideshow runs, null while it does not.
+  Timer? _slideshow;
+
+  bool get _playing => _slideshow != null;
+
+  /// Captured while the widget is alive. `ref` is not usable from `dispose`,
+  /// and leaving the screen held awake after the gallery closes would be the
+  /// worst of the failures available here.
+  late final Future<void> Function(bool) _screenAwake = ref.read(
+    screenAwakeProvider,
+  );
+
   @override
   void dispose() {
+    final wasPlaying = _playing;
+    _slideshow?.cancel();
+    if (wasPlaying) _keepScreenAwake(false);
+
     _controller.dispose();
     // Hidden controls also hid the system bars; the rest of the app expects
     // them back.
     if (!_controlsVisible) _showSystemBars(true);
     super.dispose();
+  }
+
+  void _keepScreenAwake(bool awake) {
+    // A device that refuses is not a reason to refuse the slideshow.
+    _screenAwake(awake).catchError((_) {});
+  }
+
+  /// The next photo after [from], wrapping around, or null when there is no
+  /// other photo to go to.
+  ///
+  /// Videos are stepped over rather than shown for the interval: they play by
+  /// themselves, and cutting one off after five seconds is worse than leaving
+  /// it out of the slideshow.
+  int? _nextPhoto(int from) {
+    for (var step = 1; step <= widget.media.length; step++) {
+      final candidate = (from + step) % widget.media.length;
+      if (widget.media[candidate].type != MediaType.video) return candidate;
+    }
+    return null;
+  }
+
+  bool get _canPlay => widget.media.any((m) => m.type != MediaType.video);
+
+  void _toggleSlideshow() {
+    if (_playing) {
+      _slideshow?.cancel();
+      setState(() => _slideshow = null);
+      _keepScreenAwake(false);
+      return;
+    }
+
+    _keepScreenAwake(true);
+    setState(() {
+      _slideshow = Timer.periodic(slideshowInterval, (_) => _advance());
+    });
+    // Nothing should lie over the pictures once they are showing themselves.
+    _setControlsVisible(false);
+  }
+
+  void _advance() {
+    final next = _nextPhoto(_index);
+    if (next == null) return;
+
+    _controller.animateToPage(
+      next,
+      duration: _pageTurn,
+      curve: Curves.easeInOut,
+    );
   }
 
   static void _showSystemBars(bool visible) {
@@ -171,6 +243,16 @@ class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
                 style: const TextStyle(fontSize: 15),
               ),
               actions: [
+                if (_canPlay)
+                  IconButton(
+                    icon: Icon(
+                      _playing ? Icons.pause : Icons.slideshow_outlined,
+                    ),
+                    tooltip: _playing
+                        ? AppLocalizations.of(context).slideshowStop
+                        : AppLocalizations.of(context).slideshowStart,
+                    onPressed: _toggleSlideshow,
+                  ),
                 IconButton(
                   icon: const Icon(Icons.info_outline),
                   tooltip: AppLocalizations.of(context).galleryInfo,

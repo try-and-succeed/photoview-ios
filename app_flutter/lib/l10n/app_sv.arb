@@ -76,6 +76,8 @@
   "searchHiddenMore": "{count} till visas inte. Begränsa sökningen eller ange en gräns för sökresultat i Inställningar.",
   "untitledMedia": "Namnlös",
   "galleryInfo": "Info",
+  "slideshowStart": "Starta bildspel",
+  "slideshowStop": "Stoppa bildspel",
   "mediaDetailsFailed": "Det gick inte att läsa in detaljerna: {error}",
   "galleryNoCameraData": "Inga kameradata för den här bilden.",
   "videoPlayFailed": "Det gick inte att spela upp videon: {error}",

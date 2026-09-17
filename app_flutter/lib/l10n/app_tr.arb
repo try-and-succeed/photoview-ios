@@ -76,6 +76,8 @@
   "searchHiddenMore": "{count} tane daha gösterilmiyor. Aramanızı daraltın veya Ayarlar'dan bir arama sonucu sınırı belirleyin.",
   "untitledMedia": "Adsız",
   "galleryInfo": "Bilgi",
+  "slideshowStart": "Slayt gösterisini başlat",
+  "slideshowStop": "Slayt gösterisini durdur",
   "mediaDetailsFailed": "Ayrıntılar yüklenemedi: {error}",
   "galleryNoCameraData": "Bu fotoğraf için kamera verisi yok.",
   "videoPlayFailed": "Video oynatılamadı: {error}",

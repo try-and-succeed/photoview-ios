@@ -76,6 +76,8 @@
   "searchHiddenMore": "还有 {count} 项未显示。请缩小搜索范围，或在设置中设定搜索结果上限。",
   "untitledMedia": "未命名",
   "galleryInfo": "信息",
+  "slideshowStart": "开始幻灯片播放",
+  "slideshowStop": "停止幻灯片播放",
   "mediaDetailsFailed": "无法加载详细信息：{error}",
   "galleryNoCameraData": "此照片没有相机数据。",
   "videoPlayFailed": "无法播放视频：{error}",

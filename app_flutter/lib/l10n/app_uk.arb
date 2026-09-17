@@ -76,6 +76,8 @@
   "searchHiddenMore": "Не показано ще: {count}. Уточніть запит або встановіть обмеження результатів у налаштуваннях.",
   "untitledMedia": "Без назви",
   "galleryInfo": "Відомості",
+  "slideshowStart": "Почати слайдшоу",
+  "slideshowStop": "Зупинити слайдшоу",
   "mediaDetailsFailed": "Не вдалося завантажити відомості: {error}",
   "galleryNoCameraData": "Для цієї світлини немає даних камери.",
   "videoPlayFailed": "Не вдалося відтворити відео: {error}",

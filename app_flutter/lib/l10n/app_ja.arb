@@ -76,6 +76,8 @@
   "searchHiddenMore": "ほかに {count} 件は表示されていません。検索を絞り込むか、設定で検索結果の上限を設定してください。",
   "untitledMedia": "無題",
   "galleryInfo": "情報",
+  "slideshowStart": "スライドショーを開始",
+  "slideshowStop": "スライドショーを停止",
   "mediaDetailsFailed": "詳細を読み込めませんでした: {error}",
   "galleryNoCameraData": "この写真にはカメラ情報がありません。",
   "videoPlayFailed": "動画を再生できませんでした: {error}",

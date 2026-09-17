@@ -76,6 +76,8 @@
   "searchHiddenMore": "Nie pokazano jeszcze: {count}. Zawęź wyszukiwanie lub ustaw limit wyników w Ustawieniach.",
   "untitledMedia": "Bez tytułu",
   "galleryInfo": "Informacje",
+  "slideshowStart": "Rozpocznij pokaz slajdów",
+  "slideshowStop": "Zatrzymaj pokaz slajdów",
   "mediaDetailsFailed": "Nie udało się wczytać szczegółów: {error}",
   "galleryNoCameraData": "To zdjęcie nie ma danych aparatu.",
   "videoPlayFailed": "Nie udało się odtworzyć filmu: {error}",

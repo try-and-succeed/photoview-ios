@@ -76,6 +76,8 @@
   "searchHiddenMore": "{count} de plus non affichés. Affinez votre recherche ou définissez une limite de résultats dans les Paramètres.",
   "untitledMedia": "Sans titre",
   "galleryInfo": "Infos",
+  "slideshowStart": "Lancer le diaporama",
+  "slideshowStop": "Arrêter le diaporama",
   "mediaDetailsFailed": "Impossible de charger les détails : {error}",
   "galleryNoCameraData": "Aucune donnée d'appareil pour cette photo.",
   "videoPlayFailed": "Impossible de lire la vidéo : {error}",

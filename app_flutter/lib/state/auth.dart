@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../api/client.dart';
 import '../api/session.dart';
@@ -15,6 +16,13 @@ final sessionStoreProvider = Provider<SessionStore>((ref) => SessionStore());
 /// not need a real one just to exercise the sign-out paths.
 final imageCacheCleanerProvider = Provider<Future<void> Function()>(
   (ref) => clearImageCache,
+);
+
+/// Holding the screen on, behind a provider for the same reason: a slideshow
+/// leaves the device untouched for minutes, and a test should not need the
+/// platform channel to check that the slideshow asks for it.
+final screenAwakeProvider = Provider<Future<void> Function(bool)>(
+  (ref) => (awake) => WakelockPlus.toggle(enable: awake),
 );
 
 /// Overridden in `main` with the stores the global [HttpOverrides] consults,

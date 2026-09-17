@@ -76,6 +76,8 @@
   "searchHiddenMore": "Beste {count} ez dira erakusten. Mugatu bilaketa, edo ezarri bilaketa-emaitzen muga bat Ezarpenetan.",
   "untitledMedia": "Izenik gabe",
   "galleryInfo": "Informazioa",
+  "slideshowStart": "Hasi diaporama",
+  "slideshowStop": "Gelditu diaporama",
   "mediaDetailsFailed": "Ezin izan dira xehetasunak kargatu: {error}",
   "galleryNoCameraData": "Argazki honek ez du kameraren daturik.",
   "videoPlayFailed": "Ezin izan da bideoa erreproduzitu: {error}",

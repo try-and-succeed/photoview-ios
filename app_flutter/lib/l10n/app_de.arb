@@ -76,6 +76,8 @@
   "searchHiddenMore": "{count} weitere werden nicht angezeigt. Grenze die Suche ein oder lege in den Einstellungen eine Grenze für Suchergebnisse fest.",
   "untitledMedia": "Ohne Titel",
   "galleryInfo": "Info",
+  "slideshowStart": "Diaschau starten",
+  "slideshowStop": "Diaschau beenden",
   "mediaDetailsFailed": "Die Details konnten nicht geladen werden: {error}",
   "galleryNoCameraData": "Für dieses Foto gibt es keine Kameradaten.",
   "videoPlayFailed": "Das Video konnte nicht abgespielt werden: {error}",
