@@ -126,6 +126,9 @@ query singlePerson(\$faceGroupID: ID!) {
     imageFaces {
       id
       media {
+        # imageFaces takes no ordering argument and the server applies none,
+        # so the date is what the app sorts by.
+        date
         ...MediaItem
       }
     }

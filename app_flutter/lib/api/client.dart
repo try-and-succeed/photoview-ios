@@ -664,11 +664,7 @@ class PhotoviewClient {
     final data = await _query(singlePersonQuery, {'faceGroupID': faceGroupId});
     final group = data['faceGroup'] as Map<String, dynamic>?;
 
-    return (group?['imageFaces'] as List<dynamic>? ?? const [])
-        .map((e) => (e as Map<String, dynamic>)['media'])
-        .whereType<Map<String, dynamic>>()
-        .map(MediaItem.fromJson)
-        .toList();
+    return personMediaFrom(group);
   }
 
   Future<List<PlacesMarker>> mediaGeoJson() async {
@@ -881,6 +877,37 @@ class PhotoviewClient {
 
   Future<void> deleteShareToken(String token) =>
       _mutate(deleteShareTokenMutation, {'token': token});
+}
+
+/// The photos of one face group, newest first.
+///
+/// `faceGroup.imageFaces` takes no ordering argument, and the resolver hands
+/// the database none either, so the server's order is the order the faces
+/// happened to be detected in — meaningless to a reader and not guaranteed to
+/// hold still between calls. Sorting has to happen here; it is affordable
+/// because a person's faces are fetched in one unpaginated go.
+///
+/// Separate from the client because there is no seam for faking a response.
+@visibleForTesting
+List<MediaItem> personMediaFrom(Map<String, dynamic>? faceGroup) {
+  final media = (faceGroup?['imageFaces'] as List<dynamic>? ?? const [])
+      .map((e) => (e as Map<String, dynamic>)['media'])
+      .whereType<Map<String, dynamic>>()
+      .toList();
+
+  media.sort((a, b) => _shotAt(b).compareTo(_shotAt(a)));
+
+  return media.map(MediaItem.fromJson).toList();
+}
+
+/// When a photo was taken, for sorting only.
+///
+/// A photo the server dated not at all sorts to the end rather than being
+/// dropped or thrown over: it is still one of this person's photos.
+DateTime _shotAt(Map<String, dynamic> json) {
+  final raw = json['date'];
+  if (raw is! String) return DateTime.utc(0);
+  return DateTime.tryParse(raw)?.toUtc() ?? DateTime.utc(0);
 }
 
 class AlbumPage {
