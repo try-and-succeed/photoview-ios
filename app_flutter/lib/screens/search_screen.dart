@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 import '../l10n/app_localizations.dart';
 import '../state/library.dart';
+import '../widgets/scrollable_view.dart';
 import '../widgets/album_grid.dart';
 import '../widgets/async_states.dart';
 import '../widgets/media_grid.dart';
@@ -106,7 +107,7 @@ class _Results extends ConsumerWidget {
         final albums = planSearchSection(data.albums.length);
         final media = planSearchSection(data.media.length);
 
-        return CustomScrollView(
+        return ScrollableView(
           slivers: [
             if (albums.shown > 0) ...[
               SliverToBoxAdapter(

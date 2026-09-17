@@ -5,6 +5,7 @@ import '../api/capabilities.dart';
 import '../l10n/app_localizations.dart';
 import '../state/capabilities.dart';
 import '../state/library.dart';
+import '../widgets/scrollable_view.dart';
 import '../widgets/album_grid.dart';
 import '../widgets/async_states.dart';
 import 'album_tree_screen.dart';
@@ -27,7 +28,7 @@ class AlbumsScreen extends ConsumerWidget {
     return Scaffold(
       body: RefreshIndicator(
         onRefresh: () async => ref.invalidate(myAlbumsProvider),
-        child: CustomScrollView(
+        child: ScrollableView(
           // See the note in timeline_screen.dart: a short list would otherwise
           // refuse the pull-to-refresh gesture.
           physics: const AlwaysScrollableScrollPhysics(),

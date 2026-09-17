@@ -5,6 +5,7 @@ import '../api/models.dart';
 import '../l10n/app_localizations.dart';
 import '../state/timeline.dart';
 import '../util/formatting.dart';
+import '../widgets/scrollable_view.dart';
 import '../widgets/async_states.dart';
 import '../widgets/load_more.dart';
 import '../widgets/media_grid.dart';
@@ -27,7 +28,7 @@ class TimelineScreen extends ConsumerWidget {
         child: LoadMoreOnScroll(
           hasMore: timeline.valueOrNull?.hasMore ?? false,
           onLoadMore: () => ref.read(timelineProvider.notifier).loadMore(),
-          child: CustomScrollView(
+          child: ScrollableView(
           // Without this, a timeline that fits on screen — empty, still
           // loading, or showing an error — cannot be overscrolled, so the
           // pull-to-refresh gesture never fires exactly when it is wanted most.

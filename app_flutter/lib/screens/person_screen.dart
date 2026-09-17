@@ -5,6 +5,7 @@ import '../api/models.dart';
 import '../l10n/app_localizations.dart';
 import '../l10n/error_messages.dart';
 import '../state/library.dart';
+import '../widgets/scrollable_view.dart';
 import '../widgets/async_states.dart';
 import '../widgets/media_grid.dart';
 
@@ -92,7 +93,7 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
         ),
         data: (data) => data.isEmpty
             ? EmptyMessage(message: l10n.personEmpty)
-            : CustomScrollView(
+            : ScrollableView(
                 slivers: [
                   SliverPadding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),

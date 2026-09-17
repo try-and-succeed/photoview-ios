@@ -5,6 +5,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../l10n/app_localizations.dart';
 import '../state/library.dart';
+import '../widgets/scrollable_view.dart';
 import '../widgets/async_states.dart';
 import '../widgets/media_grid.dart';
 
@@ -72,7 +73,7 @@ class _ClusterScreenState extends ConsumerState<ClusterScreen> {
         ),
         data: (data) => data.isEmpty
             ? EmptyMessage(message: AppLocalizations.of(context).clusterEmpty)
-            : CustomScrollView(
+            : ScrollableView(
                 slivers: [
                   SliverPadding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),
