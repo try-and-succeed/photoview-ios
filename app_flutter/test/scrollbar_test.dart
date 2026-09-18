@@ -20,18 +20,18 @@ ScrollPosition _position(WidgetTester tester) =>
     tester.state<ScrollableState>(find.byType(Scrollable)).position;
 
 void main() {
-  testWidgets('the scrollbar can be dragged to the far end', (tester) async {
+  testWidgets('the scrollbar can be dragged without scrolling first', (
+    tester,
+  ) async {
     // The point of it: reaching the other end of a library by swiping is no
-    // way to spend an afternoon.
+    // way to spend an afternoon. And the thumb has to be there when it is
+    // reached for — by default it fades half a second after scrolling stops,
+    // which on the S10 meant the drag did nothing unless it followed a swipe
+    // immediately.
     await tester.pumpWidget(_host());
     await tester.pumpAndSettle();
 
     expect(_position(tester).pixels, 0);
-
-    // A short scroll first, because the thumb is only drawn once the view has
-    // moved — which is also how a user finds it.
-    await tester.drag(find.text('item 1'), const Offset(0, -60));
-    await tester.pumpAndSettle();
     final afterSwipe = _position(tester).pixels;
 
     final size = tester.getSize(find.byType(ScrollableView));

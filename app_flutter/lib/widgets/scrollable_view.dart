@@ -37,6 +37,11 @@ class _ScrollableViewState extends State<ScrollableView> {
     return Scrollbar(
       controller: _controller,
       interactive: true,
+      // Kept on screen. By default the thumb fades about half a second after
+      // scrolling stops, so reaching for it means scrolling first and then
+      // grabbing a bar that is already going — measured on the S10, where the
+      // drag did nothing at all unless it followed a swipe immediately.
+      thumbVisibility: true,
       child: CustomScrollView(
         controller: _controller,
         physics: widget.physics,
