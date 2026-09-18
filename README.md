@@ -16,9 +16,16 @@ SwiftUI client's `.graphql` files, so both clients speak to the server
 identically.
 
 Beyond the original it offers saved servers, private certificate authorities,
-media in search results, an album tree, scanner controls, a full-resolution
-gallery with a presentation mode, downloads, and translations in the 18
-languages of the Photoview web client.
+media in search results, an album tree, scanner controls, downloads, and
+translations in the 18 languages of the Photoview web client.
+
+Looking at photos is where it has moved furthest. A tap opens the picture at
+full resolution, with the camera data, downloads and links a button away; a
+slideshow runs on its own at an interval you choose; the details say which
+album a photo is in. People can be given names in the app rather than only in
+the web interface, and are listed by name instead of by how many photos they
+happen to appear in. For getting about a library that does not fit on a screen:
+a scrollbar to drag in every long list, and a date to jump to in the timeline.
 
 The SwiftUI app in [`Photoview/`](./Photoview) is **unchanged** and stays the
 reference the port follows. The App Store link above is for the original iOS
