@@ -32,6 +32,7 @@ class _ScriptedClient extends PhotoviewClient {
   Future<List<TimelineMedia>> timeline({
     required int limit,
     required int offset,
+    DateTime? fromDate,
   }) {
     calls++;
     final completer = Completer<List<TimelineMedia>>();

@@ -597,13 +597,21 @@ class PhotoviewClient {
 
   // -------------------------------------------------------------- methods
 
+  /// The timeline, newest first.
+  ///
+  /// [fromDate] starts it further back: the server returns only media older
+  /// than that instant. It is sent in UTC with a `Z`, because the server parses
+  /// RFC 3339 and Dart writes a local `DateTime` without any offset at all —
+  /// which would either fail to parse or be read as a time it is not.
   Future<List<TimelineMedia>> timeline({
     required int limit,
     required int offset,
+    DateTime? fromDate,
   }) async {
     final data = await _query(timelineQuery, {
       'limit': limit,
       'offset': offset,
+      'fromDate': fromDate?.toUtc().toIso8601String(),
     });
     return (data['myTimeline'] as List<dynamic>? ?? const [])
         .map((e) => TimelineMedia.fromJson(e as Map<String, dynamic>))

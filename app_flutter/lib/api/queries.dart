@@ -49,8 +49,10 @@ query InitialSetup {
 ''';
 
 const timelineQuery = '''
-query timeline(\$limit: Int!, \$offset: Int!) {
-  myTimeline(paginate: {limit: \$limit, offset: \$offset}) {
+query timeline(\$limit: Int!, \$offset: Int!, \$fromDate: Time) {
+  # fromDate is the server's own way of starting the timeline further back:
+  # "only fetch media that is older than this date". Null asks for the newest.
+  myTimeline(paginate: {limit: \$limit, offset: \$offset}, fromDate: \$fromDate) {
     id
     date
     album {

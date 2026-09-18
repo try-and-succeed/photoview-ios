@@ -244,6 +244,23 @@
   "@navTimeline": {
     "description": "Bottom navigation: the timeline of all media, newest first."
   },
+  "timelineJumpToDay": "Jump to a date",
+  "@timelineJumpToDay": {
+    "description": "Tooltip of the timeline action that starts the list at a chosen day."
+  },
+  "timelineFromDay": "From {day}",
+  "@timelineFromDay": {
+    "description": "Chip on the timeline saying which day it starts at.",
+    "placeholders": {
+      "day": {
+        "type": "String"
+      }
+    }
+  },
+  "timelineBackToNewest": "Back to the newest",
+  "@timelineBackToNewest": {
+    "description": "Tooltip of the chip that takes the timeline back to the newest media."
+  },
   "navAlbums": "Albums",
   "@navAlbums": {
     "description": "Bottom navigation, and the albums section of search results."
