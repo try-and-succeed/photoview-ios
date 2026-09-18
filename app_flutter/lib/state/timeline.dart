@@ -6,6 +6,22 @@ import 'stale_response_guard.dart';
 
 const _pageSize = 200;
 
+/// The day the timeline starts at, or null for the newest media.
+///
+/// Held apart from the timeline itself so that choosing a day rebuilds it from
+/// that day: the pages are counted from wherever the timeline begins, and an
+/// offset into the old list means nothing in the new one.
+final timelineFromDayProvider = StateProvider<DateTime?>((ref) => null);
+
+/// The instant handed to the server for [day].
+///
+/// The filter is `date_shot < fromDate`, so the bound is the start of the day
+/// after: anything else would cut the chosen day in half and start with the
+/// day before it.
+DateTime? timelineBoundFor(DateTime? day) => day == null
+    ? null
+    : DateTime(day.year, day.month, day.day).add(const Duration(days: 1));
+
 
 class TimelineData {
   final List<TimelineGroup> groups;
@@ -70,8 +86,14 @@ class TimelineNotifier extends AsyncNotifier<TimelineData>
     beginGeneration(ref);
     final generation = this.generation;
 
+    // Watched, so choosing another day rebuilds the timeline from there.
+    // Before the first await, as every watch in a provider must be.
+    final bound = timelineBoundFor(ref.watch(timelineFromDayProvider));
+
     _loaded.clear();
-    final page = await ref.guarded((c) => c.timeline(limit: _pageSize, offset: 0));
+    final page = await ref.guarded(
+      (c) => c.timeline(limit: _pageSize, offset: 0, fromDate: bound),
+    );
 
     // Same check as in loadMore, for the same reason: the notifier outlives a
     // rebuild, so a first page that lands after the next build has cleared
@@ -102,7 +124,13 @@ class TimelineNotifier extends AsyncNotifier<TimelineData>
 
     try {
       final page = await ref.guardedRead(
-        (c) => c.timeline(limit: _pageSize, offset: _loaded.length),
+        (c) => c.timeline(
+          limit: _pageSize,
+          offset: _loaded.length,
+          // Read rather than watched: this runs from a scroll, not a build,
+          // and the day in force is the one this list was built from.
+          fromDate: timelineBoundFor(ref.read(timelineFromDayProvider)),
+        ),
       );
 
       // Checked before touching _loaded, not just before the state write: a

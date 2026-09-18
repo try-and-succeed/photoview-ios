@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../api/client.dart';
 import '../api/session.dart';
@@ -15,6 +16,13 @@ final sessionStoreProvider = Provider<SessionStore>((ref) => SessionStore());
 /// not need a real one just to exercise the sign-out paths.
 final imageCacheCleanerProvider = Provider<Future<void> Function()>(
   (ref) => clearImageCache,
+);
+
+/// Holding the screen on, behind a provider for the same reason: a slideshow
+/// leaves the device untouched for minutes, and a test should not need the
+/// platform channel to check that the slideshow asks for it.
+final screenAwakeProvider = Provider<Future<void> Function(bool)>(
+  (ref) => (awake) => WakelockPlus.toggle(enable: awake),
 );
 
 /// Overridden in `main` with the stores the global [HttpOverrides] consults,
@@ -216,6 +224,17 @@ extension ClientRef on Ref {
   /// For calls made after the provider has built.
   Future<T> guardedRead<T>(Future<T> Function(PhotoviewClient client) run) =>
       _guard(read(clientProvider), run);
+
+  /// The signed-in client, for an action run from a button rather than from a
+  /// provider build.
+  ///
+  /// Throws when there is no session: a screen that can be tapped without one
+  /// should not have been on screen.
+  PhotoviewClient get requireClient {
+    final client = read(clientProvider);
+    if (client == null) throw const UnauthorizedException();
+    return client;
+  }
 
   Future<T> _guard<T>(
     PhotoviewClient? client,

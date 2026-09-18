@@ -1,6 +1,7 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../api/capabilities.dart';
 import '../api/trusted_cas.dart';
@@ -10,6 +11,8 @@ import '../l10n/languages.dart';
 import '../state/app_language.dart';
 import '../state/auth.dart';
 import '../state/capabilities.dart';
+import '../state/people_order.dart';
+import '../state/slideshow.dart';
 import 'scanner_screen.dart';
 import '../util/image_cache.dart';
 import '../widgets/insecure_notice.dart';
@@ -79,6 +82,8 @@ class SettingsScreen extends ConsumerWidget {
           ],
           const Divider(),
           const _LanguageTile(),
+          const _SlideshowTile(),
+          const _PeopleOrderTile(),
           const Divider(),
           _SectionHeader(l10n.settingsSectionSecurity),
           const _CertificateAuthorities(),
@@ -114,6 +119,142 @@ class SettingsScreen extends ConsumerWidget {
   }
 }
 
+/// In what order the people who have a name are shown.
+class _PeopleOrderTile extends ConsumerWidget {
+  const _PeopleOrderTile();
+
+  static String _label(AppLocalizations l10n, PeopleOrder order) =>
+      switch (order) {
+        PeopleOrder.alphabetical => l10n.settingsPeopleOrderAlphabetical,
+        PeopleOrder.byCount => l10n.settingsPeopleOrderByCount,
+      };
+
+  Future<void> _choose(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
+    final current = ref.read(peopleOrderProvider).valueOrNull;
+
+    final picked = await showDialog<PeopleOrder>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: Text(l10n.settingsPeopleOrder),
+        children: [
+          for (final order in PeopleOrder.values)
+            _ChoiceOption(
+              label: _label(l10n, order),
+              selected: order == current,
+              onTap: () => Navigator.of(context).pop(order),
+            ),
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: Padding(
+              padding: const EdgeInsetsDirectional.only(end: 16, top: 8),
+              child: TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(l10n.actionCancel),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (picked == null) return;
+    try {
+      await ref.read(peopleOrderProvider.notifier).choose(picked);
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n.settingsPeopleOrderNotSaved(describeError(error, l10n)),
+          ),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final order =
+        ref.watch(peopleOrderProvider).valueOrNull ?? PeopleOrder.alphabetical;
+
+    return ListTile(
+      leading: const Icon(Icons.sort_by_alpha),
+      title: Text(l10n.settingsPeopleOrder),
+      subtitle: Text(_label(l10n, order)),
+      onTap: () => _choose(context, ref),
+    );
+  }
+}
+
+/// How long a slideshow rests on each picture.
+///
+/// Next to the language because it is the same kind of setting: about this
+/// device and this person, with nowhere on the server to put it.
+class _SlideshowTile extends ConsumerWidget {
+  const _SlideshowTile();
+
+  Future<void> _choose(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
+    final current = ref.read(slideshowSecondsProvider).valueOrNull;
+
+    final picked = await showDialog<int>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: Text(l10n.settingsSlideshowSeconds),
+        children: [
+          for (final seconds in slideshowSecondsChoices)
+            _ChoiceOption(
+              label: NumberFormat.decimalPattern().format(seconds),
+              selected: seconds == current,
+              onTap: () => Navigator.of(context).pop(seconds),
+            ),
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: Padding(
+              padding: const EdgeInsetsDirectional.only(end: 16, top: 8),
+              child: TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(l10n.actionCancel),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (picked == null) return;
+    try {
+      await ref.read(slideshowSecondsProvider.notifier).choose(picked);
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n.settingsSlideshowNotSaved(describeError(error, l10n)),
+          ),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final seconds =
+        ref.watch(slideshowSecondsProvider).valueOrNull ??
+        defaultSlideshowSeconds;
+
+    return ListTile(
+      leading: const Icon(Icons.slideshow_outlined),
+      title: Text(l10n.settingsSlideshowSeconds),
+      subtitle: Text(NumberFormat.decimalPattern().format(seconds)),
+      onTap: () => _choose(context, ref),
+    );
+  }
+}
+
 /// The app language: the device's, or one the user picks.
 class _LanguageTile extends ConsumerWidget {
   const _LanguageTile();
@@ -129,13 +270,13 @@ class _LanguageTile extends ConsumerWidget {
       builder: (context) => SimpleDialog(
         title: Text(l10n.settingsLanguage),
         children: [
-          _LanguageOption(
+          _ChoiceOption(
             label: l10n.settingsLanguageSystemDefault,
             selected: current == null,
             onTap: () => Navigator.of(context).pop((language: null)),
           ),
           for (final language in appLanguages)
-            _LanguageOption(
+            _ChoiceOption(
               label: language.nativeName,
               selected: current?.code == language.code,
               onTap: () => Navigator.of(context).pop((language: language)),
@@ -187,12 +328,12 @@ class _LanguageTile extends ConsumerWidget {
   }
 }
 
-class _LanguageOption extends StatelessWidget {
+class _ChoiceOption extends StatelessWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
 
-  const _LanguageOption({
+  const _ChoiceOption({
     required this.label,
     required this.selected,
     required this.onTap,

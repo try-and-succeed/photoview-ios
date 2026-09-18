@@ -23,6 +23,12 @@ class SettingsStore {
   /// to any server account, so it stays out of the per-account record.
   static const _languageKey = 'app-language';
 
+  /// The slideshow interval, on the device for the same reason.
+  static const _slideshowKey = 'slideshow-seconds';
+
+  /// How named people are ordered, likewise a display preference.
+  static const _peopleOrderKey = 'people-order';
+
   final FlutterSecureStorage _storage;
 
   SettingsStore({FlutterSecureStorage? storage})
@@ -43,6 +49,44 @@ class SettingsStore {
   Future<void> setAppLanguage(String? code) => code == null
       ? _storage.delete(key: _languageKey)
       : _storage.write(key: _languageKey, value: code);
+
+  /// How long a slideshow rests on each picture, in seconds; null means the
+  /// app's own default.
+  ///
+  /// On the device rather than per account, like the language: it says how
+  /// this person likes to look at pictures, not something about a server. A
+  /// stored value that is not a positive number counts as nothing stored.
+  Future<int?> slideshowSeconds() async {
+    final String? raw;
+    try {
+      raw = await _storage.read(key: _slideshowKey);
+    } catch (_) {
+      return null;
+    }
+
+    final seconds = raw == null ? null : int.tryParse(raw);
+    return seconds != null && seconds > 0 ? seconds : null;
+  }
+
+  /// Stores [seconds]; null goes back to the default.
+  Future<void> setSlideshowSeconds(int? seconds) => seconds == null
+      ? _storage.delete(key: _slideshowKey)
+      : _storage.write(key: _slideshowKey, value: '$seconds');
+
+  /// How named people are ordered, as the name of the chosen option; null
+  /// means the app's default. Unreadable storage reads as null, which costs
+  /// nothing but the default order.
+  Future<String?> peopleOrder() async {
+    try {
+      return await _storage.read(key: _peopleOrderKey);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> setPeopleOrder(String? order) => order == null
+      ? _storage.delete(key: _peopleOrderKey)
+      : _storage.write(key: _peopleOrderKey, value: order);
 
   /// The locally stored search limit for [serverId], or null if none is set.
   Future<int?> searchResultLimit(String serverId) async {

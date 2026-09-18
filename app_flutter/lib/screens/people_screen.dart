@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
 import '../state/library.dart';
+import '../state/people_order.dart';
+import '../widgets/scrollable_view.dart';
 import '../widgets/async_states.dart';
 import '../widgets/load_more.dart';
 import '../widgets/face_grid.dart';
@@ -20,7 +22,7 @@ class PeopleScreen extends ConsumerWidget {
         child: LoadMoreOnScroll(
           hasMore: faces.valueOrNull?.hasMore ?? false,
           onLoadMore: () => ref.read(faceGroupsProvider.notifier).loadMore(),
-          child: CustomScrollView(
+          child: ScrollableView(
           // See the note in timeline_screen.dart: a short list would otherwise
           // refuse the pull-to-refresh gesture.
           physics: const AlwaysScrollableScrollPhysics(),
@@ -58,7 +60,13 @@ class PeopleScreen extends ConsumerWidget {
                 else
                   SliverPadding(
                     padding: const EdgeInsets.all(16),
-                    sliver: FaceSliverGrid(faceGroups: data.groups),
+                    sliver: FaceSliverGrid(
+                      faceGroups: orderedFaceGroups(
+                        data.groups,
+                        ref.watch(peopleOrderProvider).valueOrNull ??
+                            PeopleOrder.alphabetical,
+                      ),
+                    ),
                   ),
                 if (data.loadingMore)
                   const SliverToBoxAdapter(

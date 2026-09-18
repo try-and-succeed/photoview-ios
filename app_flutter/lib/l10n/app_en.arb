@@ -8,6 +8,40 @@
   "@settingsLanguageSystemDefault": {
     "description": "Language option: follow the language of the device."
   },
+  "settingsSlideshowSeconds": "Seconds per picture",
+  "@settingsSlideshowSeconds": {
+    "description": "How long a slideshow rests on each picture. The unit is in the label, so the choices are bare numbers and no plural form has to agree."
+  },
+  "settingsSlideshowNotSaved": "Could not save the setting: {error}",
+  "@settingsSlideshowNotSaved": {
+    "description": "The chosen interval applies but could not be stored on the device.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsPeopleOrder": "Order of named people",
+  "@settingsPeopleOrder": {
+    "description": "Setting: in what order the people who have a name are listed."
+  },
+  "settingsPeopleOrderAlphabetical": "Alphabetical",
+  "@settingsPeopleOrderAlphabetical": {
+    "description": "Ordering option: by name."
+  },
+  "settingsPeopleOrderByCount": "By number of photos",
+  "@settingsPeopleOrderByCount": {
+    "description": "Ordering option: most photos first, which is what the server sends."
+  },
+  "settingsPeopleOrderNotSaved": "Could not save the setting: {error}",
+  "@settingsPeopleOrderNotSaved": {
+    "description": "The chosen order applies but could not be stored on the device.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "actionCancel": "Cancel",
   "@actionCancel": {
     "description": "Button that dismisses a dialog without doing anything."
@@ -210,6 +244,23 @@
   "@navTimeline": {
     "description": "Bottom navigation: the timeline of all media, newest first."
   },
+  "timelineJumpToDay": "Jump to a date",
+  "@timelineJumpToDay": {
+    "description": "Tooltip of the timeline action that starts the list at a chosen day."
+  },
+  "timelineFromDay": "From {day}",
+  "@timelineFromDay": {
+    "description": "Chip on the timeline saying which day it starts at.",
+    "placeholders": {
+      "day": {
+        "type": "String"
+      }
+    }
+  },
+  "timelineBackToNewest": "Back to the newest",
+  "@timelineBackToNewest": {
+    "description": "Tooltip of the chip that takes the timeline back to the newest media."
+  },
   "navAlbums": "Albums",
   "@navAlbums": {
     "description": "Bottom navigation, and the albums section of search results."
@@ -312,6 +363,23 @@
   "@personEmpty": {
     "description": "A person has no media."
   },
+  "personName": "Name this person",
+  "@personName": {
+    "description": "Title and tooltip of the action that names a face group."
+  },
+  "personNameField": "Name",
+  "@personNameField": {
+    "description": "Label of the text field holding a person's name."
+  },
+  "personNameFailed": "Could not save the name: {error}",
+  "@personNameFailed": {
+    "description": "The name could not be stored on the server.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "placesEmpty": "None of your media has location data",
   "@placesEmpty": {
     "description": "No media has location data, so the map is empty."
@@ -357,6 +425,14 @@
   "galleryInfo": "Info",
   "@galleryInfo": {
     "description": "Tooltip of the gallery button that shows a photo's camera data."
+  },
+  "slideshowStart": "Start slideshow",
+  "@slideshowStart": {
+    "description": "Tooltip of the gallery button that starts the slideshow."
+  },
+  "slideshowStop": "Stop slideshow",
+  "@slideshowStop": {
+    "description": "Tooltip of the same button while the slideshow runs."
   },
   "mediaDetailsFailed": "Could not load the details: {error}",
   "@mediaDetailsFailed": {

@@ -49,8 +49,10 @@ query InitialSetup {
 ''';
 
 const timelineQuery = '''
-query timeline(\$limit: Int!, \$offset: Int!) {
-  myTimeline(paginate: {limit: \$limit, offset: \$offset}) {
+query timeline(\$limit: Int!, \$offset: Int!, \$fromDate: Time) {
+  # fromDate is the server's own way of starting the timeline further back:
+  # "only fetch media that is older than this date". Null asks for the newest.
+  myTimeline(paginate: {limit: \$limit, offset: \$offset}, fromDate: \$fromDate) {
     id
     date
     album {
@@ -126,12 +128,26 @@ query singlePerson(\$faceGroupID: ID!) {
     imageFaces {
       id
       media {
+        # imageFaces takes no ordering argument and the server applies none,
+        # so the date is what the app sorts by.
+        date
         ...MediaItem
       }
     }
   }
 }
 $_mediaItemFragment
+''';
+
+/// Naming a person. A null label removes the name — the server's own way of
+/// saying "no name", not an omission.
+const setFaceGroupLabelMutation = r'''
+mutation setFaceGroupLabel($faceGroupID: ID!, $label: String) {
+  setFaceGroupLabel(faceGroupID: $faceGroupID, label: $label) {
+    id
+    label
+  }
+}
 ''';
 
 const mediaGeoJsonQuery = r'''

@@ -5,11 +5,61 @@ import '../api/models.dart';
 import '../l10n/app_localizations.dart';
 import '../state/timeline.dart';
 import '../util/formatting.dart';
+import '../widgets/scrollable_view.dart';
 import '../widgets/async_states.dart';
 import '../widgets/load_more.dart';
 import '../widgets/media_grid.dart';
 import 'album_screen.dart';
 import 'search_screen.dart';
+
+/// Asks which day to start the timeline at, and starts it there.
+///
+/// The library's span is not known to the app — no query reports the oldest
+/// photo — so the picker is opened on the whole range a camera date can
+/// plausibly fall in.
+Future<void> _jumpToDay(BuildContext context, WidgetRef ref) async {
+  final now = DateTime.now();
+  final chosen = await showDatePicker(
+    context: context,
+    initialDate: ref.read(timelineFromDayProvider) ?? now,
+    firstDate: DateTime(1900),
+    // Photos can carry a date in the future — a camera with the wrong clock,
+    // or a library built for testing — and a picker that refuses to show them
+    // would hide media the timeline does list.
+    lastDate: DateTime(now.year + 1, 12, 31),
+  );
+
+  if (chosen == null) return;
+  ref.read(timelineFromDayProvider.notifier).state = chosen;
+}
+
+/// Says that the timeline no longer starts at the newest photo, and takes it
+/// back there.
+class _FromDayBanner extends ConsumerWidget {
+  final DateTime day;
+
+  const _FromDayBanner({required this.day});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+      child: Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: InputChip(
+          avatar: const Icon(Icons.event, size: 18),
+          label: Text(l10n.timelineFromDay(formatDay(day))),
+          onDeleted: () =>
+              ref.read(timelineFromDayProvider.notifier).state = null,
+          deleteIcon: const Icon(Icons.close, size: 18),
+          tooltip: l10n.timelineBackToNewest,
+        ),
+      ),
+    );
+  }
+}
 
 class TimelineScreen extends ConsumerWidget {
   const TimelineScreen({super.key});
@@ -27,7 +77,7 @@ class TimelineScreen extends ConsumerWidget {
         child: LoadMoreOnScroll(
           hasMore: timeline.valueOrNull?.hasMore ?? false,
           onLoadMore: () => ref.read(timelineProvider.notifier).loadMore(),
-          child: CustomScrollView(
+          child: ScrollableView(
           // Without this, a timeline that fits on screen — empty, still
           // loading, or showing an error — cannot be overscrolled, so the
           // pull-to-refresh gesture never fires exactly when it is wanted most.
@@ -39,11 +89,18 @@ class TimelineScreen extends ConsumerWidget {
               snap: true,
               actions: [
                 IconButton(
+                  icon: const Icon(Icons.event),
+                  tooltip: AppLocalizations.of(context).timelineJumpToDay,
+                  onPressed: () => _jumpToDay(context, ref),
+                ),
+                IconButton(
                   icon: const Icon(Icons.search),
                   onPressed: () => showPhotoviewSearch(context),
                 ),
               ],
             ),
+            if (ref.watch(timelineFromDayProvider) case final day?)
+              SliverToBoxAdapter(child: _FromDayBanner(day: day)),
             ...timeline.when(
               loading: () => [
                 const SliverFillRemaining(

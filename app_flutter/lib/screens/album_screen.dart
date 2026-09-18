@@ -7,6 +7,7 @@ import '../l10n/error_messages.dart';
 import '../state/capabilities.dart';
 import '../state/library.dart';
 import '../state/scanner.dart';
+import '../widgets/scrollable_view.dart';
 import '../widgets/album_download.dart';
 import '../widgets/album_grid.dart';
 import '../widgets/async_states.dart';
@@ -93,7 +94,7 @@ class AlbumScreen extends ConsumerWidget {
             hasMore: data.hasMore,
             onLoadMore: () =>
                 ref.read(albumProvider(albumId).notifier).loadMore(),
-            child: CustomScrollView(
+            child: ScrollableView(
             slivers: [
               if (data.subAlbums.isNotEmpty)
                 SliverPadding(
