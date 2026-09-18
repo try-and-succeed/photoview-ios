@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -56,6 +58,14 @@ class _RecordingStore extends TrustedCertificateStore {
   Future<void> trust(TrustedCertificate certificate) async {
     trusted.add(certificate);
   }
+}
+
+/// Holds the write open, so the screen can be left while it is in flight.
+class _SlowStore extends TrustedCertificateStore {
+  final finished = Completer<void>();
+
+  @override
+  Future<void> trust(TrustedCertificate certificate) => finished.future;
 }
 
 void main() {
@@ -123,6 +133,55 @@ void main() {
       container.read(tlsTrustGenerationProvider),
       1,
       reason: 'other screens have no other way of learning about it',
+    );
+  });
+
+  testWidgets('leaving the screen mid-write still tells the rest of the app', (
+    tester,
+  ) async {
+    // Storing the certificate takes a moment, and a tab switch in that moment
+    // used to skip the notification: the certificate was trusted, and every
+    // other screen stayed stuck on it anyway.
+    final store = _SlowStore();
+    final container = ProviderContainer(
+      overrides: [trustedCertificatesProvider.overrideWithValue(store)],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: localizedApp(
+          home: Scaffold(
+            body: CertificateErrorMessage(
+              endpoint: Uri.parse('https://photoview.lan/api/graphql'),
+              probe: (_) async => _certificate,
+              confirm: (_, _, {bool replacesTrusted = false}) async => true,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Review certificate'));
+    await tester.pump();
+
+    // Gone while the write is still running.
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: localizedApp(home: const Scaffold(body: SizedBox.shrink())),
+      ),
+    );
+    expect(find.byType(CertificateErrorMessage), findsNothing);
+
+    store.finished.complete();
+    await tester.pumpAndSettle();
+
+    expect(
+      container.read(tlsTrustGenerationProvider),
+      1,
+      reason: 'the certificate was stored, so the other screens must hear of it',
     );
   });
 

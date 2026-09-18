@@ -54,6 +54,10 @@ class _CertificateErrorMessageState
       _note = null;
     });
 
+    // Taken now, while this widget is certainly alive. It is used after the
+    // storage write, which is a point `ref.read` may no longer be reached from.
+    final trustGeneration = ref.read(tlsTrustGenerationProvider.notifier);
+
     try {
       final certificate = await widget.probe(widget.endpoint);
       if (!mounted) return;
@@ -94,12 +98,15 @@ class _CertificateErrorMessageState
       }
 
       await store.trust(certificate);
+
+      // Before the `mounted` check, not after: the certificate is stored by
+      // now, and every other screen that failed on it is still holding that
+      // failure. Leaving this screen while the write was in flight — a tab
+      // switch is enough — would otherwise leave them stuck on a certificate
+      // the app has since accepted.
+      trustGeneration.state++;
+
       if (!mounted) return;
-
-      // Every other screen that failed on this certificate is still holding
-      // that failure; this is what sends them back to the server.
-      ref.read(tlsTrustGenerationProvider.notifier).state++;
-
       widget.onRetry?.call();
     } catch (error) {
       // Storing the decision can fail — secure storage is not guaranteed to be
