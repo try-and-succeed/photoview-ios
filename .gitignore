@@ -30,9 +30,8 @@ app_flutter/lib/l10n/app_localizations*.dart
 
 # Local working files
 #
-# The handoff guide is a personal planning document for the server work and is
-# deliberately not part of this repository; logcat.bat is a local helper.
-HANDOFF_app_guide.md
+# The handoff is a personal working document and is deliberately not part of
+# this repository; logcat.bat is a local helper.
 HANDOFF_flutter_app.md
 logcat.bat
 .claude/settings.local.json
