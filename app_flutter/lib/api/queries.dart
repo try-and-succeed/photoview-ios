@@ -174,6 +174,15 @@ query mediaDetails(\$mediaID: ID!) {
       flash
       exposureProgram
     }
+    album {
+      id
+      title
+      # The server's own breadcrumb, root first, ending in the album itself.
+      path {
+        id
+        title
+      }
+    }
     shares {
       id
       token

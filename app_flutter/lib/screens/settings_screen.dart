@@ -252,6 +252,9 @@ class _CertificateAuthoritiesState
     final l10n = AppLocalizations.of(context);
     setState(() => _busy = true);
 
+    // Taken before the picker, while this screen is certainly alive.
+    final trustGeneration = ref.read(tlsTrustGenerationProvider.notifier);
+
     try {
       // Certificate files are not reliably typed by the system picker, so any
       // file is offered and validated after the fact.
@@ -264,8 +267,14 @@ class _CertificateAuthoritiesState
       if (path == null) return;
 
       final imported = await ref.read(trustedCasProvider).import(path);
-      if (!mounted) return;
 
+      // Importing the server's authority is the other way a screen stuck on an
+      // untrusted certificate becomes servable again — and, as in
+      // certificate_error.dart, this happens before the `mounted` check: the
+      // authority is imported by then, whether or not this screen is still up.
+      trustGeneration.state++;
+
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.caNowTrusting(imported.name))),
       );

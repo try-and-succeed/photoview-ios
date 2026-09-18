@@ -27,6 +27,20 @@ final trustedCasProvider = Provider<TrustedCaStore>(
   (ref) => throw StateError('trustedCasProvider must be overridden'),
 );
 
+/// Counts the times the user widened what TLS will accept — a certificate
+/// accepted, an authority imported.
+///
+/// Everything fetched through [ClientRef.guarded] watches this, so one decision
+/// reaches every screen. Before, each screen kept the failure it had already
+/// suffered: accepting the certificate in the album view left Timeline, Places
+/// and People showing the same prompt, for a certificate that was by then
+/// trusted. Pinned certificates are short-lived — Caddy's internal CA reissues
+/// twice a day — so this is the normal course of a working session.
+///
+/// Narrowing trust deliberately does not bump it: dropping a pin should not
+/// send every open screen back to the server to fail.
+final tlsTrustGenerationProvider = StateProvider<int>((ref) => 0);
+
 /// Servers the user has signed into, most recently used first.
 final savedServersProvider = FutureProvider<List<SavedServer>>(
   (ref) => ref.watch(sessionStoreProvider).servers(),
@@ -192,8 +206,12 @@ final clientProvider = Provider<PhotoviewClient?>((ref) {
 /// session changes, which is what keeps the read-based calls current.
 extension ClientRef on Ref {
   /// Valid only inside a provider body.
-  Future<T> guarded<T>(Future<T> Function(PhotoviewClient client) run) =>
-      _guard(watch(clientProvider), run);
+  Future<T> guarded<T>(Future<T> Function(PhotoviewClient client) run) {
+    // Accepting a certificate on one screen has to unblock the others, which
+    // are sitting on a failure that no longer applies.
+    watch(tlsTrustGenerationProvider);
+    return _guard(watch(clientProvider), run);
+  }
 
   /// For calls made after the provider has built.
   Future<T> guardedRead<T>(Future<T> Function(PhotoviewClient client) run) =>
