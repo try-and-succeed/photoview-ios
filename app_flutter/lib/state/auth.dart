@@ -145,9 +145,14 @@ class AuthNotifier extends AsyncNotifier<Session?> {
   /// server the user has since switched away from must not sign them out of
   /// the server they are now looking at.
   Future<void> sessionExpired(Session failed) async {
-    await _dropToken(failed);
+    // Only the token that actually failed. A request can be answered after the
+    // user has signed in again on the same server, and that account is the
+    // same account: without this, a 401 from the sign-in they replaced drops
+    // the token of the one they are using and signs them out of it.
+    await _dropToken(failed, onlyIfCurrent: true);
 
     if (!_isActive(failed.endpoint, failed.username)) return;
+    if (state.valueOrNull?.token != failed.token) return;
 
     ref.read(expiredSessionProvider.notifier).state = failed;
     await _signOut();
@@ -200,8 +205,18 @@ class AuthNotifier extends AsyncNotifier<Session?> {
     state = AsyncData(session);
   }
 
-  Future<void> _dropToken(Session session) async {
-    await ref.read(sessionStoreProvider).dropToken(session.serverId);
+  /// Drops the stored token of [session]'s account.
+  ///
+  /// [onlyIfCurrent] restricts that to the token [session] itself carried, for
+  /// callers reacting to something that happened to one particular sign-in
+  /// rather than to what the user is doing now.
+  Future<void> _dropToken(Session session, {bool onlyIfCurrent = false}) async {
+    await ref
+        .read(sessionStoreProvider)
+        .dropToken(
+          session.serverId,
+          expected: onlyIfCurrent ? session.token : null,
+        );
     ref.invalidate(savedServersProvider);
   }
 }

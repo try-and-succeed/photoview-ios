@@ -60,6 +60,54 @@ void main() {
       expect(servers.last.token, 'token-a');
     });
 
+    test('a late failure of a replaced sign-in leaves the new one alone', () async {
+      // Same server, same user, different token: the account id cannot tell
+      // these apart. A request from the sign-in the user has since replaced
+      // can be answered after the new one is in place, and used to take the
+      // new token with it — signing the user out of the session they were
+      // working in, on a server that was answering perfectly well.
+      await container.read(authProvider.future);
+
+      final replaced = _newer.session!;
+      final current = Session(
+        endpoint: replaced.endpoint,
+        token: 'token-b2',
+        username: replaced.username,
+      );
+      await store.remember(
+        SavedServer(
+          endpoint: current.endpoint,
+          username: current.username,
+          token: current.token,
+          lastUsed: DateTime(2026, 7, 1),
+        ),
+      );
+      await container.read(authProvider.notifier).openSaved(
+        SavedServer(
+          endpoint: current.endpoint,
+          username: current.username,
+          token: current.token,
+          lastUsed: DateTime(2026, 7, 1),
+        ),
+      );
+
+      await container.read(authProvider.notifier).sessionExpired(replaced);
+
+      expect(
+        container.read(sessionProvider)?.token,
+        'token-b2',
+        reason: 'the session the user is in must survive',
+      );
+      expect(container.read(expiredSessionProvider), isNull);
+
+      final servers = await store.servers();
+      expect(
+        servers.firstWhere((s) => s.endpoint.host == 'b').token,
+        'token-b2',
+        reason: 'the stored token belongs to the newer sign-in',
+      );
+    });
+
     test('keeps the active session when an older one failed', () async {
       await container.read(authProvider.future);
 
