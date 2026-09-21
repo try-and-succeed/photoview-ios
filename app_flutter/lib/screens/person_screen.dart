@@ -27,7 +27,6 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
   bool _busy = false;
 
   Future<void> _rename() async {
-    final l10n = AppLocalizations.of(context);
     final name = await showDialog<String>(
       context: context,
       builder: (context) => _NameDialog(initial: _label),
@@ -36,7 +35,18 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
     // Null is "cancelled"; an empty string is "remove the name", which the
     // server takes as a null label.
     if (name == null || !mounted) return;
-    final label = name.trim().isEmpty ? null : name.trim();
+
+    await _store(name.trim().isEmpty ? null : name.trim());
+  }
+
+  /// Sends one already-chosen name to the server.
+  ///
+  /// Separate from asking for it so that a retry repeats the sending alone. A
+  /// retry that started over at the dialog would make the user type a name
+  /// they have just typed, having answered a question about a certificate
+  /// they did not expect either.
+  Future<void> _store(String? label) async {
+    final l10n = AppLocalizations.of(context);
 
     setState(() => _busy = true);
     try {
@@ -54,7 +64,7 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
           ref,
           error: error,
           message: l10n.personNameFailed,
-          retry: () => _rename(),
+          retry: () => _store(label),
         );
       }
     } finally {
