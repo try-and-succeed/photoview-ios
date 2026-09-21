@@ -111,6 +111,44 @@ void main() {
     expect(find.text('Unlabeled'), findsOneWidget);
   });
 
+  testWidgets('retrying sends the name already typed, with no second dialog', (
+    tester,
+  ) async {
+    // The retry must repeat the sending, not the asking: the user has typed
+    // the name once and then answered a question about a certificate they did
+    // not expect. Being sent back to an empty dialog is losing the work.
+    //
+    // The probe finds nothing to show here — a widget test has no socket —
+    // which is the second of the two outcomes that try the action again.
+    final client = _NamingClient()
+      ..failWith = CertificateNotTrustedException(_session.endpoint);
+
+    await _openPerson(tester, client);
+
+    await tester.tap(find.byIcon(Icons.edit_outlined));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Regina');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(client.calls, [('7', 'Regina')], reason: 'the first attempt failed');
+    expect(find.text('Review certificate'), findsOneWidget);
+
+    // The server is reachable again, as it is once the certificate is accepted.
+    client.failWith = null;
+
+    await tester.tap(find.text('Review certificate'));
+    await tester.pumpAndSettle();
+
+    expect(
+      client.calls,
+      [('7', 'Regina'), ('7', 'Regina')],
+      reason: 'the same name goes out again, with no second dialog',
+    );
+    expect(find.byType(TextField), findsNothing, reason: 'no dialog reopened');
+    expect(find.text('Regina'), findsOneWidget);
+  });
+
   testWidgets('Remove is not offered for a person who has no name', (
     tester,
   ) async {

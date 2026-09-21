@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/capabilities.dart';
 import '../l10n/app_localizations.dart';
-import '../l10n/error_messages.dart';
 import '../state/capabilities.dart';
 import '../state/library.dart';
 import '../state/scanner.dart';
+import '../widgets/action_failure.dart';
 import '../widgets/scrollable_view.dart';
 import '../widgets/album_download.dart';
 import '../widgets/album_grid.dart';
@@ -37,20 +37,33 @@ class AlbumScreen extends ConsumerWidget {
 
     try {
       await ref.read(scannerProvider.notifier).scanAlbum(albumId);
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(l10n.albumScanStarted),
-          action: SnackBarAction(
-            label: l10n.actionShow,
-            onPressed: () => showScanner(navigator),
+
+      // One message at a time: tapping twice otherwise queues two identical
+      // answers, and a later failure waits behind them.
+      messenger
+        ..removeCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(l10n.albumScanStarted),
+            action: SnackBarAction(
+              label: l10n.actionShow,
+              onPressed: () => showScanner(navigator),
+            ),
           ),
-        ),
-      );
+        );
     } catch (error) {
-      // Deliberately not retried: the server may already have accepted the
-      // request, and a second one would run all the same.
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.albumScanFailed(describeError(error, l10n)))),
+      if (!context.mounted) return;
+
+      // Never retried on its own: the server may already have accepted the
+      // request, and a second one would run all the same. Accepting a
+      // certificate is the user asking for exactly that, so that path — and
+      // only that one — tries again.
+      await showActionFailure(
+        context,
+        ref,
+        error: error,
+        message: l10n.albumScanFailed,
+        retry: () => _scan(context, ref),
       );
     }
   }
