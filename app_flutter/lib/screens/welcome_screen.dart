@@ -71,6 +71,22 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
     }
   }
 
+  /// Puts a signed-out server back into the form, so only the password is
+  /// left to type.
+  void _signInAgain(SavedServer server) {
+    if (_connecting) return;
+
+    setState(() {
+      _addingServer = true;
+      _error = null;
+      _instance.text = server.instanceUrl.toString();
+      _username.text = server.username;
+      _password.clear();
+    });
+
+    _passwordFocus.requestFocus();
+  }
+
   Future<void> _openSaved(SavedServer server) async {
     if (_connecting) return;
 
@@ -201,8 +217,17 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final servers = ref.watch(savedServersProvider).valueOrNull ?? const [];
+    final saved = ref.watch(savedServersProvider);
+    final servers = saved.valueOrNull ?? const <SavedServer>[];
     final expired = ref.watch(expiredSessionProvider);
+
+    // Reading the secure store takes a moment. Without this the first frame
+    // has no servers yet and so shows the sign-in form, which then swaps
+    // itself out for the list — and on a slow read the user has already
+    // started typing into a form that is about to disappear.
+    if (saved.isLoading && !saved.hasValue) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
     // An expired session drops straight to the form with its details filled
     // in, so only the password has to be typed.
@@ -235,7 +260,9 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                       _SavedServerTile(
                         server: server,
                         enabled: !_connecting,
-                        onOpen: () => _openSaved(server),
+                        onOpen: () => server.hasToken
+                            ? _openSaved(server)
+                            : _signInAgain(server),
                         onForget: () => _forget(server),
                       ),
                     const SizedBox(height: 12),
@@ -428,14 +455,23 @@ class _SavedServerTile extends StatelessWidget {
     final theme = Theme.of(context);
     final username = server.username;
 
+    final details = username.isEmpty
+        ? server.endpoint.scheme
+        : '$username · ${server.endpoint.scheme}';
+
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         enabled: enabled,
-        leading: Icon(Icons.dns, color: theme.colorScheme.primary),
+        leading: Icon(
+          server.hasToken ? Icons.dns : Icons.lock_outline,
+          color: theme.colorScheme.primary,
+        ),
         title: Text(server.label),
         subtitle: Text(
-          username.isEmpty ? server.endpoint.scheme : '$username · ${server.endpoint.scheme}',
+          server.hasToken
+              ? details
+              : '$details · ${AppLocalizations.of(context).welcomeServerNeedsPassword}',
         ),
         onTap: enabled ? onOpen : null,
         trailing: IconButton(

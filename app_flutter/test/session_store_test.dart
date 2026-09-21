@@ -36,8 +36,11 @@ void main() {
       final recent = await store.mostRecent();
       expect(recent, isNotNull);
       expect(recent!.username, 'admin');
-      expect(recent.session.token, 'tok');
-      expect(recent.session.endpoint.toString(), 'http://host:8081/api/graphql');
+      expect(recent.session?.token, 'tok');
+      expect(
+        recent.session?.endpoint.toString(),
+        'http://host:8081/api/graphql',
+      );
     });
 
     test('keeps the most recently used server first', () async {
@@ -88,6 +91,81 @@ void main() {
       final servers = await store.servers();
       expect(servers, hasLength(1));
       expect(servers.single.endpoint.host, 'b');
+    });
+
+    test('signing out keeps the entry and drops only the token', () async {
+      final store = SessionStore();
+      final a = _server('http://a/api/graphql', 'u', 't1');
+      await store.remember(a);
+
+      await store.dropToken(a.id);
+
+      final servers = await store.servers();
+      expect(servers, hasLength(1), reason: 'the server stays on the list');
+      expect(servers.single.token, isNull);
+      expect(servers.single.username, 'u', reason: 'so only the password is typed');
+      expect(servers.single.hasToken, isFalse);
+      expect(servers.single.session, isNull);
+    });
+
+    test('a signed-out entry keeps its place in the list', () async {
+      final store = SessionStore();
+      final early = DateTime(2026, 1, 1);
+      final later = DateTime(2026, 6, 1);
+      final newer = _server('http://b/api/graphql', 'u', 't2', lastUsed: later);
+
+      await store.remember(_server('http://a/api/graphql', 'u', 't1', lastUsed: early));
+      await store.remember(newer);
+      await store.dropToken(newer.id);
+
+      expect(
+        (await store.servers()).map((s) => s.endpoint.host),
+        ['b', 'a'],
+        reason: 'signing out must not reshuffle the list under the user',
+      );
+    });
+
+    test('is not reopened on launch once signed out', () async {
+      final store = SessionStore();
+      final early = DateTime(2026, 1, 1);
+      final later = DateTime(2026, 6, 1);
+      final newer = _server('http://b/api/graphql', 'u', 't2', lastUsed: later);
+
+      await store.remember(_server('http://a/api/graphql', 'u', 't1', lastUsed: early));
+      await store.remember(newer);
+      await store.dropToken(newer.id);
+
+      // The most recent entry has no token left, so the next one down is the
+      // one that can actually be opened.
+      expect((await store.mostRecent())?.endpoint.host, 'a');
+
+      await store.dropToken(_server('http://a/api/graphql', 'u', 't1').id);
+      expect(await store.mostRecent(), isNull);
+      expect(await store.servers(), hasLength(2), reason: 'both stay listed');
+    });
+
+    test('dropping a token twice changes nothing', () async {
+      final store = SessionStore();
+      final a = _server('http://a/api/graphql', 'u', 't1');
+      await store.remember(a);
+
+      await store.dropToken(a.id);
+      await store.dropToken(a.id);
+      await store.dropToken('http://nowhere/api/graphql|u');
+
+      expect(await store.servers(), hasLength(1));
+    });
+
+    test('reads back an entry stored without a token', () async {
+      FlutterSecureStorage.setMockInitialValues({
+        'saved-servers':
+            '[{"endpoint":"http://a/api/graphql","username":"u",'
+            '"token":null,"lastUsed":"2026-01-01T00:00:00.000"}]',
+      });
+
+      final servers = await SessionStore().servers();
+      expect(servers, hasLength(1));
+      expect(servers.single.hasToken, isFalse);
     });
 
     test('survives a corrupt stored value', () async {
@@ -159,12 +237,31 @@ void main() {
       expect(restored.username, original.username);
     });
 
-    test('rejects JSON without a usable endpoint or token', () {
+    test('rejects JSON without a usable endpoint', () {
       expect(SavedServer.fromJson({'endpoint': 'nonsense'}), isNull);
-      expect(
-        SavedServer.fromJson({'endpoint': 'https://host/api/graphql'}),
-        isNull,
-      );
+      expect(SavedServer.fromJson({}), isNull);
+    });
+
+    test('keeps an entry whose token is gone', () {
+      // A missing token is not a broken entry: it is a server the user has
+      // signed out of, and dropping it here is what emptied the list.
+      final restored = SavedServer.fromJson({
+        'endpoint': 'https://host/api/graphql',
+        'username': 'admin',
+      });
+
+      expect(restored, isNotNull);
+      expect(restored!.hasToken, isFalse);
+      expect(restored.username, 'admin');
+    });
+
+    test('survives a round trip once signed out', () {
+      final original = _server('https://host/api/graphql', 'admin', 'tok');
+      final restored = SavedServer.fromJson(original.signedOut.toJson());
+
+      expect(restored, isNotNull);
+      expect(restored!.id, original.id);
+      expect(restored.hasToken, isFalse);
     });
   });
 }

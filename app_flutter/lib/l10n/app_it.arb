@@ -13,6 +13,7 @@
   "welcomeConnectSubtitle": "Connettiti alla tua istanza",
   "welcomeChooseServer": "Scegli un server",
   "welcomeAnotherServer": "Altro server",
+  "welcomeServerNeedsPassword": "Password richiesta",
   "welcomeInstanceLabel": "Istanza",
   "loginUsername": "Username",
   "loginPassword": "Password",

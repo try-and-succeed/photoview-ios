@@ -13,6 +13,7 @@
   "welcomeConnectSubtitle": "Підключіться до свого сервера",
   "welcomeChooseServer": "Оберіть сервер",
   "welcomeAnotherServer": "Інший сервер",
+  "welcomeServerNeedsPassword": "Потрібен пароль",
   "welcomeInstanceLabel": "Адреса сервера",
   "loginUsername": "Імʼя користувача",
   "loginPassword": "Пароль",

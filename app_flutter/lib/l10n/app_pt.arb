@@ -13,6 +13,7 @@
   "welcomeConnectSubtitle": "Ligue-se à sua instância",
   "welcomeChooseServer": "Escolha um servidor",
   "welcomeAnotherServer": "Outro servidor",
+  "welcomeServerNeedsPassword": "Palavra-passe necessária",
   "welcomeInstanceLabel": "Instância",
   "loginUsername": "Nome de utilizador",
   "loginPassword": "Palavra-passe",

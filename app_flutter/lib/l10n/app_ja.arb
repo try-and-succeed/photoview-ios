@@ -13,6 +13,7 @@
   "welcomeConnectSubtitle": "インスタンスに接続",
   "welcomeChooseServer": "サーバーを選択",
   "welcomeAnotherServer": "別のサーバー",
+  "welcomeServerNeedsPassword": "パスワードが必要です",
   "welcomeInstanceLabel": "インスタンス",
   "loginUsername": "ユーザー名",
   "loginPassword": "パスワード",

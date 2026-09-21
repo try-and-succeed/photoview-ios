@@ -13,6 +13,7 @@
   "welcomeConnectSubtitle": "Konektatu zure instantziara",
   "welcomeChooseServer": "Aukeratu zerbitzari bat",
   "welcomeAnotherServer": "Beste zerbitzari bat",
+  "welcomeServerNeedsPassword": "Pasahitza behar da",
   "welcomeInstanceLabel": "Instantzia",
   "loginUsername": "Erabiltzailea",
   "loginPassword": "Pasahitza",

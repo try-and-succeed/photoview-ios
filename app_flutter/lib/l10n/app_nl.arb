@@ -13,6 +13,7 @@
   "welcomeConnectSubtitle": "Verbind met je instantie",
   "welcomeChooseServer": "Kies een server",
   "welcomeAnotherServer": "Andere server",
+  "welcomeServerNeedsPassword": "Wachtwoord vereist",
   "welcomeInstanceLabel": "Instantie",
   "loginUsername": "Gebruikersnaam",
   "loginPassword": "Wachtwoord",

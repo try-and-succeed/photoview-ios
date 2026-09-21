@@ -13,6 +13,7 @@
   "welcomeConnectSubtitle": "Anslut till din instans",
   "welcomeChooseServer": "Välj en server",
   "welcomeAnotherServer": "En annan server",
+  "welcomeServerNeedsPassword": "Lösenord krävs",
   "welcomeInstanceLabel": "Instans",
   "loginUsername": "Användarnamn",
   "loginPassword": "Lösenord",

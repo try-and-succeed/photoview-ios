@@ -13,6 +13,7 @@
   "welcomeConnectSubtitle": "连接到你的实例",
   "welcomeChooseServer": "选择服务器",
   "welcomeAnotherServer": "其他服务器",
+  "welcomeServerNeedsPassword": "需要密码",
   "welcomeInstanceLabel": "实例地址",
   "loginUsername": "用户名",
   "loginPassword": "密码",

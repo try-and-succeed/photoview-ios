@@ -13,6 +13,7 @@
   "welcomeConnectSubtitle": "Connectez-vous à votre instance",
   "welcomeChooseServer": "Choisissez un serveur",
   "welcomeAnotherServer": "Autre serveur",
+  "welcomeServerNeedsPassword": "Mot de passe requis",
   "welcomeInstanceLabel": "Instance",
   "loginUsername": "Nom d'utilisateur",
   "loginPassword": "Mot de passe",

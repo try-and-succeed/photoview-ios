@@ -13,6 +13,7 @@
   "welcomeConnectSubtitle": "Opret forbindelse til din instans",
   "welcomeChooseServer": "Vælg en server",
   "welcomeAnotherServer": "En anden server",
+  "welcomeServerNeedsPassword": "Adgangskode påkrævet",
   "welcomeInstanceLabel": "Instans",
   "loginUsername": "Brugernavn",
   "loginPassword": "Adgangskode",

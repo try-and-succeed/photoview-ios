@@ -13,6 +13,7 @@
   "welcomeConnectSubtitle": "Sunucunuza bağlanın",
   "welcomeChooseServer": "Bir sunucu seçin",
   "welcomeAnotherServer": "Başka bir sunucu",
+  "welcomeServerNeedsPassword": "Parola gerekli",
   "welcomeInstanceLabel": "Sunucu adresi",
   "loginUsername": "Kullanıcı adı",
   "loginPassword": "Parola",

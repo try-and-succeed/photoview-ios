@@ -13,6 +13,7 @@
   "welcomeConnectSubtitle": "Mit deiner Instanz verbinden",
   "welcomeChooseServer": "Server auswählen",
   "welcomeAnotherServer": "Anderer Server",
+  "welcomeServerNeedsPassword": "Passwort erforderlich",
   "welcomeInstanceLabel": "Instanz",
   "loginUsername": "Benutzername",
   "loginPassword": "Passwort",
