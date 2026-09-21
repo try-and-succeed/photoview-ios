@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../api/trusted_certificates.dart';
 import '../l10n/app_localizations.dart';
 import '../l10n/error_messages.dart';
-import '../state/auth.dart';
-import 'certificate_dialog.dart';
+import 'certificate_review.dart';
 
 /// Shown when a request failed because the server's certificate is not
 /// trusted, with a way to look at it and accept it.
@@ -22,13 +20,8 @@ class CertificateErrorMessage extends ConsumerStatefulWidget {
 
   /// Seams for the test, which can neither open a socket nor tap a dialog.
   /// Both default to the real thing.
-  final Future<TrustedCertificate?> Function(Uri) probe;
-  final Future<bool> Function(
-    BuildContext,
-    TrustedCertificate, {
-    bool replacesTrusted,
-  })
-  confirm;
+  final CertificateProbe probe;
+  final CertificateConfirm confirm;
 
   const CertificateErrorMessage({
     super.key,
@@ -54,69 +47,42 @@ class _CertificateErrorMessageState
       _note = null;
     });
 
-    // Taken now, while this widget is certainly alive. It is used after the
-    // storage write, which is a point `ref.read` may no longer be reached from.
-    final trustGeneration = ref.read(tlsTrustGenerationProvider.notifier);
-
     try {
-      final certificate = await widget.probe(widget.endpoint);
-      if (!mounted) return;
-
-      // Nothing to show means the certificate now validates on its own — a CA
-      // imported since, say — or that the host cannot be reached. Neither is a
-      // question about a certificate, and trying again settles both: it
-      // succeeds, or it fails with the error that actually applies.
-      if (certificate == null) {
-        final retry = widget.onRetry;
-        if (retry != null) {
-          retry();
-        } else {
-          setState(
-            () => _note = AppLocalizations.of(
-              context,
-            ).certificateCouldNotRead(widget.endpoint.host),
-          );
-        }
-        return;
-      }
-
-      final store = ref.read(trustedCertificatesProvider);
-      final pinned = store.accepted[certificate.host];
-
-      final accepted = await widget.confirm(
-        context,
-        certificate,
-        replacesTrusted: pinned != null && pinned != certificate.sha256,
+      final review = await reviewCertificate(
+        context: context,
+        ref: ref,
+        endpoint: widget.endpoint,
+        probe: widget.probe,
+        confirm: widget.confirm,
       );
       if (!mounted) return;
 
-      if (!accepted) {
-        setState(
-          () => _note = AppLocalizations.of(context).certificateNotAccepted,
-        );
-        return;
-      }
-
-      await store.trust(certificate);
-
-      // Before the `mounted` check, not after: the certificate is stored by
-      // now, and every other screen that failed on it is still holding that
-      // failure. Leaving this screen while the write was in flight — a tab
-      // switch is enough — would otherwise leave them stuck on a certificate
-      // the app has since accepted.
-      trustGeneration.state++;
-
-      if (!mounted) return;
-      widget.onRetry?.call();
-    } catch (error) {
-      // Storing the decision can fail — secure storage is not guaranteed to be
-      // writable. Without this the button simply came back and the user tried
-      // again forever, never told that the certificate was not saved.
-      if (mounted) {
-        final l10n = AppLocalizations.of(context);
-        setState(
-          () => _note = l10n.certificateTrustFailed(describeError(error, l10n)),
-        );
+      final l10n = AppLocalizations.of(context);
+      switch (review.outcome) {
+        case CertificateReview.trusted:
+          widget.onRetry?.call();
+        case CertificateReview.nothingToShow:
+          // Nothing to show is not a question about a certificate, and trying
+          // again settles it: the request succeeds, or it fails with the error
+          // that actually applies.
+          final retry = widget.onRetry;
+          if (retry != null) {
+            retry();
+          } else {
+            setState(
+              () => _note = l10n.certificateCouldNotRead(widget.endpoint.host),
+            );
+          }
+        case CertificateReview.declined:
+          setState(() => _note = l10n.certificateNotAccepted);
+        case CertificateReview.notStored:
+          setState(
+            () => _note = l10n.certificateTrustFailed(
+              describeError(review.error ?? '', l10n),
+            ),
+          );
+        case CertificateReview.abandoned:
+          break;
       }
     } finally {
       if (mounted) setState(() => _busy = false);

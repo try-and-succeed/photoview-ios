@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/models.dart';
 import '../l10n/app_localizations.dart';
-import '../l10n/error_messages.dart';
 import '../state/library.dart';
+import '../widgets/action_failure.dart';
 import '../widgets/scrollable_view.dart';
 import '../widgets/async_states.dart';
 import '../widgets/media_grid.dart';
@@ -47,8 +47,14 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
       if (mounted) setState(() => _label = stored);
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.personNameFailed(describeError(error, l10n)))),
+        // Renaming is the one thing on this screen that writes to the server,
+        // so it is the one that discovers a certificate reissued overnight.
+        await showActionFailure(
+          context,
+          ref,
+          error: error,
+          message: l10n.personNameFailed,
+          retry: () => _rename(),
         );
       }
     } finally {

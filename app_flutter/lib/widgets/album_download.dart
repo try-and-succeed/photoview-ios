@@ -9,6 +9,7 @@ import '../l10n/app_localizations.dart';
 import '../l10n/error_messages.dart';
 import '../state/auth.dart';
 import '../util/formatting.dart';
+import 'action_failure.dart';
 import 'download_button.dart';
 
 /// Downloads a whole album as one ZIP of its originals and saves it into a
@@ -57,8 +58,18 @@ Future<void> downloadAlbum(
   }
 
   if (outcome != null) {
-    messenger.showSnackBar(
-      SnackBar(content: Text(l10n.albumDownloadFailed(describeError(outcome, l10n)))),
+    if (!context.mounted) return;
+
+    // The same dead end as a failed scan: a certificate that has been reissued
+    // since the app was last awake fails every request, and a message about it
+    // is of no use without a way to look at the certificate.
+    await showActionFailure(
+      context,
+      ref,
+      error: outcome,
+      message: l10n.albumDownloadFailed,
+      retry: () =>
+          downloadAlbum(context, ref, albumId: albumId, albumTitle: albumTitle),
     );
   }
 }
