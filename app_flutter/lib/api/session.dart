@@ -4,6 +4,36 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'secure_storage.dart';
 
+/// Identity of an account on a server, as [Session.serverId] and
+/// [SavedServer.id] both report it.
+///
+/// One spelling, used from both: a second one would file what is remembered
+/// about a server under a key nothing ever reads back.
+String serverIdOf(Uri endpoint, String username) => '$endpoint|$username';
+
+/// The address the user originally typed, recovered from the resolved
+/// endpoint by dropping the `graphql` segment and an `api` prefix.
+///
+/// Feeding the raw endpoint back into a sign-in form would append a second
+/// `graphql` segment, so anything user-facing goes through here. A saved
+/// server needs it without having a session — that is the whole point of
+/// signing out — which is why it does not live on [Session].
+Uri instanceUrlOf(Uri endpoint) => endpoint.replace(
+  pathSegments: instanceSegmentsOf(endpoint),
+  query: null,
+  fragment: null,
+);
+
+List<String> instanceSegmentsOf(Uri endpoint) {
+  final segments = List<String>.from(endpoint.pathSegments)
+    ..removeWhere((s) => s.isEmpty);
+
+  if (segments.isNotEmpty && segments.last == 'graphql') segments.removeLast();
+  if (segments.isNotEmpty && segments.last == 'api') segments.removeLast();
+
+  return segments;
+}
+
 /// Credentials for a signed-in Photoview instance.
 ///
 /// [endpoint] is the resolved GraphQL endpoint (e.g. `https://host/api/graphql`).
@@ -42,34 +72,18 @@ class Session {
   ///
   /// Anything remembered per server — the saved sign-in, what the server can
   /// do — is filed under this, so two users on one instance and one user on
-  /// two instances all stay separate. Defined once because a second spelling
-  /// of it would silently look up a different entry.
-  String get serverId => '$endpoint|$username';
+  /// two instances all stay separate.
+  String get serverId => serverIdOf(endpoint, username);
 
-  /// The address the user originally typed, recovered from the resolved
-  /// endpoint by dropping the `graphql` segment and an `api` prefix.
-  ///
-  /// Feeding the raw endpoint back into a sign-in form would append a second
-  /// `graphql` segment, so anything user-facing goes through here.
-  Uri get instanceUrl =>
-      endpoint.replace(pathSegments: _instanceSegments, query: null, fragment: null);
+  /// The address the user originally typed. See [instanceUrlOf].
+  Uri get instanceUrl => instanceUrlOf(endpoint);
 
   /// Public share link for a token, e.g. `https://host/share/rMHkKhmX`.
   Uri shareUrl(String shareToken) => endpoint.replace(
-    pathSegments: [..._instanceSegments, 'share', shareToken],
+    pathSegments: [...instanceSegmentsOf(endpoint), 'share', shareToken],
     query: null,
     fragment: null,
   );
-
-  List<String> get _instanceSegments {
-    final segments = List<String>.from(endpoint.pathSegments)
-      ..removeWhere((s) => s.isEmpty);
-
-    if (segments.isNotEmpty && segments.last == 'graphql') segments.removeLast();
-    if (segments.isNotEmpty && segments.last == 'api') segments.removeLast();
-
-    return segments;
-  }
 }
 
 /// The secure store could not be read, as opposed to being empty.
@@ -87,10 +101,16 @@ class StorageUnavailable implements Exception {
 
 /// A server the user has signed into before, kept so it can be reopened with
 /// a tap. Only the auth token is stored — never the password.
+///
+/// [token] is null once the user has signed out of this server, or once the
+/// server rejected what was stored. The entry stays either way: the address
+/// and the user name are what makes signing back in one field of typing, and
+/// dropping the whole entry left the user staring at an empty sign-in form
+/// with no hint of the server they had just been using.
 class SavedServer {
   final Uri endpoint;
   final String username;
-  final String token;
+  final String? token;
   final DateTime lastUsed;
 
   const SavedServer({
@@ -102,20 +122,40 @@ class SavedServer {
 
   /// Identity of the account on the server, so the same user on two instances
   /// (or two users on one) stay separate entries.
-  String get id => session.serverId;
+  String get id => serverIdOf(endpoint, username);
 
-  Session get session =>
-      Session(endpoint: endpoint, token: token, username: username);
+  /// Whether this entry can be opened without asking for a password.
+  bool get hasToken => token != null;
+
+  /// The session this entry opens, or null if it has no token left.
+  Session? get session {
+    final token = this.token;
+    return token == null
+        ? null
+        : Session(endpoint: endpoint, token: token, username: username);
+  }
+
+  /// The address to put back into the sign-in form. See [instanceUrlOf].
+  Uri get instanceUrl => instanceUrlOf(endpoint);
 
   /// Host and port, which is what distinguishes instances in the list.
   String get label =>
       endpoint.hasPort ? '${endpoint.host}:${endpoint.port}' : endpoint.host;
 
-  SavedServer withToken(String newToken) => SavedServer(
+  SavedServer withToken(String? newToken) => SavedServer(
     endpoint: endpoint,
     username: username,
     token: newToken,
     lastUsed: DateTime.now(),
+  );
+
+  /// The same entry with its token dropped, keeping [lastUsed] so signing out
+  /// does not reshuffle the list under the user.
+  SavedServer get signedOut => SavedServer(
+    endpoint: endpoint,
+    username: username,
+    token: null,
+    lastUsed: lastUsed,
   );
 
   Map<String, dynamic> toJson() => {
@@ -125,15 +165,18 @@ class SavedServer {
     'lastUsed': lastUsed.toIso8601String(),
   };
 
+  /// Reads an entry, or null if it carries no usable address.
+  ///
+  /// A missing token is not a reason to drop the entry — that is what a
+  /// signed-out server looks like.
   static SavedServer? fromJson(Map<String, dynamic> json) {
     final endpoint = Uri.tryParse(json['endpoint'] as String? ?? '');
-    final token = json['token'] as String?;
-    if (endpoint == null || !endpoint.hasScheme || token == null) return null;
+    if (endpoint == null || !endpoint.hasScheme) return null;
 
     return SavedServer(
       endpoint: endpoint,
       username: json['username'] as String? ?? '',
-      token: token,
+      token: json['token'] as String?,
       lastUsed:
           DateTime.tryParse(json['lastUsed'] as String? ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0),
@@ -198,9 +241,14 @@ class SessionStore {
   }
 
   /// The server to reopen on launch.
+  ///
+  /// Only an entry that still has a token: a signed-out server is remembered
+  /// so it can be offered, not so the app signs itself back in.
   Future<SavedServer?> mostRecent() async {
-    final saved = await servers();
-    return saved.isEmpty ? null : saved.first;
+    for (final server in await servers()) {
+      if (server.hasToken) return server;
+    }
+    return null;
   }
 
   /// Adds the server, or replaces the entry for the same account, and marks it
@@ -223,6 +271,22 @@ class SessionStore {
   Future<void> forget(String id) async {
     final saved = await _serversForWrite();
     saved.removeWhere((s) => s.id == id);
+    await _write(saved);
+  }
+
+  /// Drops the token of one entry, keeping the entry itself.
+  ///
+  /// What signing out has to accomplish is that the stored token is gone; the
+  /// address and user name are not secrets, and throwing them away only means
+  /// the user types them again.
+  Future<void> dropToken(String id) async {
+    final saved = await _serversForWrite();
+
+    final index = saved.indexWhere((s) => s.id == id);
+    if (index < 0) return;
+    if (!saved[index].hasToken) return;
+
+    saved[index] = saved[index].signedOut;
     await _write(saved);
   }
 

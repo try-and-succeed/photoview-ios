@@ -116,9 +116,14 @@ class AuthNotifier extends AsyncNotifier<Session?> {
 
   /// Drops the current server's saved token, so signing in needs the password
   /// again.
+  ///
+  /// The entry itself stays in the list. Removing it is what the "forget"
+  /// action on the welcome screen is for; signing out and finding the server
+  /// gone — or, with only one server saved, finding a blank sign-in form —
+  /// was the complaint this fixes.
   Future<void> logOut() async {
     final active = state.valueOrNull;
-    if (active != null) await _forgetSession(active);
+    if (active != null) await _dropToken(active);
 
     await _signOut();
   }
@@ -131,15 +136,16 @@ class AuthNotifier extends AsyncNotifier<Session?> {
     if (_isActive(server.endpoint, server.username)) await _signOut();
   }
 
-  /// The server rejected the token used by [failed]. Forget that entry rather
-  /// than leave one that fails every time it is tapped.
+  /// The server rejected the token used by [failed]. Drop that token rather
+  /// than leave an entry that fails every time it is tapped.
   ///
-  /// [failed] is the session whose request actually failed, which is not
-  /// necessarily the active one: a late response from a server the user has
-  /// since switched away from must not sign them out of the server they are
-  /// now looking at.
+  /// The entry stays, now asking for a password — which is exactly what an
+  /// expired token means. [failed] is the session whose request actually
+  /// failed, which is not necessarily the active one: a late response from a
+  /// server the user has since switched away from must not sign them out of
+  /// the server they are now looking at.
   Future<void> sessionExpired(Session failed) async {
-    await _forgetSession(failed);
+    await _dropToken(failed);
 
     if (!_isActive(failed.endpoint, failed.username)) return;
 
@@ -180,13 +186,22 @@ class AuthNotifier extends AsyncNotifier<Session?> {
       remembered = server;
     }
 
+    final session = remembered.session;
+    if (session == null) {
+      // Only reachable by asking to open an entry that has no token, which the
+      // welcome screen sends to the sign-in form instead. Loud, because the
+      // quiet version of this is `AsyncData(null)` — a sign-out that looks
+      // exactly like a successful sign-in that did nothing.
+      throw StateError('Cannot open ${remembered.label} without a token');
+    }
+
     ref.invalidate(savedServersProvider);
     ref.read(expiredSessionProvider.notifier).state = null;
-    state = AsyncData(remembered.session);
+    state = AsyncData(session);
   }
 
-  Future<void> _forgetSession(Session session) async {
-    await ref.read(sessionStoreProvider).forget(session.serverId);
+  Future<void> _dropToken(Session session) async {
+    await ref.read(sessionStoreProvider).dropToken(session.serverId);
     ref.invalidate(savedServersProvider);
   }
 }

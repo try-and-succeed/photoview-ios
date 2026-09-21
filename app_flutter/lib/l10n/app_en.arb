@@ -62,6 +62,10 @@
   "@welcomeAnotherServer": {
     "description": "Button below the saved servers that opens the sign-in form for a new one."
   },
+  "welcomeServerNeedsPassword": "Password required",
+  "@welcomeServerNeedsPassword": {
+    "description": "Shown on a saved server whose token is gone, so signing in needs the password again."
+  },
   "welcomeInstanceLabel": "Instance",
   "@welcomeInstanceLabel": {
     "description": "Label of the field for the server address."
@@ -730,9 +734,9 @@
   "@settingsLogOut": {
     "description": "Settings action that signs out."
   },
-  "settingsLogOutSubtitle": "Forgets this saved sign-in",
+  "settingsLogOutSubtitle": "Asks for the password again next time",
   "@settingsLogOutSubtitle": {
-    "description": "Explains that logging out removes the saved sign-in."
+    "description": "Explains that logging out drops the stored token, leaving the server on the list."
   },
   "caPickerTitle": "Select a CA certificate",
   "@caPickerTitle": {
