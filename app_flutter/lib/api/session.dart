@@ -279,14 +279,24 @@ class SessionStore {
   /// What signing out has to accomplish is that the stored token is gone; the
   /// address and user name are not secrets, and throwing them away only means
   /// the user types them again.
-  Future<void> dropToken(String id) async {
+  ///
+  /// [expected] drops the entry's token only if it is still that one. An
+  /// account is identified by server and user name, which is not enough when a
+  /// request is answered late: a 401 belonging to a sign-in the user has since
+  /// replaced would otherwise throw away the token of the session they are
+  /// working in. Sign-out passes nothing, because there the user means the
+  /// token that is there now, whatever it is.
+  Future<void> dropToken(String id, {String? expected}) async {
     final saved = await _serversForWrite();
 
     final index = saved.indexWhere((s) => s.id == id);
     if (index < 0) return;
-    if (!saved[index].hasToken) return;
 
-    saved[index] = saved[index].signedOut;
+    final entry = saved[index];
+    if (!entry.hasToken) return;
+    if (expected != null && entry.token != expected) return;
+
+    saved[index] = entry.signedOut;
     await _write(saved);
   }
 
