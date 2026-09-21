@@ -734,9 +734,9 @@
   "@settingsLogOut": {
     "description": "Settings action that signs out."
   },
-  "settingsLogOutSubtitle": "Forgets this saved sign-in",
+  "settingsLogOutSubtitle": "Asks for the password again next time",
   "@settingsLogOutSubtitle": {
-    "description": "Explains that logging out removes the saved sign-in."
+    "description": "Explains that logging out drops the stored token, leaving the server on the list."
   },
   "caPickerTitle": "Select a CA certificate",
   "@caPickerTitle": {

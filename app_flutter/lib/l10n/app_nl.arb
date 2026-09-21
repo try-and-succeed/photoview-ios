@@ -150,7 +150,7 @@
   "settingsClearImageCache": "Afbeeldingscache wissen",
   "settingsImageCacheCleared": "Afbeeldingscache gewist",
   "settingsLogOut": "Uitloggen",
-  "settingsLogOutSubtitle": "Vergeet deze opgeslagen aanmelding",
+  "settingsLogOutSubtitle": "Vraagt de volgende keer opnieuw om het wachtwoord",
   "caPickerTitle": "Kies een CA-certificaat",
   "caNowTrusting": "{name} wordt nu vertrouwd",
   "caImportFailed": "Importeren mislukt: {error}",

@@ -150,7 +150,7 @@
   "settingsClearImageCache": "Garbitu irudien cachea",
   "settingsImageCacheCleared": "Irudien cachea garbitu da",
   "settingsLogOut": "Amaitu saioa",
-  "settingsLogOutSubtitle": "Gordetako saio hau ahazten du",
+  "settingsLogOutSubtitle": "Hurrengoan pasahitza berriro eskatuko du",
   "caPickerTitle": "Hautatu CA ziurtagiri bat",
   "caNowTrusting": "Orain {name} fidagarritzat jotzen da",
   "caImportFailed": "Inportazioak huts egin du: {error}",

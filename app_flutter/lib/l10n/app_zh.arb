@@ -150,7 +150,7 @@
   "settingsClearImageCache": "清除图片缓存",
   "settingsImageCacheCleared": "图片缓存已清除",
   "settingsLogOut": "登出",
-  "settingsLogOutSubtitle": "移除此已保存的登录",
+  "settingsLogOutSubtitle": "下次将再次要求输入密码",
   "caPickerTitle": "选择 CA 证书",
   "caNowTrusting": "已信任 {name}",
   "caImportFailed": "导入失败：{error}",

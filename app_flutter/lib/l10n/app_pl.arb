@@ -150,7 +150,7 @@
   "settingsClearImageCache": "Wyczyść pamięć podręczną obrazów",
   "settingsImageCacheCleared": "Wyczyszczono pamięć podręczną obrazów",
   "settingsLogOut": "Wyloguj",
-  "settingsLogOutSubtitle": "Usuwa zapisane logowanie",
+  "settingsLogOutSubtitle": "Następnym razem poprosi o hasło",
   "caPickerTitle": "Wybierz certyfikat CA",
   "caNowTrusting": "{name} jest teraz zaufany",
   "caImportFailed": "Import nie powiódł się: {error}",

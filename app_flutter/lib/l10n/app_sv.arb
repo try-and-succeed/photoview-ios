@@ -150,7 +150,7 @@
   "settingsClearImageCache": "Rensa bildcache",
   "settingsImageCacheCleared": "Bildcachen har rensats",
   "settingsLogOut": "Logga ut",
-  "settingsLogOutSubtitle": "Glömmer den sparade inloggningen",
+  "settingsLogOutSubtitle": "Frågar efter lösenordet igen nästa gång",
   "caPickerTitle": "Välj ett CA-certifikat",
   "caNowTrusting": "{name} är nu betrodd",
   "caImportFailed": "Importen misslyckades: {error}",

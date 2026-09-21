@@ -150,7 +150,7 @@
   "settingsClearImageCache": "Bildcache leeren",
   "settingsImageCacheCleared": "Bildcache geleert",
   "settingsLogOut": "Abmelden",
-  "settingsLogOutSubtitle": "Entfernt diese gespeicherte Anmeldung",
+  "settingsLogOutSubtitle": "Fragt beim nächsten Mal wieder nach dem Passwort",
   "caPickerTitle": "CA-Zertifikat auswählen",
   "caNowTrusting": "{name} gilt jetzt als vertrauenswürdig",
   "caImportFailed": "Import fehlgeschlagen: {error}",

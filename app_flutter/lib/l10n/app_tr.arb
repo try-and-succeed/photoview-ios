@@ -150,7 +150,7 @@
   "settingsClearImageCache": "Görüntü önbelleğini temizle",
   "settingsImageCacheCleared": "Görüntü önbelleği temizlendi",
   "settingsLogOut": "Oturumu kapat",
-  "settingsLogOutSubtitle": "Kayıtlı bu oturumu unutur",
+  "settingsLogOutSubtitle": "Bir dahaki sefere parolayı yeniden sorar",
   "caPickerTitle": "Bir CA sertifikası seçin",
   "caNowTrusting": "{name} artık güvenilir",
   "caImportFailed": "İçe aktarma başarısız: {error}",

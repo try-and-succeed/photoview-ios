@@ -150,7 +150,7 @@
   "settingsClearImageCache": "Ryd billedcache",
   "settingsImageCacheCleared": "Billedcache ryddet",
   "settingsLogOut": "Log ud",
-  "settingsLogOutSubtitle": "Glemmer dette gemte login",
+  "settingsLogOutSubtitle": "Beder om adgangskoden igen næste gang",
   "caPickerTitle": "Vælg et CA-certifikat",
   "caNowTrusting": "Har nu tillid til {name}",
   "caImportFailed": "Import mislykkedes: {error}",

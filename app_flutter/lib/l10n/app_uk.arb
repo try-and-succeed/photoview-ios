@@ -150,7 +150,7 @@
   "settingsClearImageCache": "Очистити кеш зображень",
   "settingsImageCacheCleared": "Кеш зображень очищено",
   "settingsLogOut": "Вийти",
-  "settingsLogOutSubtitle": "Збережений вхід буде видалено",
+  "settingsLogOutSubtitle": "Наступного разу знову запитає пароль",
   "caPickerTitle": "Виберіть сертифікат ЦС",
   "caNowTrusting": "Тепер {name} вважається довіреним",
   "caImportFailed": "Не вдалося імпортувати: {error}",

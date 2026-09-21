@@ -150,7 +150,7 @@
   "settingsClearImageCache": "Limpar a cache de imagens",
   "settingsImageCacheCleared": "Cache de imagens limpa",
   "settingsLogOut": "Sair",
-  "settingsLogOutSubtitle": "Esquece esta sessão guardada",
+  "settingsLogOutSubtitle": "Voltará a pedir a palavra-passe da próxima vez",
   "caPickerTitle": "Selecione um certificado de CA",
   "caNowTrusting": "{name} passa a ser considerado fidedigno",
   "caImportFailed": "A importação falhou: {error}",
