@@ -90,46 +90,55 @@ class AlbumScreen extends ConsumerWidget {
             ),
         ],
       ),
-      body: album.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => ErrorMessage.forError(
-          error,
-          onRetry: () => ref.invalidate(albumProvider(albumId)),
-        ),
-        data: (data) {
-          if (data.subAlbums.isEmpty && data.media.isEmpty) {
-            return EmptyMessage(
-              message: AppLocalizations.of(context).albumEmpty,
-            );
-          }
+      // The one list that had no way to be refreshed. Everything else is
+      // pulled down; here the only way to see that a file had been deleted on
+      // disk was to sign out and back in.
+      body: RefreshIndicator(
+        onRefresh: () async => ref.invalidate(albumProvider(albumId)),
+        child: album.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, _) => ErrorMessage.forError(
+            error,
+            onRetry: () => ref.invalidate(albumProvider(albumId)),
+          ),
+          data: (data) {
+            if (data.subAlbums.isEmpty && data.media.isEmpty) {
+              return EmptyMessage(
+                message: AppLocalizations.of(context).albumEmpty,
+              );
+            }
 
-          return LoadMoreOnScroll(
-            hasMore: data.hasMore,
-            onLoadMore: () =>
-                ref.read(albumProvider(albumId).notifier).loadMore(),
-            child: ScrollableView(
-            slivers: [
-              if (data.subAlbums.isNotEmpty)
-                SliverPadding(
-                  padding: const EdgeInsets.all(16),
-                  sliver: AlbumSliverGrid(albums: data.subAlbums),
-                ),
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                sliver: MediaSliverGrid(media: data.media),
-              ),
-              if (data.loadingMore)
-                const SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Center(child: CircularProgressIndicator()),
+            return LoadMoreOnScroll(
+              hasMore: data.hasMore,
+              onLoadMore: () =>
+                  ref.read(albumProvider(albumId).notifier).loadMore(),
+              child: ScrollableView(
+                // See the note in timeline_screen.dart: a short list would
+                // otherwise refuse the pull-to-refresh gesture.
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  if (data.subAlbums.isNotEmpty)
+                    SliverPadding(
+                      padding: const EdgeInsets.all(16),
+                      sliver: AlbumSliverGrid(albums: data.subAlbums),
+                    ),
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    sliver: MediaSliverGrid(media: data.media),
                   ),
-                ),
-              const SliverToBoxAdapter(child: SizedBox(height: 24)),
-            ],
-            ),
-          );
-        },
+                  if (data.loadingMore)
+                    const SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.all(24),
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
+                    ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }

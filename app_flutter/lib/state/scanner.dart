@@ -7,6 +7,7 @@ import '../api/capabilities.dart';
 import '../api/models.dart';
 import 'auth.dart';
 import 'capabilities.dart';
+import 'library.dart';
 import 'stale_response_guard.dart';
 
 /// How often the queue is re-read while something is in it.
@@ -97,6 +98,11 @@ class ScannerNotifier extends AutoDisposeNotifier<ScannerState>
     ref.onDispose(() {
       _timer?.cancel();
       _lifecycle?.dispose();
+
+      // A server switch rebuilds this notifier; a link held for the old
+      // server's queue would otherwise keep it alive for nothing.
+      _whileScanning?.close();
+      _whileScanning = null;
     });
 
     Future.microtask(refresh);
@@ -124,6 +130,7 @@ class ScannerNotifier extends AutoDisposeNotifier<ScannerState>
       // Forget a stop request once its album has left the queue, so the label
       // does not outlive the job it belonged to.
       final present = jobs.map((j) => j.albumId).toSet();
+      final wasScanning = state.jobs.isNotEmpty;
 
       state = state.copyWith(
         jobs: jobs,
@@ -131,6 +138,9 @@ class ScannerNotifier extends AutoDisposeNotifier<ScannerState>
         isLoading: false,
         clearError: true,
       );
+
+      _pollUntilIdle(jobs.isNotEmpty);
+      if (wasScanning && jobs.isEmpty) _libraryChanged();
     } on UnsupportedFieldException catch (failure) {
       // This server does not have the scanner after all. Record it so the
       // entry points disappear, and stop polling: a field that does not exist
@@ -204,6 +214,41 @@ class ScannerNotifier extends AutoDisposeNotifier<ScannerState>
 
   /// Scan requests still waiting for the server, by session and album.
   final Map<(int, String), Future<String?>> _scansRequested = {};
+
+  /// Holds this notifier alive while the server has work to do.
+  ///
+  /// A scan started from an album screen is a `ref.read`, which leaves nobody
+  /// watching: without this the notifier is disposed the moment the request
+  /// comes back, polling stops, and the end of the scan is never noticed. It
+  /// is exactly then that what the library shows has gone out of date. The
+  /// link is dropped once the queue empties, and polling pauses on its own
+  /// while the app is in the background.
+  KeepAliveLink? _whileScanning;
+
+  void _pollUntilIdle(bool scanning) {
+    if (scanning) {
+      _whileScanning ??= ref.keepAlive();
+      return;
+    }
+
+    _whileScanning?.close();
+    _whileScanning = null;
+  }
+
+  /// A scan has ended, so what was read before it may no longer be true.
+  ///
+  /// Albums are dropped whole — a file deleted on disk stayed on screen until
+  /// the user signed out, because nothing ever asked the server again — and so
+  /// is the album list, whose covers and members change with it.
+  ///
+  /// The timeline and the people list are deliberately left alone: both are
+  /// paginated, both would jump back to the top under a user who may be deep
+  /// in them, and both can be pulled down to refresh. A scan of the benchmark
+  /// library runs for minutes, so it ends at no predictable moment.
+  void _libraryChanged() {
+    ref.invalidate(albumProvider);
+    ref.invalidate(myAlbumsProvider);
+  }
 
   /// Asks the server to stop one album's job.
   ///
