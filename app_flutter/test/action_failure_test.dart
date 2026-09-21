@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -27,6 +29,18 @@ class _RecordingStore extends TrustedCertificateStore {
   @override
   Future<void> trust(TrustedCertificate certificate) async {
     trusted.add(certificate);
+  }
+}
+
+/// Holds the write open, so the screen can be left while it is in flight.
+class _SlowStore extends TrustedCertificateStore {
+  final finished = Completer<void>();
+  final asked = <TrustedCertificate>[];
+
+  @override
+  Future<void> trust(TrustedCertificate certificate) {
+    asked.add(certificate);
+    return finished.future;
   }
 }
 
@@ -203,6 +217,56 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(retried, 1);
+  });
+
+  testWidgets('a screen left while the decision is stored is not retried', (
+    tester,
+  ) async {
+    // Storing takes a moment, and the user can back out of the album in it.
+    // The retry would then run against a context whose screen is gone, and
+    // throw before reaching its own `mounted` check.
+    final store = _SlowStore();
+    var retried = 0;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [trustedCertificatesProvider.overrideWithValue(store)],
+        child: localizedApp(
+          home: _Harness(
+            error: CertificateNotTrustedException(_endpoint),
+            onRetry: () => retried++,
+            probe: (_) async => _certificate,
+            confirm: (_, _, {bool replacesTrusted = false}) async => true,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('act'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Review certificate'));
+    await tester.pump();
+
+    // The screen goes away while the write is still in flight. The same
+    // overrides stay in place: Riverpod refuses to have their number change
+    // under a scope that is being rebuilt rather than replaced.
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [trustedCertificatesProvider.overrideWithValue(store)],
+        child: localizedApp(
+          home: const Scaffold(body: Center(child: Text('gone'))),
+        ),
+      ),
+    );
+    store.finished.complete();
+    await tester.pumpAndSettle();
+
+    expect(
+      store.asked,
+      hasLength(1),
+      reason: 'the decision is stored regardless — other screens need it',
+    );
+    expect(retried, 0, reason: 'nothing to retry on a screen that is gone');
   });
 
   testWidgets('a second failure replaces the first instead of queueing', (

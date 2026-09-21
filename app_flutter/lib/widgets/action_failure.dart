@@ -71,6 +71,13 @@ Future<void> showActionFailure(
             // succeeds or names the error that actually applies.
             case CertificateReview.trusted:
             case CertificateReview.nothingToShow:
+              // Storing the decision takes a moment, and the screen can be
+              // left in it — back out of an album, and the retry would run
+              // against a dead context, which throws before it reaches its
+              // own `mounted` check. The messenger is safe either way: it
+              // lives above the navigator, which is why a message can outlive
+              // the screen that raised it.
+              if (!context.mounted) return;
               await retry?.call();
             case CertificateReview.declined:
               messenger
