@@ -38,14 +38,28 @@ class MediaProxy {
   int _nextId = 0;
 
   /// Registers [mediaUrl] of [session] and returns the address to play.
+  ///
+  /// Refuses anything that does not resolve onto the signed-in instance. The
+  /// URL comes from the server's own answer, and [Session.resolve] takes an
+  /// absolute one as it stands — so a server that named another host would
+  /// have this send the auth cookie there. No Photoview does that; a
+  /// compromised or hostile one would only have to ask.
   Future<Uri> serve(Session session, String mediaUrl) async {
+    final url = session.resolve(mediaUrl);
+    if (!_sameOrigin(url, session.endpoint)) {
+      throw StateError('$mediaUrl is not on ${session.endpoint.host}');
+    }
+
     final server = await _ensureServer();
 
     final id = '${_nextId++}';
-    _targets[id] = _Target(session.resolve(mediaUrl), session.headers);
+    _targets[id] = _Target(url, session.headers);
 
     return Uri.parse('http://127.0.0.1:${server.port}/$_secret/$id');
   }
+
+  static bool _sameOrigin(Uri a, Uri b) =>
+      a.scheme == b.scheme && a.host == b.host && a.port == b.port;
 
   /// Forgets everything registered so far, for a session that has ended.
   void clear() => _targets.clear();

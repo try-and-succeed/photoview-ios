@@ -180,6 +180,32 @@ void main() {
     expect(origin.requests, isEmpty, reason: 'never even asked upstream');
   });
 
+  test('media named on another host is refused, not fetched', () async {
+    // The URL comes from the server's own answer, and an absolute one is taken
+    // as it stands. A server that named another host would otherwise have the
+    // auth cookie sent there.
+    final elsewhere = await _Origin.start();
+    addTearDown(elsewhere.stop);
+
+    await expectLater(
+      proxy.serve(session, 'http://127.0.0.1:${elsewhere.server.port}/steal.mp4'),
+      throwsA(isA<StateError>()),
+    );
+
+    expect(elsewhere.requests, isEmpty, reason: 'not even a request');
+  });
+
+  test('a path on the instance is served, absolute or not', () async {
+    final relative = await proxy.serve(session, '/api/photo/clip.mp4');
+    final absolute = await proxy.serve(
+      session,
+      '${session.endpoint.origin}/api/photo/clip.mp4',
+    );
+
+    expect((await _get(relative)).statusCode, HttpStatus.ok);
+    expect((await _get(absolute)).statusCode, HttpStatus.ok);
+  });
+
   test('two videos share one server', () async {
     final first = await proxy.serve(session, '/api/photo/one.mp4');
     final second = await proxy.serve(session, '/api/photo/two.mp4');
