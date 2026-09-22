@@ -194,6 +194,49 @@ void main() {
     expect(find.text('Show all results'), findsOneWidget);
   });
 
+  testWidgets('a keystroke still in flight does not undo showing all', (
+    tester,
+  ) async {
+    // Submitting with the keyboard leaves the timer from the last keystroke
+    // armed. It fires a moment later with the same words, and used to clear
+    // "show all" with it — so a list the user had just asked to see in full
+    // snapped back to the first few on its own.
+    final client = _CountingSearchClient(available: 300);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authProvider.overrideWith(_FixedAuth.new),
+          clientProvider.overrideWithValue(client),
+          searchLimitProvider.overrideWith(
+            (ref) async =>
+                const SearchLimit(value: 10, source: SearchLimitSource.device),
+          ),
+        ],
+        child: localizedApp(home: const SearchScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'urlaub');
+    await tester.testTextInput.receiveAction(TextInputAction.search);
+
+    // Short of the debounce, so that timer is still out there.
+    for (var i = 0; i < 3; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+
+    await tester.tap(find.text('Show all results'));
+    await tester.pump();
+
+    // Now let the stale timer land.
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Show all results'), findsNothing);
+    expect(client.askedFor.last, maxRenderedSearchResults + 1);
+  });
+
   testWidgets('an unlimited setting has nothing more to offer', (tester) async {
     // Zero means unlimited — measured — so everything is already there.
     final client = _CountingSearchClient(available: 300);

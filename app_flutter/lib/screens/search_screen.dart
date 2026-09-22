@@ -50,10 +50,19 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     });
   }
 
-  void _setQuery(String value) => setState(() {
-    _query = value.trim();
-    _showAll = false;
-  });
+  void _setQuery(String value) {
+    // The timer from the last keystroke is still armed when the user submits
+    // instead of waiting for it. Left running it fires a moment later with
+    // the same words — and clears "show all" again, so a list the user has
+    // just asked to see in full snaps back to the first few.
+    _debounce?.cancel();
+    _debounce = null;
+
+    setState(() {
+      _query = value.trim();
+      _showAll = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
