@@ -82,6 +82,8 @@
   "searchHint": "Bilatu albumak eta edukia",
   "searchPrompt": "Idatzi zure liburutegian bilatzeko",
   "searchNoResults": "Ez dago emaitzarik",
+  "searchShowAll": "Erakutsi emaitza guztiak",
+  "searchMoreThanShown": "{count} emaitza baino gehiago. Zehaztu bilaketa gainerakoak ikusteko.",
   "searchMedia": "Edukia",
   "searchHiddenMore": "Beste {count} ez dira erakusten. Mugatu bilaketa, edo ezarri bilaketa-emaitzen muga bat Ezarpenetan.",
   "untitledMedia": "Izenik gabe",

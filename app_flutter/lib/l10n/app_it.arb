@@ -82,6 +82,8 @@
   "searchHint": "Cerca album e media",
   "searchPrompt": "Digita per cercare nella tua libreria",
   "searchNoResults": "Nessun risultato",
+  "searchShowAll": "Mostra tutti i risultati",
+  "searchMoreThanShown": "Più di {count} risultati. Restringi la ricerca per vedere il resto.",
   "searchMedia": "Media",
   "searchHiddenMore": "Altri {count} non mostrati. Restringi la ricerca o imposta un limite di risultati nelle Impostazioni.",
   "untitledMedia": "Senza titolo",

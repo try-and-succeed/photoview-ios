@@ -408,6 +408,19 @@
   "@searchNoResults": {
     "description": "A search found nothing."
   },
+  "searchShowAll": "Show all results",
+  "@searchShowAll": {
+    "description": "Entry above the results that repeats the search without the usual limit."
+  },
+  "searchMoreThanShown": "More than {count} hits. Narrow your search to see the rest.",
+  "@searchMoreThanShown": {
+    "description": "Shown when a section stopped at the ceiling, so the total is unknown.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "searchMedia": "Media",
   "@searchMedia": {
     "description": "Heading of the media section of search results."

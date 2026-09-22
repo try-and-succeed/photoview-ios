@@ -82,6 +82,8 @@
   "searchHint": "Procurar álbuns e mídia",
   "searchPrompt": "Escreva para procurar na sua biblioteca",
   "searchNoResults": "Sem resultados",
+  "searchShowAll": "Mostrar todos os resultados",
+  "searchMoreThanShown": "Mais de {count} resultados. Restrinja a pesquisa para ver os restantes.",
   "searchMedia": "Mídia",
   "searchHiddenMore": "Mais {count} não mostrados. Restrinja a pesquisa ou defina um limite de resultados nas Definições.",
   "untitledMedia": "Sem título",

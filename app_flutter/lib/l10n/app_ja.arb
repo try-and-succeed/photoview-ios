@@ -82,6 +82,8 @@
   "searchHint": "アルバムとメディアを検索",
   "searchPrompt": "入力してライブラリを検索",
   "searchNoResults": "結果はありません",
+  "searchShowAll": "すべての結果を表示",
+  "searchMoreThanShown": "{count} 件を超えるヒットがあります。検索を絞り込むと残りを表示できます。",
   "searchMedia": "メディア",
   "searchHiddenMore": "ほかに {count} 件は表示されていません。検索を絞り込むか、設定で検索結果の上限を設定してください。",
   "untitledMedia": "無題",

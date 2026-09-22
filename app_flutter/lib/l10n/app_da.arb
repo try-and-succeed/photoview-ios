@@ -82,6 +82,8 @@
   "searchHint": "Søg i albums og medier",
   "searchPrompt": "Skriv for at søge i dit bibliotek",
   "searchNoResults": "Ingen resultater",
+  "searchShowAll": "Vis alle resultater",
+  "searchMoreThanShown": "Mere end {count} resultater. Indsnævr søgningen for at se resten.",
   "searchMedia": "Medier",
   "searchHiddenMore": "{count} mere vises ikke. Indsnævr din søgning, eller angiv en grænse for søgeresultater i Indstillinger.",
   "untitledMedia": "Uden titel",

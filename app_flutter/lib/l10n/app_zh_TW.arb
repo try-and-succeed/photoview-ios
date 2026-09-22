@@ -82,6 +82,8 @@
   "searchHint": "搜尋相簿和媒體",
   "searchPrompt": "輸入內容以搜尋你的媒體庫",
   "searchNoResults": "沒有結果",
+  "searchShowAll": "顯示全部結果",
+  "searchMoreThanShown": "超過 {count} 項結果。縮小搜尋範圍以查看其餘結果。",
   "searchMedia": "媒體",
   "searchHiddenMore": "還有 {count} 項未顯示。請縮小搜尋範圍，或在設定中設定搜尋結果上限。",
   "untitledMedia": "未命名",

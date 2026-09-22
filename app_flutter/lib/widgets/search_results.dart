@@ -40,6 +40,11 @@ class SearchSectionPlan {
   });
 
   bool get hasHidden => hidden > 0;
+
+  /// Whether the ceiling cut the list, which also means the total is not
+  /// known: "show all results" asks for one more than can be shown, so
+  /// anything past that was never counted.
+  bool get atCeiling => shown >= maxRenderedSearchResults && hidden > 0;
 }
 
 /// Decides how to present [count] results.
@@ -63,16 +68,28 @@ SearchSectionPlan planSearchSection(int count) {
 class HiddenResultsNote extends StatelessWidget {
   final int hidden;
 
-  const HiddenResultsNote({super.key, required this.hidden});
+  /// Whether the list stopped at the ceiling rather than at a known total.
+  /// Then [hidden] is only "at least this many", and saying "1 more" — which
+  /// is what one hit past the ceiling looks like — would be a lie.
+  final bool atCeiling;
+
+  const HiddenResultsNote({
+    super.key,
+    required this.hidden,
+    this.atCeiling = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
       child: Text(
-        AppLocalizations.of(context).searchHiddenMore(hidden),
+        atCeiling
+            ? l10n.searchMoreThanShown(maxRenderedSearchResults)
+            : l10n.searchHiddenMore(hidden),
         style: theme.textTheme.bodySmall?.copyWith(
           color: theme.colorScheme.onSurfaceVariant,
         ),

@@ -82,6 +82,8 @@
   "searchHint": "Alben und Medien durchsuchen",
   "searchPrompt": "Tippe, um deine Bibliothek zu durchsuchen",
   "searchNoResults": "Keine Ergebnisse",
+  "searchShowAll": "Alle Ergebnisse anzeigen",
+  "searchMoreThanShown": "Mehr als {count} Treffer. Grenze die Suche ein, um den Rest zu sehen.",
   "searchMedia": "Medien",
   "searchHiddenMore": "{count} weitere werden nicht angezeigt. Grenze die Suche ein oder lege in den Einstellungen eine Grenze für Suchergebnisse fest.",
   "untitledMedia": "Ohne Titel",

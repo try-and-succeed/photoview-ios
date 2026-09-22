@@ -82,6 +82,8 @@
   "searchHint": "查找相册和媒体",
   "searchPrompt": "输入内容以查找你的图库",
   "searchNoResults": "没有结果",
+  "searchShowAll": "显示全部结果",
+  "searchMoreThanShown": "超过 {count} 条结果。缩小搜索范围以查看其余结果。",
   "searchMedia": "媒体",
   "searchHiddenMore": "还有 {count} 项未显示。请缩小搜索范围，或在设置中设定搜索结果上限。",
   "untitledMedia": "未命名",
