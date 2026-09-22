@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -226,5 +227,68 @@ void main() {
     await proxy.stop();
 
     await expectLater(_get(address), throwsA(isA<SocketException>()));
+  });
+
+  test('stopping mid-start leaves no server listening', () async {
+    // A session that ends while the server is still binding. Without care the
+    // bind lands afterwards and installs a server nobody holds any anymore —
+    // an open port for the rest of the app's life. The bind is held here so
+    // the stop is certain to fall in the middle of it, and the server it
+    // produced is kept so the test can see whether it is still listening.
+    final gate = Completer<void>();
+    int? boundPort;
+
+    final racing = MediaProxy(
+      bind: () async {
+        await gate.future;
+        final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+        // Read now: a closed server refuses to say which port it had.
+        boundPort = server.port;
+        return server;
+      },
+    );
+    addTearDown(racing.stop);
+
+    // Attached before the stop, or the failure lands with nobody listening
+    // and is reported as an unhandled error instead.
+    final pending = racing.serve(session, '/api/photo/clip.mp4');
+    final refused = expectLater(pending, throwsA(isA<StateError>()));
+
+    final stopping = racing.stop();
+    gate.complete();
+    await stopping;
+    await refused;
+
+    expect(boundPort, isNotNull, reason: 'the bind did land, as intended');
+    await expectLater(
+      Socket.connect(
+        '127.0.0.1',
+        boundPort!,
+        timeout: const Duration(seconds: 2),
+      ),
+      throwsA(isA<SocketException>()),
+      reason: 'the port the bind produced must not still be open',
+    );
+  });
+
+  test('serving after a stop is refused', () async {
+    await proxy.serve(session, '/api/photo/clip.mp4');
+    await proxy.stop();
+
+    await expectLater(
+      proxy.serve(session, '/api/photo/clip.mp4'),
+      throwsA(isA<StateError>()),
+      reason: 'a stopped proxy does not start again',
+    );
+  });
+
+  test('serving after a stop is refused', () async {
+    await proxy.serve(session, '/api/photo/clip.mp4');
+    await proxy.stop();
+
+    await expectLater(
+      proxy.serve(session, '/api/photo/clip.mp4'),
+      throwsA(isA<StateError>()),
+    );
   });
 }

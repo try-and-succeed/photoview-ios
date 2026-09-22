@@ -20,12 +20,20 @@ import 'session.dart';
 /// player seeks, and an MP4 whose index sits at the end of the file is
 /// unplayable without it.
 class MediaProxy {
-  MediaProxy({HttpClient Function()? openClient})
-    : _openClient = openClient ?? HttpClient.new;
+  MediaProxy({HttpClient Function()? openClient, Future<HttpServer> Function()? bind})
+    : _openClient = openClient ?? HttpClient.new,
+      _bind = bind ?? _bindLoopback;
 
   /// The client used upstream. A seam for tests; in the app it is the plain
   /// constructor, which picks up the global [HttpOverrides] — the whole point.
   final HttpClient Function() _openClient;
+
+  /// How the server is opened. A seam too: a test that wants to know whether
+  /// a server was left running has to get hold of it first.
+  final Future<HttpServer> Function() _bind;
+
+  static Future<HttpServer> _bindLoopback() =>
+      HttpServer.bind(InternetAddress.loopbackIPv4, 0);
 
   /// Guards the port against anything else running on the device: the path
   /// carries a secret that only the player is ever told.
@@ -36,6 +44,14 @@ class MediaProxy {
   HttpServer? _server;
   Future<HttpServer>? _starting;
   int _nextId = 0;
+
+  /// Set by [stop], and never cleared: a stopped proxy is not restarted.
+  ///
+  /// Stopping happens when the session changes, and a bind started for the
+  /// old session can still be in flight. Without this its callback would
+  /// install a server nobody holds any more — an open port for the rest of
+  /// the app's life, reachable with addresses registered after the stop.
+  bool _stopped = false;
 
   /// Registers [mediaUrl] of [session] and returns the address to play.
   ///
@@ -52,6 +68,11 @@ class MediaProxy {
 
     final server = await _ensureServer();
 
+    // Checked again on the far side of the await: the session can have ended
+    // while the server was still coming up, and registering now would hand
+    // out an address on a server that is being taken down.
+    if (_stopped) throw StateError('The player service has been stopped');
+
     final id = '${_nextId++}';
     _targets[id] = _Target(url, session.headers);
 
@@ -65,22 +86,50 @@ class MediaProxy {
   void clear() => _targets.clear();
 
   Future<void> stop() async {
+    _stopped = true;
     clear();
+
     final server = _server;
+    final starting = _starting;
     _server = null;
     _starting = null;
+
     await server?.close(force: true);
+
+    // A bind that was still in flight closes itself, but only once it lands.
+    // Waiting for it here means the port is really gone by the time this
+    // returns, which is what a test — and a session switch — can rely on.
+    if (starting != null) {
+      try {
+        await (await starting).close(force: true);
+      } catch (_) {
+        // Either the bind failed or its callback already closed the server.
+      }
+    }
   }
 
   Future<HttpServer> _ensureServer() {
+    if (_stopped) {
+      return Future.error(StateError('The player service has been stopped'));
+    }
+
     final running = _server;
     if (running != null) return Future.value(running);
 
     // Started once even if two videos open at the same moment: the second
     // caller waits for the first bind instead of racing it.
-    return _starting ??= HttpServer.bind(InternetAddress.loopbackIPv4, 0).then((
-      server,
-    ) {
+    return _starting ??= _bind().then((server) {
+      if (_stopped) {
+        // Stopped while this was binding, so it is closed here rather than
+        // ever being listened on. `stop` waits for this same future and would
+        // close it too — deliberately both, because either alone leaves a
+        // window: without this one a handler is attached to a server nobody
+        // holds, without the wait `stop` returns while the port is still
+        // coming up.
+        server.close(force: true);
+        throw StateError('The player service has been stopped');
+      }
+
       _server = server;
       server.listen(_handle, onError: (_) {});
       return server;
