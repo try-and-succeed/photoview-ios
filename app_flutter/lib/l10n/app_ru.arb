@@ -65,7 +65,7 @@
   "selectionCancel": "Отменить выбор",
   "selectionShare": "Отправить в другое приложение",
   "shareFetching": "Загрузка фотографий… {done} из {total}",
-  "shareSomeFailed": "Не удалось загрузить {count} — они не включены.",
+  "shareSomeFailed": "Не удалось загрузить: {count}. Они не включены.",
   "shareNothingFetched": "Ничего не удалось загрузить — отправлять нечего.",
   "albumDownloadTooltip": "Скачать альбом",
   "albumScanTooltip": "Найти новые медиа",

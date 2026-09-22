@@ -65,7 +65,7 @@
   "selectionCancel": "Anuluj wybór",
   "selectionShare": "Wyślij do innej aplikacji",
   "shareFetching": "Pobieranie zdjęć… {done} z {total}",
-  "shareSomeFailed": "Nie udało się pobrać {count} — brakuje ich.",
+  "shareSomeFailed": "Nie pobrano: {count}. Brakuje ich.",
   "shareNothingFetched": "Nie udało się nic pobrać, więc nie ma czego wysłać.",
   "albumDownloadTooltip": "Pobierz album",
   "albumScanTooltip": "Skanuj w poszukiwaniu nowych multimediów",

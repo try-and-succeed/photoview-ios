@@ -65,7 +65,7 @@
   "selectionCancel": "Скасувати вибір",
   "selectionShare": "Надіслати в інший застосунок",
   "shareFetching": "Завантаження фотографій… {done} з {total}",
-  "shareSomeFailed": "Не вдалося завантажити {count} — їх немає.",
+  "shareSomeFailed": "Не вдалося завантажити: {count}. Їх немає.",
   "shareNothingFetched": "Нічого не вдалося завантажити — немає чого надсилати.",
   "albumDownloadTooltip": "Завантажити альбом",
   "albumScanTooltip": "Шукати нові медіафайли",

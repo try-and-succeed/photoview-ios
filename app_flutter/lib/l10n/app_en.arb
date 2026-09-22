@@ -315,7 +315,7 @@
       }
     }
   },
-  "selectionCount": "{count} selected",
+  "selectionCount": "Selected: {count}",
   "@selectionCount": {
     "description": "Title while picking photos out of an album.",
     "placeholders": {
@@ -348,7 +348,7 @@
       }
     }
   },
-  "shareSomeFailed": "{count} could not be fetched and were left out.",
+  "shareSomeFailed": "Could not be fetched: {count}. Left out of the share.",
   "@shareSomeFailed": {
     "description": "Some of the chosen files could not be fetched.",
     "placeholders": {

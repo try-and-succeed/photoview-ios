@@ -168,16 +168,16 @@ void main() {
     expect(find.text('Urlaub'), findsOneWidget, reason: 'the album title');
 
     await _longPressTile(tester, 0);
-    expect(find.text('1 selected'), findsOneWidget);
+    expect(find.text('Selected: 1'), findsOneWidget);
 
     await tester.tap(find.byType(MediaThumbnail).at(2));
     await tester.pumpAndSettle();
-    expect(find.text('2 selected'), findsOneWidget);
+    expect(find.text('Selected: 2'), findsOneWidget);
 
     // Tapping a ticked one again takes it back out.
     await tester.tap(find.byType(MediaThumbnail).at(2));
     await tester.pumpAndSettle();
-    expect(find.text('1 selected'), findsOneWidget);
+    expect(find.text('Selected: 1'), findsOneWidget);
   });
 
   testWidgets('taking the last one out leaves the mode', (tester) async {
@@ -188,7 +188,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Urlaub'), findsOneWidget, reason: 'back to the album');
-    expect(find.textContaining('selected'), findsNothing);
+    expect(find.textContaining('Selected:'), findsNothing);
   });
 
   testWidgets('select all ticks everything loaded', (tester) async {
@@ -198,7 +198,7 @@ void main() {
     await tester.tap(find.byIcon(Icons.select_all));
     await tester.pumpAndSettle();
 
-    expect(find.text('4 selected'), findsOneWidget);
+    expect(find.text('Selected: 4'), findsOneWidget);
   });
 
   testWidgets('sharing sends the originals of what was ticked', (tester) async {
@@ -236,7 +236,7 @@ void main() {
     await _shareAndWait(tester);
 
     expect(shared.single, hasLength(3), reason: 'three of four still go');
-    expect(find.textContaining('1 could not be fetched'), findsOneWidget);
+    expect(find.textContaining('Could not be fetched: 1'), findsOneWidget);
   });
 
   testWidgets('the count is shown while fetching, and can be cancelled', (
