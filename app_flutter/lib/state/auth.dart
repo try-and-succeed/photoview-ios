@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../api/client.dart';
+import '../api/media_proxy.dart';
 import '../api/session.dart';
 import '../api/trusted_cas.dart';
 import '../api/trusted_certificates.dart';
@@ -53,6 +54,19 @@ final tlsTrustGenerationProvider = StateProvider<int>((ref) => 0);
 final savedServersProvider = FutureProvider<List<SavedServer>>(
   (ref) => ref.watch(sessionStoreProvider).servers(),
 );
+
+/// Serves video to the platform player from inside the app.
+///
+/// Rebuilt when the session changes, which drops the registered addresses
+/// along with the token that opened them; the old server is stopped as part
+/// of that. See [MediaProxy] for why the player cannot fetch for itself.
+final mediaProxyProvider = Provider<MediaProxy>((ref) {
+  ref.watch(sessionProvider);
+
+  final proxy = MediaProxy();
+  ref.onDispose(proxy.stop);
+  return proxy;
+});
 
 /// Set when a stored token stopped working, so the welcome screen can say so
 /// and offer that server's details back to the user.
