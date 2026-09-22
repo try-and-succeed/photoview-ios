@@ -200,10 +200,17 @@ class MediaCoordinates {
 
   const MediaCoordinates({required this.latitude, required this.longitude});
 
+  /// Reads a position, or null if there is not a whole and possible one.
+  ///
+  /// The range is checked because nothing upstream checks it: the numbers come
+  /// from a photo's own metadata, and a file with a broken GPS block can carry
+  /// a latitude of 91. Shown as a position it would read as a place on earth,
+  /// which it is not — better no row than a wrong one.
   static MediaCoordinates? fromJson(Map<String, dynamic>? json) {
     final latitude = _asDouble(json?['latitude']);
     final longitude = _asDouble(json?['longitude']);
     if (latitude == null || longitude == null) return null;
+    if (latitude.abs() > 90 || longitude.abs() > 180) return null;
 
     return MediaCoordinates(latitude: latitude, longitude: longitude);
   }

@@ -29,6 +29,34 @@ void main() {
       expect(MediaCoordinates.fromJson({'longitude': 13.4}), isNull);
     });
 
+    test('refuses a position that cannot exist', () {
+      // A file with a broken GPS block can carry these, and nothing upstream
+      // checks: shown as a position, 91 reads as a place on earth.
+      expect(
+        MediaCoordinates.fromJson({'latitude': 91, 'longitude': 13}),
+        isNull,
+      );
+      expect(
+        MediaCoordinates.fromJson({'latitude': 52.5, 'longitude': 181}),
+        isNull,
+      );
+      expect(
+        MediaCoordinates.fromJson({'latitude': -90.1, 'longitude': 0}),
+        isNull,
+      );
+    });
+
+    test('keeps the poles and the date line, which do exist', () {
+      expect(
+        MediaCoordinates.fromJson({'latitude': -90, 'longitude': 180})?.latitude,
+        -90,
+      );
+      expect(
+        MediaCoordinates.fromJson({'latitude': 90, 'longitude': -180})?.longitude,
+        -180,
+      );
+    });
+
     test('takes whole numbers as the server writes them', () {
       // On the equator or the prime meridian the server sends an int.
       final position = MediaCoordinates.fromJson({
