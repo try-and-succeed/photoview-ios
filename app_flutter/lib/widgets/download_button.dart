@@ -26,6 +26,9 @@ typedef SaveFile = Future<String?> Function(File file, String fileName);
 /// Hands [file] to the system share sheet.
 typedef ShareFile = Future<void> Function(File file);
 
+/// Hands several files to the system share sheet at once, for a selection.
+typedef ShareFiles = Future<void> Function(List<File> files);
+
 /// Behind providers for the same reason as the fetcher: both end in a
 /// platform dialog a widget test cannot show.
 final saveFileProvider = Provider<SaveFile>(
@@ -37,6 +40,14 @@ final saveFileProvider = Provider<SaveFile>(
 final shareFileProvider = Provider<ShareFile>(
   (ref) => (file) async {
     await SharePlus.instance.share(ShareParams(files: [XFile(file.path)]));
+  },
+);
+
+final shareFilesProvider = Provider<ShareFiles>(
+  (ref) => (files) async {
+    await SharePlus.instance.share(
+      ShareParams(files: [for (final file in files) XFile(file.path)]),
+    );
   },
 );
 
