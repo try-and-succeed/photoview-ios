@@ -1,0 +1,220 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../api/client.dart';
+import '../api/media_files.dart';
+import '../api/models.dart';
+import '../api/session.dart';
+import '../l10n/app_localizations.dart';
+import '../l10n/error_messages.dart';
+import '../state/auth.dart';
+import '../state/library.dart';
+import 'download_button.dart';
+
+/// What came of fetching the files for a share.
+class _Fetched {
+  final List<File> files = [];
+
+  /// How many could not be fetched. Named rather than silently dropped: a
+  /// share that quietly sends nine of ten photos is worse than one that says
+  /// so.
+  int failed = 0;
+}
+
+/// Downloads the chosen media and hands the files to the system share sheet.
+///
+/// One at a time, with a count on screen and a way out: an original is
+/// megabytes, and a selection is however many the user ticked. Files stay in
+/// the temporary directory, as the single-photo share leaves them — the
+/// receiving app may still be reading them, and the system clears that
+/// directory itself.
+Future<void> shareSelectedMedia(
+  BuildContext context,
+  WidgetRef ref,
+  List<MediaItem> items,
+) async {
+  final session = ref.read(sessionProvider);
+  final l10n = AppLocalizations.of(context);
+  final messenger = ScaffoldMessenger.of(context);
+
+  if (session == null || items.isEmpty) return;
+
+  final cancellation = DownloadCancellation();
+  final progress = ValueNotifier<int>(0);
+
+  // Whether the dialog is still up. It closes itself when cancelled, and the
+  // back button closes it too — `barrierDismissible: false` only stops taps
+  // on the barrier. Without knowing that, the pop below would land on
+  // whatever is underneath, which is the album screen: `Navigator.pop` does
+  // not consult `PopScope`, so nothing would stop it.
+  var showing = true;
+
+  // The root navigator, because that is where `showDialog` puts the dialog by
+  // default — `Navigator.of(context)` is the nearest one, which need not be
+  // the same.
+  final navigator = Navigator.of(context, rootNavigator: true);
+
+  unawaited(
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => _ShareProgressDialog(
+        total: items.length,
+        done: progress,
+        onCancel: cancellation.cancel,
+      ),
+    ).then((_) => showing = false),
+  );
+
+  final fetched = await _fetchAll(
+    ref,
+    session,
+    items,
+    cancellation: cancellation,
+    onDone: (count) => progress.value = count,
+  );
+
+  if (showing) navigator.pop();
+  progress.dispose();
+
+  if (cancellation.isCancelled) {
+    for (final file in fetched.files) {
+      await discardDownload(file);
+    }
+    return;
+  }
+
+  if (fetched.files.isEmpty) {
+    messenger.showSnackBar(SnackBar(content: Text(l10n.shareNothingFetched)));
+    return;
+  }
+
+  if (fetched.failed > 0) {
+    messenger.showSnackBar(
+      SnackBar(content: Text(l10n.shareSomeFailed(fetched.failed))),
+    );
+  }
+
+  try {
+    await ref.read(shareFilesProvider)(fetched.files);
+  } catch (error) {
+    // The share sheet is a platform call and can refuse — and without this
+    // the failure travelled up into a button's onPressed, where nothing
+    // catches it: no message, and the picking mode left standing.
+    messenger.showSnackBar(
+      SnackBar(content: Text(l10n.sharingFailed(describeError(error, l10n)))),
+    );
+  }
+}
+
+Future<_Fetched> _fetchAll(
+  WidgetRef ref,
+  Session session,
+  List<MediaItem> items, {
+  required DownloadCancellation cancellation,
+  required void Function(int done) onDone,
+}) async {
+  final fetcher = ref.read(mediaFileFetcherProvider);
+  final result = _Fetched();
+
+  for (final item in items) {
+    if (cancellation.isCancelled) break;
+
+    try {
+      // The details query is what carries the file URLs; the grid only ever
+      // knew the thumbnails.
+      final details = await ref.read(mediaDetailsProvider(item.id).future);
+      final download = _originalOf(details);
+      if (download == null) {
+        result.failed++;
+        continue;
+      }
+
+      result.files.add(
+        await fetcher.fetch(
+          session,
+          download.url,
+          fileName: downloadFileName(details.title, download),
+          cancellation: cancellation,
+        ),
+      );
+    } on DownloadCancelledException {
+      break;
+    } on UnauthorizedException {
+      // Ends the run: every later file would fail the same way, and the
+      // session has to be reported once.
+      await ref.read(authProvider.notifier).sessionExpired(session);
+      break;
+    } catch (_) {
+      // One photo that could not be fetched is counted, not fatal: the rest
+      // of the selection is still worth sending.
+      result.failed++;
+    } finally {
+      onDone(result.files.length + result.failed);
+    }
+  }
+
+  return result;
+}
+
+/// The full-size file, or the largest the server offers for this medium.
+///
+/// "Original" is what sharing a photo means; a video has only that one entry
+/// anyway, and a server that names its renditions differently still gets the
+/// first of them rather than nothing.
+MediaDownload? _originalOf(MediaDetails details) {
+  final downloads = details.downloads;
+  if (downloads.isEmpty) return null;
+
+  for (final download in downloads) {
+    if (download.title == 'Original') return download;
+  }
+  return downloads.first;
+}
+
+class _ShareProgressDialog extends StatelessWidget {
+  final int total;
+  final ValueListenable<int> done;
+  final VoidCallback onCancel;
+
+  const _ShareProgressDialog({
+    required this.total,
+    required this.done,
+    required this.onCancel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return AlertDialog(
+      content: ValueListenableBuilder<int>(
+        valueListenable: done,
+        builder: (context, value, _) => Row(
+          children: [
+            const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: 16),
+            Expanded(child: Text(l10n.shareFetching(value, total))),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            onCancel();
+            Navigator.of(context).pop();
+          },
+          child: Text(l10n.actionCancel),
+        ),
+      ],
+    );
+  }
+}

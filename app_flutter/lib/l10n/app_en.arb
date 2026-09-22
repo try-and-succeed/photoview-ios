@@ -315,6 +315,52 @@
       }
     }
   },
+  "selectionCount": "Selected: {count}",
+  "@selectionCount": {
+    "description": "Title while picking photos out of an album.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "selectionAll": "Select all",
+  "@selectionAll": {
+    "description": "Ticks every photo loaded in the album."
+  },
+  "selectionCancel": "Cancel selection",
+  "@selectionCancel": {
+    "description": "Leaves the picking mode without sharing."
+  },
+  "selectionShare": "Send to another app",
+  "@selectionShare": {
+    "description": "Sends the picked photos to another app."
+  },
+  "shareFetching": "Fetching pictures… {done} of {total}",
+  "@shareFetching": {
+    "description": "Progress while the chosen files are downloaded.",
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "shareSomeFailed": "Could not be fetched: {count}. Left out of the share.",
+  "@shareSomeFailed": {
+    "description": "Some of the chosen files could not be fetched.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareNothingFetched": "Nothing could be fetched, so there is nothing to send.",
+  "@shareNothingFetched": {
+    "description": "Nothing at all could be fetched for the share."
+  },
   "albumDownloadTooltip": "Download album",
   "@albumDownloadTooltip": {
     "description": "Tooltip of the button that downloads a whole album."
