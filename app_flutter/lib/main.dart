@@ -91,6 +91,21 @@ class _Root extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Everything the user has opened — an album, a person, the gallery, a
+    // details sheet — lives above this screen in the navigator. Swapping what
+    // is underneath therefore changes nothing they can see: a session that
+    // ends while an album is open left them looking at that album, with a
+    // "not accepted any more" message and a Retry that could only fail again,
+    // while the sign-in screen waited out of sight behind it. Seen on the S10
+    // with a token deleted on the server.
+    //
+    // A server switch ends the session too, and closing those screens is right
+    // there as well: they belong to the server being left.
+    ref.listen(sessionProvider, (before, after) {
+      if (before == null || after != null) return;
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    });
+
     final auth = ref.watch(authProvider);
 
     return auth.when(
