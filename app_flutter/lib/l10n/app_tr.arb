@@ -123,6 +123,7 @@
   "exifAperture": "Diyafram",
   "exifIso": "ISO",
   "exifFocalLength": "Odak uzunluğu",
+  "exifCoordinates": "GPS konumu",
   "exposureNotDefined": "Tanımlanmamış",
   "exposureManual": "Manuel",
   "exposureNormal": "Normal program",

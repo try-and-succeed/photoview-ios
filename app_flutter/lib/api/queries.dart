@@ -189,6 +189,10 @@ query mediaDetails(\$mediaID: ID!) {
       focalLength
       flash
       exposureProgram
+      coordinates {
+        latitude
+        longitude
+      }
     }
     album {
       id

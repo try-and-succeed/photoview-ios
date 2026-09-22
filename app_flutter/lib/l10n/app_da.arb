@@ -123,6 +123,7 @@
   "exifAperture": "Blænde",
   "exifIso": "ISO",
   "exifFocalLength": "Brændvidde",
+  "exifCoordinates": "GPS-position",
   "exposureNotDefined": "Ikke defineret",
   "exposureManual": "Manuel",
   "exposureNormal": "Normalt program",

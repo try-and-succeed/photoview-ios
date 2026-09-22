@@ -123,6 +123,7 @@
   "exifAperture": "Bländare",
   "exifIso": "ISO",
   "exifFocalLength": "Brännvidd",
+  "exifCoordinates": "GPS-position",
   "exposureNotDefined": "Odefinierad",
   "exposureManual": "Manuell",
   "exposureNormal": "Normalprogram",

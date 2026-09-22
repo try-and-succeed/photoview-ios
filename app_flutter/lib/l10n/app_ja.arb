@@ -123,6 +123,7 @@
   "exifAperture": "絞り値",
   "exifIso": "ISO感度",
   "exifFocalLength": "焦点距離",
+  "exifCoordinates": "GPS位置",
   "exposureNotDefined": "未定義",
   "exposureManual": "マニュアル",
   "exposureNormal": "ノーマル",

@@ -123,6 +123,7 @@
   "exifAperture": "Blende",
   "exifIso": "ISO",
   "exifFocalLength": "Brennweite",
+  "exifCoordinates": "GPS-Position",
   "exposureNotDefined": "Nicht definiert",
   "exposureManual": "Manuell",
   "exposureNormal": "Normalprogramm",

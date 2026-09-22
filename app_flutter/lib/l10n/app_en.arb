@@ -628,6 +628,10 @@
     "description": "Camera data label: sensitivity."
   },
   "exifFocalLength": "Focal length",
+  "exifCoordinates": "GPS position",
+  "@exifCoordinates": {
+    "description": "Row label for where the photo was taken, as decimal degrees."
+  },
   "@exifFocalLength": {
     "description": "Camera data label."
   },

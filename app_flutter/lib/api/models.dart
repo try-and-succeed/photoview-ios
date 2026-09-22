@@ -190,6 +190,25 @@ class FaceGroup {
   }
 }
 
+/// Where a photo was taken, as the server reports it.
+///
+/// Its own type rather than two loose numbers: half a position is no
+/// position, and the two are only ever read together.
+class MediaCoordinates {
+  final double latitude;
+  final double longitude;
+
+  const MediaCoordinates({required this.latitude, required this.longitude});
+
+  static MediaCoordinates? fromJson(Map<String, dynamic>? json) {
+    final latitude = _asDouble(json?['latitude']);
+    final longitude = _asDouble(json?['longitude']);
+    if (latitude == null || longitude == null) return null;
+
+    return MediaCoordinates(latitude: latitude, longitude: longitude);
+  }
+}
+
 class MediaExif {
   final String? camera;
   final String? maker;
@@ -202,6 +221,10 @@ class MediaExif {
   final double? flash;
   final int? exposureProgram;
 
+  /// Null for a photo the camera did not place, which is most of them on a
+  /// camera without GPS.
+  final MediaCoordinates? coordinates;
+
   const MediaExif({
     this.camera,
     this.maker,
@@ -213,6 +236,7 @@ class MediaExif {
     this.focalLength,
     this.flash,
     this.exposureProgram,
+    this.coordinates,
   });
 
   factory MediaExif.fromJson(Map<String, dynamic> json) => MediaExif(
@@ -226,6 +250,9 @@ class MediaExif {
     focalLength: _asDouble(json['focalLength']),
     flash: _asDouble(json['flash']),
     exposureProgram: (json['exposureProgram'] as num?)?.toInt(),
+    coordinates: MediaCoordinates.fromJson(
+      json['coordinates'] as Map<String, dynamic>?,
+    ),
   );
 }
 

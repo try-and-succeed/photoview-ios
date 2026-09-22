@@ -123,6 +123,7 @@
   "exifAperture": "光圈",
   "exifIso": "ISO",
   "exifFocalLength": "焦距",
+  "exifCoordinates": "GPS 位置",
   "exposureNotDefined": "未定义",
   "exposureManual": "手动模式",
   "exposureNormal": "普通模式",

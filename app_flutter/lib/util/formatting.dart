@@ -45,7 +45,35 @@ List<ExifRow> exifRows(MediaExif exif, AppLocalizations l10n) {
     add(l10n.exifFocalLength, '${_trimZeros(focalLength)} mm');
   }
 
+  final coordinates = exif.coordinates;
+  if (coordinates != null) {
+    add(l10n.exifCoordinates, formatCoordinates(coordinates));
+  }
+
   return rows;
+}
+
+/// Where the photo was taken, as decimal degrees.
+///
+/// Deliberately not in the app language's number format: this is the one
+/// value on the sheet that is worth carrying elsewhere, and every map takes
+/// `52.520008, 13.404954` while none of them take a decimal comma. Signed
+/// rather than N/S/E/W, for the same reason — and because those letters differ
+/// by language, which a pasted position must not.
+///
+/// Six decimals is about a tenth of a metre; a camera's GPS is nowhere near
+/// that, so trailing zeros are dropped rather than implying precision.
+String formatCoordinates(MediaCoordinates position) =>
+    '${_degrees(position.latitude)}, ${_degrees(position.longitude)}';
+
+String _degrees(double value) {
+  final written = value.toStringAsFixed(6);
+  if (!written.contains('.')) return written;
+
+  final trimmed = written.replaceFirst(RegExp(r'0+$'), '');
+  return trimmed.endsWith('.')
+      ? trimmed.substring(0, trimmed.length - 1)
+      : trimmed;
 }
 
 String exposureProgramName(int id, AppLocalizations l10n) => switch (id) {
