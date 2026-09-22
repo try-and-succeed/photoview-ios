@@ -27,7 +27,9 @@ class AlbumsScreen extends ConsumerWidget {
 
     return Scaffold(
       body: RefreshIndicator(
-        onRefresh: () async => ref.invalidate(myAlbumsProvider),
+        // Awaited, or the spinner leaves before the answer arrives and the
+        // gesture looks like it did nothing.
+        onRefresh: () => ref.refresh(myAlbumsProvider.future),
         child: ScrollableView(
           // See the note in timeline_screen.dart: a short list would otherwise
           // refuse the pull-to-refresh gesture.

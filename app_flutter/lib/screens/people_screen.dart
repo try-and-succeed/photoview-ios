@@ -18,7 +18,9 @@ class PeopleScreen extends ConsumerWidget {
 
     return Scaffold(
       body: RefreshIndicator(
-        onRefresh: () async => ref.invalidate(faceGroupsProvider),
+        // Awaited, as on the timeline: invalidating alone ends the spinner
+        // before the new answer is in.
+        onRefresh: () => ref.refresh(faceGroupsProvider.future),
         child: LoadMoreOnScroll(
           hasMore: faces.valueOrNull?.hasMore ?? false,
           onLoadMore: () => ref.read(faceGroupsProvider.notifier).loadMore(),
