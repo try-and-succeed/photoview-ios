@@ -123,6 +123,7 @@
   "exifAperture": "Ouverture",
   "exifIso": "ISO",
   "exifFocalLength": "Focale",
+  "exifCoordinates": "Position GPS",
   "exposureNotDefined": "Non défini",
   "exposureManual": "Manuel",
   "exposureNormal": "Programme normal",

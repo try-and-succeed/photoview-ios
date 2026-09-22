@@ -123,6 +123,7 @@
   "exifAperture": "Irekidura",
   "exifIso": "ISO",
   "exifFocalLength": "Foku-distantzia",
+  "exifCoordinates": "GPS kokapena",
   "exposureNotDefined": "Ezarri gabe",
   "exposureManual": "Eskuzkoa",
   "exposureNormal": "Arrunta",

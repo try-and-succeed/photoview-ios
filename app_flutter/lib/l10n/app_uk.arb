@@ -123,6 +123,7 @@
   "exifAperture": "Діафрагма",
   "exifIso": "ISO",
   "exifFocalLength": "Фокусна відстань",
+  "exifCoordinates": "Координати GPS",
   "exposureNotDefined": "Не визначена",
   "exposureManual": "Ручна",
   "exposureNormal": "Звичайна програма",

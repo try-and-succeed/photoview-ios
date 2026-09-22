@@ -123,6 +123,7 @@
   "exifAperture": "Diafragma",
   "exifIso": "ISO",
   "exifFocalLength": "Brandpuntsafstand",
+  "exifCoordinates": "GPS-positie",
   "exposureNotDefined": "Niet gedefinieerd",
   "exposureManual": "Handmatig",
   "exposureNormal": "Normaal programma",
