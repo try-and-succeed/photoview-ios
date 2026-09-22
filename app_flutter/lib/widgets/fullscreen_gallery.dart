@@ -457,19 +457,23 @@ class _VideoPageState extends ConsumerState<_VideoPage> {
   Future<void> _setup(Session session, String url) async {
     if (_videoController != null) return;
 
-    // Through the app's own loopback server rather than straight at the
-    // instance: the player does its own TLS against the system trust store,
-    // so a certificate accepted in this app — a self-hosted authority, which
-    // is the normal case here — is unknown to it and every video fails with
-    // "Source error". See [MediaProxy]. The auth cookie is added upstream,
-    // which is why none is set here.
-    final address = await ref.read(mediaProxyProvider).serve(session, url);
-    if (!mounted) return;
-
-    final controller = VideoPlayerController.networkUrl(address);
-    _videoController = controller;
-
+    // Inside the try along with the playing: opening the loopback server can
+    // fail too — a session that ended under it, a media URL that does not
+    // belong to the instance, a port that cannot be bound — and outside it
+    // those left the spinner turning with nothing ever said.
     try {
+      // Through the app's own server rather than straight at the instance:
+      // the player does its own TLS against the system trust store, so a
+      // certificate accepted in this app — a self-hosted authority, which is
+      // the normal case here — is unknown to it and every video fails with
+      // "Source error". See [MediaProxy]. The auth cookie is added upstream,
+      // which is why none is set here.
+      final address = await ref.read(mediaProxyProvider).serve(session, url);
+      if (!mounted) return;
+
+      final controller = VideoPlayerController.networkUrl(address);
+      _videoController = controller;
+
       await controller.initialize();
       if (!mounted) return;
 
