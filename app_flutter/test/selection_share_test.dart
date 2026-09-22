@@ -107,8 +107,14 @@ Future<_FakeFetcher> _openAlbum(
   required Directory temp,
   required List<List<File>> shared,
   Set<String> failFor = const {},
+  Future<void> Function(List<File> files)? share,
+
+  /// Reached from another screen, as it is in the app, so there is something
+  /// under it that a stray pop could take away.
+  bool pushed = false,
 }) async {
   final fetcher = _FakeFetcher(temp, failFor: failFor);
+  const album = AlbumScreen(albumId: '7', title: 'Urlaub');
 
   await tester.pumpWidget(
     ProviderScope(
@@ -117,14 +123,30 @@ Future<_FakeFetcher> _openAlbum(
         clientProvider.overrideWithValue(_AlbumClient()),
         mediaFileFetcherProvider.overrideWithValue(fetcher),
         mediaDetailsProvider.overrideWith((ref, id) async => _detailsFor(id)),
-        shareFilesProvider.overrideWithValue((files) async => shared.add(files)),
+        shareFilesProvider.overrideWithValue(
+          share ?? (files) async => shared.add(files),
+        ),
       ],
       child: localizedApp(
-        home: const AlbumScreen(albumId: '7', title: 'Urlaub'),
+        home: pushed
+            ? Builder(
+                builder: (context) => TextButton(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(builder: (_) => album),
+                  ),
+                  child: const Text('open album'),
+                ),
+              )
+            : album,
       ),
     ),
   );
   await tester.pumpAndSettle();
+
+  if (pushed) {
+    await tester.tap(find.text('open album'));
+    await tester.pumpAndSettle();
+  }
 
   return fetcher;
 }
@@ -237,6 +259,70 @@ void main() {
 
     expect(shared.single, hasLength(3), reason: 'three of four still go');
     expect(find.textContaining('Could not be fetched: 1'), findsOneWidget);
+  });
+
+  testWidgets('a share sheet that refuses is reported, not swallowed', (
+    tester,
+  ) async {
+    // A platform call can fail. Without catching it the error travelled up
+    // into a button's onPressed, where nothing catches it: no message, and
+    // the picking mode left standing.
+    await _openAlbum(
+      tester,
+      temp: temp,
+      shared: shared,
+      share: (_) async => throw Exception('no app to share with'),
+    );
+
+    await _longPressTile(tester, 0);
+    await _shareAndWait(tester);
+
+    expect(find.textContaining('Sharing failed'), findsOneWidget);
+    expect(
+      find.textContaining('Selected:'),
+      findsNothing,
+      reason: 'the mode ends either way, so the album is usable again',
+    );
+  });
+
+  testWidgets('cancelling closes the dialog and leaves the album standing', (
+    tester,
+  ) async {
+    // The cancel button closes the dialog itself, so a later pop would land
+    // on whatever is underneath — the album screen, which `Navigator.pop`
+    // removes without asking `PopScope`.
+    //
+    // Pushed rather than used as the home screen, because that is the only
+    // way there is anything under it to pop: in the app the album is always
+    // reached from somewhere.
+    final fetcher = await _openAlbum(
+      tester,
+      temp: temp,
+      shared: shared,
+      pushed: true,
+    );
+    fetcher.hold = Completer<void>();
+
+    await _longPressTile(tester, 0);
+    await tester.tap(find.byIcon(Icons.select_all));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.ios_share));
+    await tester.pump();
+    await tester.tap(find.text('Cancel'));
+    await tester.pump();
+
+    fetcher.hold!.complete();
+    for (var i = 0; i < 20; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+
+    expect(find.byType(AlertDialog), findsNothing, reason: 'the dialog is gone');
+    expect(
+      find.byType(AlbumScreen),
+      findsOneWidget,
+      reason: 'and it took nothing else with it',
+    );
   });
 
   testWidgets('the count is shown while fetching, and can be cancelled', (

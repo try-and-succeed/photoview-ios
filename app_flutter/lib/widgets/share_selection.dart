@@ -10,6 +10,7 @@ import '../api/media_files.dart';
 import '../api/models.dart';
 import '../api/session.dart';
 import '../l10n/app_localizations.dart';
+import '../l10n/error_messages.dart';
 import '../state/auth.dart';
 import '../state/library.dart';
 import 'download_button.dart';
@@ -45,8 +46,18 @@ Future<void> shareSelectedMedia(
   final cancellation = DownloadCancellation();
   final progress = ValueNotifier<int>(0);
 
-  // The dialog owns nothing: it shows the count and can cancel, and the work
-  // below carries on if it is dismissed some other way.
+  // Whether the dialog is still up. It closes itself when cancelled, and the
+  // back button closes it too — `barrierDismissible: false` only stops taps
+  // on the barrier. Without knowing that, the pop below would land on
+  // whatever is underneath, which is the album screen: `Navigator.pop` does
+  // not consult `PopScope`, so nothing would stop it.
+  var showing = true;
+
+  // The root navigator, because that is where `showDialog` puts the dialog by
+  // default — `Navigator.of(context)` is the nearest one, which need not be
+  // the same.
+  final navigator = Navigator.of(context, rootNavigator: true);
+
   unawaited(
     showDialog<void>(
       context: context,
@@ -56,10 +67,9 @@ Future<void> shareSelectedMedia(
         done: progress,
         onCancel: cancellation.cancel,
       ),
-    ),
+    ).then((_) => showing = false),
   );
 
-  final navigator = Navigator.of(context);
   final fetched = await _fetchAll(
     ref,
     session,
@@ -68,7 +78,7 @@ Future<void> shareSelectedMedia(
     onDone: (count) => progress.value = count,
   );
 
-  if (navigator.canPop()) navigator.pop();
+  if (showing) navigator.pop();
   progress.dispose();
 
   if (cancellation.isCancelled) {
@@ -89,7 +99,16 @@ Future<void> shareSelectedMedia(
     );
   }
 
-  await ref.read(shareFilesProvider)(fetched.files);
+  try {
+    await ref.read(shareFilesProvider)(fetched.files);
+  } catch (error) {
+    // The share sheet is a platform call and can refuse — and without this
+    // the failure travelled up into a button's onPressed, where nothing
+    // catches it: no message, and the picking mode left standing.
+    messenger.showSnackBar(
+      SnackBar(content: Text(l10n.sharingFailed(describeError(error, l10n)))),
+    );
+  }
 }
 
 Future<_Fetched> _fetchAll(
