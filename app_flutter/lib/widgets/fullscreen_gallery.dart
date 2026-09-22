@@ -457,10 +457,16 @@ class _VideoPageState extends ConsumerState<_VideoPage> {
   Future<void> _setup(Session session, String url) async {
     if (_videoController != null) return;
 
-    final controller = VideoPlayerController.networkUrl(
-      session.resolve(url),
-      httpHeaders: session.headers,
-    );
+    // Through the app's own loopback server rather than straight at the
+    // instance: the player does its own TLS against the system trust store,
+    // so a certificate accepted in this app — a self-hosted authority, which
+    // is the normal case here — is unknown to it and every video fails with
+    // "Source error". See [MediaProxy]. The auth cookie is added upstream,
+    // which is why none is set here.
+    final address = await ref.read(mediaProxyProvider).serve(session, url);
+    if (!mounted) return;
+
+    final controller = VideoPlayerController.networkUrl(address);
     _videoController = controller;
 
     try {
