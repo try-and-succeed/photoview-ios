@@ -134,8 +134,16 @@ final mediaDetailsProvider = FutureProvider.family<MediaDetails, String>(
 );
 
 /// Auto-disposed so the results of every intermediate keystroke are not kept.
+/// What a search asks for.
+///
+/// [limit] overrides the user's preference for this one search — what "show
+/// all results" sends, so asking for more does not change the setting. Null
+/// leaves the preference in charge.
+typedef SearchRequest = ({String query, int? limit});
+
 final searchProvider = FutureProvider.autoDispose
-    .family<SearchResults, String>((ref, query) async {
+    .family<SearchResults, SearchRequest>((ref, request) async {
+      final query = request.query;
       if (query.trim().isEmpty) return SearchResults(query: query);
 
       // Waiting on the limit rather than firing without it: the limit resolves
@@ -148,13 +156,9 @@ final searchProvider = FutureProvider.autoDispose
       final limit = ref.watch(searchLimitProvider.future);
 
       return ref.guarded((c) async {
-        final resolved = await limit;
+        final asked = request.limit ?? (await limit).limitArgument;
 
-        return c.search(
-          query,
-          limitMedia: resolved.limitArgument,
-          limitAlbums: resolved.limitArgument,
-        );
+        return c.search(query, limitMedia: asked, limitAlbums: asked);
       });
     });
 

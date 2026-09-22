@@ -82,6 +82,8 @@
   "searchHint": "Sök album och media",
   "searchPrompt": "Skriv för att söka i ditt bibliotek",
   "searchNoResults": "Inga resultat",
+  "searchShowAll": "Visa alla resultat",
+  "searchMoreThanShown": "Fler än {count} träffar. Begränsa sökningen för att se resten.",
   "searchMedia": "Media",
   "searchHiddenMore": "{count} till visas inte. Begränsa sökningen eller ange en gräns för sökresultat i Inställningar.",
   "untitledMedia": "Namnlös",

@@ -82,6 +82,8 @@
   "searchHint": "Albüm ve medya ara",
   "searchPrompt": "Kitaplığınızda aramak için yazın",
   "searchNoResults": "Sonuç yok",
+  "searchShowAll": "Tüm sonuçları göster",
+  "searchMoreThanShown": "{count} sonuçtan fazla. Geri kalanı görmek için aramayı daraltın.",
   "searchMedia": "Medya",
   "searchHiddenMore": "{count} tane daha gösterilmiyor. Aramanızı daraltın veya Ayarlar'dan bir arama sonucu sınırı belirleyin.",
   "untitledMedia": "Adsız",

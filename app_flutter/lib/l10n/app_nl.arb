@@ -82,6 +82,8 @@
   "searchHint": "Albums en media zoeken",
   "searchPrompt": "Typ om in je bibliotheek te zoeken",
   "searchNoResults": "Geen resultaten",
+  "searchShowAll": "Alle resultaten tonen",
+  "searchMoreThanShown": "Meer dan {count} resultaten. Verfijn de zoekopdracht om de rest te zien.",
   "searchMedia": "Media",
   "searchHiddenMore": "Nog {count} niet getoond. Verfijn je zoekopdracht of stel een limiet voor zoekresultaten in bij Instellingen.",
   "untitledMedia": "Naamloos",
