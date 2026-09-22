@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../api/models.dart';
 import '../l10n/app_localizations.dart';
@@ -60,7 +61,12 @@ class _FaceTile extends StatelessWidget {
             )
           else
             Text(
-              AppLocalizations.of(context).personUnlabeled,
+              unlabeledFaceLabel(
+                AppLocalizations.of(context).personUnlabeled,
+                face.imageFaceCount,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: theme.textTheme.bodySmall?.copyWith(
                 fontStyle: FontStyle.italic,
                 color: theme.colorScheme.onSurfaceVariant,
@@ -71,6 +77,22 @@ class _FaceTile extends StatelessWidget {
     );
   }
 }
+
+/// What an unnamed person is called in the grid: the word, and how many
+/// pictures they are in.
+///
+/// Everyone unnamed is called the same thing, so the count is the only thing
+/// telling them apart on screen — and the one that says which is worth naming
+/// first. Written with the app language's digit grouping, like the search
+/// headings. Named people are left alone: there the name does that job, and
+/// the user asked for the count where it is missing.
+///
+/// A count of zero is not shown: the server sends that for a group it has not
+/// counted, and "· 0" would read as a person in no pictures at all.
+@visibleForTesting
+String unlabeledFaceLabel(String unlabeled, int count) => count > 0
+    ? '$unlabeled · ${NumberFormat.decimalPattern().format(count)}'
+    : unlabeled;
 
 /// Crops a circular avatar out of the full media thumbnail by scaling and
 /// shifting it so the detected face rectangle lands in the centre.
