@@ -165,6 +165,36 @@ mutation combineFaceGroups($destinationFaceGroupID: ID!, $sourceFaceGroupIDs: [I
 }
 ''';
 
+/// Files single faces under another person — the photos of one person that
+/// turned out to be someone else.
+const moveImageFacesMutation = r'''
+mutation moveImageFaces($imageFaceIDs: [ID!]!, $destinationFaceGroupID: ID!) {
+  moveImageFaces(
+    imageFaceIDs: $imageFaceIDs
+    destinationFaceGroupID: $destinationFaceGroupID
+  ) {
+    id
+    label
+    imageFaceCount
+  }
+}
+''';
+
+/// Lifts single faces out into a face group of their own.
+///
+/// **Not to be sent with an empty list**: the server takes that as a request
+/// and creates an empty group rather than refusing — measured against a live
+/// instance, which answered with a brand new id.
+const detachImageFacesMutation = r'''
+mutation detachImageFaces($imageFaceIDs: [ID!]!) {
+  detachImageFaces(imageFaceIDs: $imageFaceIDs) {
+    id
+    label
+    imageFaceCount
+  }
+}
+''';
+
 /// Asks the server to match the unnamed faces against the named ones again.
 ///
 /// Returns the faces it filed; the app only counts them, because what changed

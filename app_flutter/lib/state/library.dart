@@ -114,8 +114,8 @@ final faceGroupsProvider =
       FaceGroupsNotifier.new,
     );
 
-final personMediaProvider = FutureProvider.family<List<MediaItem>, String>(
-  (ref, faceGroupId) => ref.guarded((c) => c.personMedia(faceGroupId)),
+final personPhotosProvider = FutureProvider.family<List<PersonPhoto>, String>(
+  (ref, faceGroupId) => ref.guarded((c) => c.personPhotos(faceGroupId)),
 );
 
 final placesMarkersProvider = FutureProvider<List<PlacesMarker>>(
@@ -306,8 +306,45 @@ class FaceActions {
     // The sources are gone and the destination has grown: both lists say
     // something that is no longer true.
     _ref.invalidate(faceGroupsProvider);
-    _ref.invalidate(personMediaProvider(destination));
+    _ref.invalidate(personPhotosProvider(destination));
     return label;
+  }
+
+  /// Files [imageFaceIds] under [destination] — photos of this person that
+  /// are somebody else.
+  ///
+  /// Returns the destination's name afterwards. Two people change, so both
+  /// their photo lists go, and the counts on the people list with them.
+  Future<String?> moveFaces(List<String> imageFaceIds, String destination) async {
+    if (imageFaceIds.isEmpty) return null;
+
+    final label = await _ref.requireClient.moveImageFaces(
+      imageFaceIds,
+      destination,
+    );
+
+    _ref.invalidate(faceGroupsProvider);
+    _ref.invalidate(personPhotosProvider);
+    return label;
+  }
+
+  /// Lifts [imageFaceIds] out into a person of their own, returning the new
+  /// group's id.
+  ///
+  /// This is also the only way back out of a merge that was wrong: the server
+  /// has no undo, and no delete either.
+  ///
+  /// **An empty list is refused here rather than sent.** The server does not
+  /// treat it as a mistake — it creates an empty face group, which then sits
+  /// in the library with nothing in it.
+  Future<String?> detachFaces(List<String> imageFaceIds) async {
+    if (imageFaceIds.isEmpty) return null;
+
+    final created = await _ref.requireClient.detachImageFaces(imageFaceIds);
+
+    _ref.invalidate(faceGroupsProvider);
+    _ref.invalidate(personPhotosProvider);
+    return created;
   }
 
   /// Asks the server to match the unnamed faces against the named ones again,
@@ -322,7 +359,7 @@ class FaceActions {
     // unlike a merge, nothing here says which. A person's photo list does not
     // rebuild with the people list; it would otherwise keep showing what it
     // read before the match, however long the screen stays open.
-    _ref.invalidate(personMediaProvider);
+    _ref.invalidate(personPhotosProvider);
     return filed;
   }
 }

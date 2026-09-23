@@ -190,6 +190,20 @@ class FaceGroup {
   }
 }
 
+/// One photo of a person, with the detections that put it there.
+///
+/// The server files a person's photos as `imageFace` rows, and it is those
+/// ids — not the media ids — that `moveImageFaces` and `detachImageFaces`
+/// take. A photo the detector found the same person in twice has two of them,
+/// so this is a list: the tile means "this photo's faces **in this group**",
+/// and all of them travel together.
+class PersonPhoto {
+  final MediaItem media;
+  final List<String> faceIds;
+
+  const PersonPhoto({required this.media, required this.faceIds});
+}
+
 /// Where a photo was taken, as the server reports it.
 ///
 /// Its own type rather than two loose numbers: half a position is no
