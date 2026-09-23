@@ -682,6 +682,33 @@ class PhotoviewClient {
     return group?['label'] as String?;
   }
 
+  /// Files [sourceFaceGroupIds] under [destinationFaceGroupId] and returns the
+  /// name the destination carries afterwards.
+  ///
+  /// The sources cease to exist — which is as close as this server comes to
+  /// deleting a person: there is no mutation for that.
+  Future<String?> combineFaceGroups(
+    String destinationFaceGroupId,
+    List<String> sourceFaceGroupIds,
+  ) async {
+    final data = await _mutate(combineFaceGroupsMutation, {
+      'destinationFaceGroupID': destinationFaceGroupId,
+      'sourceFaceGroupIDs': sourceFaceGroupIds,
+    });
+
+    final group = data['combineFaceGroups'] as Map<String, dynamic>?;
+    return group?['label'] as String?;
+  }
+
+  /// Matches the unnamed faces against the named ones again, returning how
+  /// many were filed.
+  Future<int> recognizeUnlabeledFaces() async {
+    final data = await _mutate(recognizeUnlabeledFacesMutation);
+    final faces = data['recognizeUnlabeledFaces'] as List<dynamic>?;
+
+    return faces?.length ?? 0;
+  }
+
   Future<List<MediaItem>> personMedia(String faceGroupId) async {
     final data = await _query(singlePersonQuery, {'faceGroupID': faceGroupId});
     final group = data['faceGroup'] as Map<String, dynamic>?;

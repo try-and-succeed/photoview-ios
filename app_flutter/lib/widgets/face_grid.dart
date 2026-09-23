@@ -125,7 +125,6 @@ class _FaceTile extends StatelessWidget {
 ///
 /// A count of zero is left out: the server sends that for a group it has not
 /// counted, and "0 ·" would read as a person in no pictures at all.
-@visibleForTesting
 String unlabeledFaceLabel(String unlabeled, int count) => count > 0
     ? '${NumberFormat.decimalPattern().format(count)} · $unlabeled'
     : unlabeled;

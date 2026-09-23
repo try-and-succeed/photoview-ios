@@ -150,6 +150,33 @@ mutation setFaceGroupLabel($faceGroupID: ID!, $label: String) {
 }
 ''';
 
+/// Folds people together. The sources are gone afterwards, their faces filed
+/// under the destination.
+const combineFaceGroupsMutation = r'''
+mutation combineFaceGroups($destinationFaceGroupID: ID!, $sourceFaceGroupIDs: [ID!]!) {
+  combineFaceGroups(
+    destinationFaceGroupID: $destinationFaceGroupID
+    sourceFaceGroupIDs: $sourceFaceGroupIDs
+  ) {
+    id
+    label
+    imageFaceCount
+  }
+}
+''';
+
+/// Asks the server to match the unnamed faces against the named ones again.
+///
+/// Returns the faces it filed; the app only counts them, because what changed
+/// is spread across the whole people list.
+const recognizeUnlabeledFacesMutation = r'''
+mutation recognizeUnlabeledFaces {
+  recognizeUnlabeledFaces {
+    id
+  }
+}
+''';
+
 const mediaGeoJsonQuery = r'''
 query mediaGeoJson {
   myMediaGeoJson
