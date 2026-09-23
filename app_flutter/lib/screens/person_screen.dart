@@ -90,6 +90,12 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
     );
     if (other == null || !mounted) return;
 
+    await _sendMerge(other);
+  }
+
+  /// Sends one already-picked person, so a retry repeats the sending alone —
+  /// the same rule as [_store] and [_sendMove].
+  Future<void> _sendMerge(FaceGroup other) async {
     final l10n = AppLocalizations.of(context);
     setState(() => _busy = true);
 
@@ -101,9 +107,11 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
       if (!mounted) return;
       setState(() => _label = label);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.personMerged(_describe(other, l10n)))),
-      );
+      ScaffoldMessenger.of(context)
+        ..removeCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text(l10n.personMerged(_describe(other, l10n)))),
+        );
     } catch (error) {
       if (mounted) {
         await showActionFailure(
@@ -111,7 +119,7 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
           ref,
           error: error,
           message: l10n.personMergeFailed,
-          retry: _merge,
+          retry: () => _sendMerge(other),
         );
       }
     } finally {
@@ -156,12 +164,24 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
     );
     if (other == null || !mounted) return;
 
+    await _sendMove(faceIds, other);
+  }
+
+  /// Sends one already-made decision, so a retry repeats the sending alone.
+  ///
+  /// Same rule as [_store]: the user has ticked photos and picked a person,
+  /// and has then been asked about a certificate they did not expect. Sending
+  /// them back to the dialog would throw that away — and the ids are read
+  /// here rather than from the selection, which may have changed while the
+  /// certificate question was up.
+  Future<void> _sendMove(List<String> faceIds, FaceGroup other) async {
     final l10n = AppLocalizations.of(context);
+
     await _run(
       () => ref.read(faceActionsProvider).moveFaces(faceIds, other.id),
       done: (_) => l10n.personFacesMoved(_describe(other, l10n)),
       failed: l10n.personFacesMoveFailed,
-      retry: () => _moveSelection(photos),
+      retry: () => _sendMove(faceIds, other),
     );
   }
 
@@ -173,12 +193,18 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
     final faceIds = _tickedFaceIds(photos);
     if (faceIds.isEmpty) return;
 
+    await _sendDetach(faceIds);
+  }
+
+  /// The ids as they were when the action was asked for — see [_sendMove].
+  Future<void> _sendDetach(List<String> faceIds) async {
     final l10n = AppLocalizations.of(context);
+
     await _run(
       () => ref.read(faceActionsProvider).detachFaces(faceIds),
       done: (_) => l10n.personFacesDetached,
       failed: l10n.personFacesDetachFailed,
-      retry: () => _detachSelection(photos),
+      retry: () => _sendDetach(faceIds),
     );
   }
 

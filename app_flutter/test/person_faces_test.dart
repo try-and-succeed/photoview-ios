@@ -241,6 +241,72 @@ void main() {
     ]);
   });
 
+  testWidgets('a retried move sends the same faces, with no second dialog', (
+    tester,
+  ) async {
+    // The rule the naming action already follows: a retry repeats the
+    // sending, not the asking. The user has ticked photos and picked a
+    // person, and has then been asked about a certificate they did not
+    // expect — being sent back to the dialog is losing that work. The ids
+    // come from the moment of the decision, not from a selection that may
+    // have been changed while the question was up.
+    //
+    // The probe finds nothing here — a widget test has no socket — which is
+    // the outcome that tries the action again.
+    final client = _FacesClient(
+      photos: [_photo('1', ['10'])],
+      people: [anna],
+    )..failWith = CertificateNotTrustedException(_session.endpoint);
+
+    await _open(tester, client);
+    await _pickFirst(tester);
+
+    await tester.tap(find.byIcon(Icons.person_add_alt));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Anna'));
+    await tester.pumpAndSettle();
+
+    expect(client.moves, hasLength(1), reason: 'the first attempt failed');
+    expect(find.text('Review certificate'), findsOneWidget);
+
+    client.failWith = null;
+    await tester.tap(find.text('Review certificate'));
+    await tester.pumpAndSettle();
+
+    expect(client.moves, hasLength(2));
+    expect(client.moves.last.faces, ['10']);
+    expect(client.moves.last.destination, '9');
+    expect(
+      find.text('Choose the person to move them to'),
+      findsNothing,
+      reason: 'no second dialog',
+    );
+  });
+
+  testWidgets('a retried split sends the same faces', (tester) async {
+    final client = _FacesClient(
+      photos: [_photo('1', ['10'])],
+      people: [anna],
+    )..failWith = CertificateNotTrustedException(_session.endpoint);
+
+    await _open(tester, client);
+    await _pickFirst(tester);
+
+    await tester.tap(find.byIcon(Icons.call_split));
+    await tester.pumpAndSettle();
+
+    expect(client.detaches, hasLength(1));
+
+    client.failWith = null;
+    await tester.tap(find.text('Review certificate'));
+    await tester.pumpAndSettle();
+
+    expect(client.detaches, [
+      ['10'],
+      ['10'],
+    ]);
+  });
+
   testWidgets('a refused move is reported, not swallowed', (tester) async {
     final client = _FacesClient(
       photos: [_photo('1', ['10'])],

@@ -206,6 +206,38 @@ void main() {
     expect(find.textContaining('Could not merge the people'), findsOneWidget);
   });
 
+  testWidgets('a retried merge sends the same person, with no second dialog', (
+    tester,
+  ) async {
+    // Same rule as naming: a retry repeats the sending, not the asking. The
+    // user has already chosen, and has then been asked about a certificate
+    // they did not expect.
+    final client = _MergingClient(people: const [regina, other])
+      ..failWith = CertificateNotTrustedException(_session.endpoint);
+    await _openPerson(tester, client, person: regina);
+
+    await tester.tap(find.byIcon(Icons.merge_type));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Anna'));
+    await tester.pumpAndSettle();
+
+    expect(client.merges, hasLength(1), reason: 'the first attempt failed');
+    expect(find.text('Review certificate'), findsOneWidget);
+
+    client.failWith = null;
+    await tester.tap(find.text('Review certificate'));
+    await tester.pumpAndSettle();
+
+    expect(client.merges, hasLength(2));
+    expect(client.merges.last.$1, '7');
+    expect(client.merges.last.$2, ['9']);
+    expect(
+      find.text('Choose the person to merge in'),
+      findsNothing,
+      reason: 'no second dialog',
+    );
+  });
+
   testWidgets('a person with nobody to merge is told so', (tester) async {
     final client = _MergingClient(people: const [regina]);
     await _openPerson(tester, client, person: regina);
