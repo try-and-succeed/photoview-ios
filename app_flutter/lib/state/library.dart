@@ -317,6 +317,12 @@ class FaceActions {
 
     // Whatever it matched moved from an unnamed group into a named one.
     _ref.invalidate(faceGroupsProvider);
+
+    // The whole family, because the server decides which people grew — and
+    // unlike a merge, nothing here says which. A person's photo list does not
+    // rebuild with the people list; it would otherwise keep showing what it
+    // read before the match, however long the screen stays open.
+    _ref.invalidate(personMediaProvider);
     return filed;
   }
 }
