@@ -8,6 +8,30 @@ import 'protected_image.dart';
 
 const _thumbnailSize = 100.0;
 
+/// Room for the one line under a face, at the size it will actually be drawn.
+///
+/// Measured rather than reckoned from the font size: the theme leaves the
+/// line height unset, so it comes from the font's own metrics, and the system
+/// font setting scales all of it. A factor guessed here was wrong by four
+/// hundredths of a pixel, which is still an overflow.
+double _labelHeight(BuildContext context) {
+  final painter = TextPainter(
+    text: TextSpan(
+      // Something with an ascender and a descender, so the line is as tall as
+      // it ever gets.
+      text: 'Ag',
+      style: Theme.of(context).textTheme.bodySmall,
+    ),
+    textScaler: MediaQuery.textScalerOf(context),
+    // From the context, not a constant: Arabic and Hebrew are among the
+    // languages this app is translated into.
+    textDirection: Directionality.of(context),
+    maxLines: 1,
+  )..layout();
+
+  return painter.height;
+}
+
 /// Leaves a margin around the detected face rather than cropping tight to it.
 const _scaleMultiplier = 0.65;
 
@@ -19,16 +43,19 @@ class FaceSliverGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SliverGrid.builder(
-      // A fixed height rather than a ratio of the width: what a tile holds —
-      // a round thumbnail of a fixed size and one short line — does not get
-      // shorter when the screen is narrow. Tied to the width, three columns
-      // on a 320dp phone left the tile about fifteen pixels short of its own
-      // contents.
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+      // A height of its own rather than a share of the width: what a tile
+      // holds — a round thumbnail of a fixed size and one line — does not get
+      // shorter when the screen is narrow, and tied to the width it ran out
+      // of room on the narrowest phones.
+      //
+      // The line is measured rather than guessed, because the system font
+      // size scales it and `maxLines: 1` bounds the number of lines, not
+      // their height.
+      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
         maxCrossAxisExtent: 140,
         crossAxisSpacing: 16,
         mainAxisSpacing: 20,
-        mainAxisExtent: _thumbnailSize + 34,
+        mainAxisExtent: _thumbnailSize + 6 + _labelHeight(context),
       ),
       itemCount: faceGroups.length,
       itemBuilder: (context, index) {

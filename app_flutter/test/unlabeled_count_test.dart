@@ -19,6 +19,14 @@ Future<void> _pumpGrid(
 
   /// The narrow side of a phone held upright, where the tiles are smallest.
   double width = 360,
+
+  /// As the people screen lays it out. Dropped where a test needs the
+  /// narrowest tiles the delegate can produce: with 16dp on each side, 320
+  /// leaves room for two columns, not three.
+  bool padded = true,
+
+  /// What the system font setting does to the label.
+  double textScale = 1,
 }) async {
   // The tile draws a thumbnail, which reads the session for its cookie.
   await tester.pumpWidget(
@@ -29,13 +37,20 @@ Future<void> _pumpGrid(
           body: Center(
             child: SizedBox(
               width: width,
-              child: CustomScrollView(
-                slivers: [
-                  SliverPadding(
-                    padding: const EdgeInsets.all(16),
-                    sliver: FaceSliverGrid(faceGroups: groups),
-                  ),
-                ],
+              child: MediaQuery(
+                data: MediaQueryData(
+                  textScaler: TextScaler.linear(textScale),
+                ),
+                child: CustomScrollView(
+                  slivers: [
+                    SliverPadding(
+                      padding: padded
+                          ? const EdgeInsets.all(16)
+                          : EdgeInsets.zero,
+                      sliver: FaceSliverGrid(faceGroups: groups),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -121,10 +136,34 @@ void main() {
     );
   });
 
-  testWidgets('a tile fits its own contents on a narrow phone', (tester) async {
-    // Three columns on a 320dp screen used to leave the tile shorter than the
-    // thumbnail and its line together, which Flutter reports as an overflow.
-    await _pumpGrid(tester, [_group(count: 12)], width: 320);
+  testWidgets('a tile fits its contents in the narrowest column', (
+    tester,
+  ) async {
+    // Three columns at 320dp — which needs the padding gone, or the delegate
+    // makes two wide ones — leave each tile 96dp across. Tied to that width
+    // the tile was shorter than the thumbnail and its line together, which
+    // Flutter reports as an overflow.
+    await _pumpGrid(
+      tester,
+      [for (var i = 0; i < 3; i++) _group(count: 12)],
+      width: 320,
+      padded: false,
+    );
+
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a tile grows with the system font size', (tester) async {
+    // `maxLines: 1` bounds how many lines there are, not how tall they are:
+    // at the larger accessibility sizes a fixed height would push the label
+    // out of the tile.
+    await _pumpGrid(
+      tester,
+      [_group(count: 12)],
+      width: 320,
+      padded: false,
+      textScale: 2,
+    );
 
     expect(tester.takeException(), isNull);
   });
