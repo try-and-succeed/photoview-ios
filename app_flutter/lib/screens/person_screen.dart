@@ -83,10 +83,19 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
   Future<void> _merge() async {
     final other = await showDialog<FaceGroup>(
       context: context,
-      builder: (context) => _PickPersonDialog(exclude: widget.faceGroup.id),
+      builder: (context) => _PickPersonDialog(
+        exclude: widget.faceGroup.id,
+        title: AppLocalizations.of(context).personMergePick,
+      ),
     );
     if (other == null || !mounted) return;
 
+    await _sendMerge(other);
+  }
+
+  /// Sends one already-picked person, so a retry repeats the sending alone —
+  /// the same rule as [_store] and [_sendMove].
+  Future<void> _sendMerge(FaceGroup other) async {
     final l10n = AppLocalizations.of(context);
     setState(() => _busy = true);
 
@@ -98,9 +107,11 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
       if (!mounted) return;
       setState(() => _label = label);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.personMerged(_describe(other, l10n)))),
-      );
+      ScaffoldMessenger.of(context)
+        ..removeCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text(l10n.personMerged(_describe(other, l10n)))),
+        );
     } catch (error) {
       if (mounted) {
         await showActionFailure(
@@ -108,7 +119,124 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
           ref,
           error: error,
           message: l10n.personMergeFailed,
-          retry: _merge,
+          retry: () => _sendMerge(other),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// Ticked photos, by media id. Empty means nobody is picking — as in the
+  /// album, there is no separate flag.
+  final Set<String> _selected = {};
+
+  void _toggle(MediaItem item) => setState(() {
+    if (!_selected.remove(item.id)) _selected.add(item.id);
+  });
+
+  void _clearSelection() => setState(_selected.clear);
+
+  /// The `imageFace` ids behind the ticked photos.
+  ///
+  /// A photo the detector found this person in twice contributes both of its
+  /// faces: the tile stands for "this photo's faces in this group", and
+  /// leaving one behind would file half a photo under someone else.
+  List<String> _tickedFaceIds(List<PersonPhoto> photos) => [
+    for (final photo in photos)
+      if (_selected.contains(photo.media.id)) ...photo.faceIds,
+  ];
+
+  /// Files the ticked photos under somebody else.
+  ///
+  /// The other direction from merging: there the whole person moves, here the
+  /// few photos that were never this person in the first place.
+  Future<void> _moveSelection(List<PersonPhoto> photos) async {
+    final faceIds = _tickedFaceIds(photos);
+    if (faceIds.isEmpty) return;
+
+    final other = await showDialog<FaceGroup>(
+      context: context,
+      builder: (context) => _PickPersonDialog(
+        exclude: widget.faceGroup.id,
+        title: AppLocalizations.of(context).personFacesMovePick,
+      ),
+    );
+    if (other == null || !mounted) return;
+
+    await _sendMove(faceIds, other);
+  }
+
+  /// Sends one already-made decision, so a retry repeats the sending alone.
+  ///
+  /// Same rule as [_store]: the user has ticked photos and picked a person,
+  /// and has then been asked about a certificate they did not expect. Sending
+  /// them back to the dialog would throw that away — and the ids are read
+  /// here rather than from the selection, which may have changed while the
+  /// certificate question was up.
+  Future<void> _sendMove(List<String> faceIds, FaceGroup other) async {
+    final l10n = AppLocalizations.of(context);
+
+    await _run(
+      () => ref.read(faceActionsProvider).moveFaces(faceIds, other.id),
+      done: (_) => l10n.personFacesMoved(_describe(other, l10n)),
+      failed: l10n.personFacesMoveFailed,
+      retry: () => _sendMove(faceIds, other),
+    );
+  }
+
+  /// Lifts the ticked photos out into a person of their own.
+  ///
+  /// Also the way back out of a merge that was wrong — the server has no undo
+  /// for one, and no way to delete a person either.
+  Future<void> _detachSelection(List<PersonPhoto> photos) async {
+    final faceIds = _tickedFaceIds(photos);
+    if (faceIds.isEmpty) return;
+
+    await _sendDetach(faceIds);
+  }
+
+  /// The ids as they were when the action was asked for — see [_sendMove].
+  Future<void> _sendDetach(List<String> faceIds) async {
+    final l10n = AppLocalizations.of(context);
+
+    await _run(
+      () => ref.read(faceActionsProvider).detachFaces(faceIds),
+      done: (_) => l10n.personFacesDetached,
+      failed: l10n.personFacesDetachFailed,
+      retry: () => _sendDetach(faceIds),
+    );
+  }
+
+  /// Runs one face action: spinner, message, and out of the picking mode.
+  ///
+  /// The three are the same either way, and the picking mode has to end on
+  /// success — the photos it was holding are no longer this person's.
+  Future<void> _run<T>(
+    Future<T> Function() action, {
+    required String Function(T result) done,
+    // The same shape `showActionFailure` wants: the server's own words go in
+    // where the message says they belong.
+    required String Function(String error) failed,
+    required Future<void> Function() retry,
+  }) async {
+    setState(() => _busy = true);
+    try {
+      final result = await action();
+
+      if (!mounted) return;
+      _clearSelection();
+      ScaffoldMessenger.of(context)
+        ..removeCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(done(result))));
+    } catch (error) {
+      if (mounted) {
+        await showActionFailure(
+          context,
+          ref,
+          error: error,
+          message: failed,
+          retry: retry,
         );
       }
     } finally {
@@ -119,58 +247,116 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final media = ref.watch(personMediaProvider(widget.faceGroup.id));
+    final photos = ref.watch(personPhotosProvider(widget.faceGroup.id));
+    final loaded = photos.valueOrNull ?? const <PersonPhoto>[];
+    final picking = _selected.isNotEmpty;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_label ?? l10n.personUnlabeled),
-        actions: [
-          if (_busy)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Center(
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+    return PopScope(
+      // Back leaves the picking mode, not the person — as in the album, for
+      // the same reason: a selection is easy to lose and tedious to redo.
+      canPop: !picking,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _clearSelection();
+      },
+      child: Scaffold(
+        appBar: picking
+            ? AppBar(
+                leading: IconButton(
+                  icon: const Icon(Icons.close),
+                  tooltip: l10n.selectionCancel,
+                  onPressed: _clearSelection,
                 ),
-              ),
-            )
-          else ...[
-            IconButton(
-              icon: const Icon(Icons.edit_outlined),
-              tooltip: l10n.personName,
-              onPressed: _rename,
-            ),
-            IconButton(
-              icon: const Icon(Icons.merge_type),
-              tooltip: l10n.personMerge,
-              onPressed: _merge,
-            ),
-          ],
-        ],
-      ),
-      body: media.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => ErrorMessage.forError(
-          error,
-          onRetry: () =>
-              ref.invalidate(personMediaProvider(widget.faceGroup.id)),
-        ),
-        data: (data) => data.isEmpty
-            ? EmptyMessage(message: l10n.personEmpty)
-            : ScrollableView(
-                slivers: [
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    sliver: MediaSliverGrid(media: data),
-                  ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                title: Text(l10n.selectionCount(_selected.length)),
+                actions: _busy
+                    ? const [_BusyIndicator()]
+                    : [
+                        IconButton(
+                          icon: const Icon(Icons.select_all),
+                          tooltip: l10n.selectionAll,
+                          onPressed: () => setState(() {
+                            _selected
+                              ..clear()
+                              ..addAll([
+                                for (final photo in loaded) photo.media.id,
+                              ]);
+                          }),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.person_add_alt),
+                          tooltip: l10n.personFacesMove,
+                          onPressed: () => _moveSelection(loaded),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.call_split),
+                          tooltip: l10n.personFacesDetach,
+                          onPressed: () => _detachSelection(loaded),
+                        ),
+                      ],
+              )
+            : AppBar(
+                title: Text(_label ?? l10n.personUnlabeled),
+                actions: [
+                  if (_busy)
+                    const _BusyIndicator()
+                  else ...[
+                    IconButton(
+                      icon: const Icon(Icons.edit_outlined),
+                      tooltip: l10n.personName,
+                      onPressed: _rename,
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.merge_type),
+                      tooltip: l10n.personMerge,
+                      onPressed: _merge,
+                    ),
+                  ],
                 ],
               ),
+        body: photos.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, _) => ErrorMessage.forError(
+            error,
+            onRetry: () =>
+                ref.invalidate(personPhotosProvider(widget.faceGroup.id)),
+          ),
+          data: (data) => data.isEmpty
+              ? EmptyMessage(message: l10n.personEmpty)
+              : ScrollableView(
+                  slivers: [
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      sliver: MediaSliverGrid(
+                        media: [for (final photo in data) photo.media],
+                        selection: MediaSelection(
+                          selected: _selected,
+                          onToggle: _toggle,
+                        ),
+                      ),
+                    ),
+                    const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                  ],
+                ),
+        ),
       ),
     );
   }
+}
+
+/// The spinner that stands where the actions do while one is running.
+class _BusyIndicator extends StatelessWidget {
+  const _BusyIndicator();
+
+  @override
+  Widget build(BuildContext context) => const Padding(
+    padding: EdgeInsets.symmetric(horizontal: 16),
+    child: Center(
+      child: SizedBox(
+        width: 20,
+        height: 20,
+        child: CircularProgressIndicator(strokeWidth: 2),
+      ),
+    ),
+  );
 }
 
 /// Asks for the name. Returns the typed name, an empty string to remove the
@@ -237,7 +423,11 @@ class _PickPersonDialog extends ConsumerWidget {
   /// The person doing the absorbing, which cannot absorb itself.
   final String exclude;
 
-  const _PickPersonDialog({required this.exclude});
+  /// What the list is being picked for — merging a whole person in, or
+  /// sending a few photos across. The same list, two different questions.
+  final String title;
+
+  const _PickPersonDialog({required this.exclude, required this.title});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -247,7 +437,7 @@ class _PickPersonDialog extends ConsumerWidget {
         ref.watch(peopleOrderProvider).valueOrNull ?? PeopleOrder.alphabetical;
 
     return AlertDialog(
-      title: Text(l10n.personMergePick),
+      title: Text(title),
       content: SizedBox(
         width: 320,
         height: 380,

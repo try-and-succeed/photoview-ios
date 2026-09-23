@@ -709,11 +709,43 @@ class PhotoviewClient {
     return faces?.length ?? 0;
   }
 
-  Future<List<MediaItem>> personMedia(String faceGroupId) async {
+  Future<List<PersonPhoto>> personPhotos(String faceGroupId) async {
     final data = await _query(singlePersonQuery, {'faceGroupID': faceGroupId});
     final group = data['faceGroup'] as Map<String, dynamic>?;
 
-    return personMediaFrom(group);
+    return personPhotosFrom(group);
+  }
+
+  /// Files [imageFaceIds] under [destinationFaceGroupId] — the photos of one
+  /// person that turned out to be someone else.
+  ///
+  /// Returns the destination's name afterwards, as merging does.
+  Future<String?> moveImageFaces(
+    List<String> imageFaceIds,
+    String destinationFaceGroupId,
+  ) async {
+    final data = await _mutate(moveImageFacesMutation, {
+      'imageFaceIDs': imageFaceIds,
+      'destinationFaceGroupID': destinationFaceGroupId,
+    });
+
+    final group = data['moveImageFaces'] as Map<String, dynamic>?;
+    return group?['label'] as String?;
+  }
+
+  /// Lifts [imageFaceIds] out into a face group of their own, and returns its
+  /// id.
+  ///
+  /// **Never call this with an empty list.** The server treats it as a request
+  /// rather than a mistake and creates an empty group — measured against a
+  /// live instance, which answered with a brand new id.
+  Future<String?> detachImageFaces(List<String> imageFaceIds) async {
+    final data = await _mutate(detachImageFacesMutation, {
+      'imageFaceIDs': imageFaceIds,
+    });
+
+    final group = data['detachImageFaces'] as Map<String, dynamic>?;
+    return group?['id']?.toString();
   }
 
   Future<List<PlacesMarker>> mediaGeoJson() async {
@@ -936,17 +968,45 @@ class PhotoviewClient {
 /// hold still between calls. Sorting has to happen here; it is affordable
 /// because a person's faces are fetched in one unpaginated go.
 ///
+/// **One tile per photo, however many faces it holds.** The detector can put
+/// the same person in one photo twice; showing it twice would be a list that
+/// claims more photos than there are, and a tick that leaves half of them
+/// behind. The face ids travel together instead.
+///
 /// Separate from the client because there is no seam for faking a response.
 @visibleForTesting
-List<MediaItem> personMediaFrom(Map<String, dynamic>? faceGroup) {
-  final media = (faceGroup?['imageFaces'] as List<dynamic>? ?? const [])
-      .map((e) => (e as Map<String, dynamic>)['media'])
-      .whereType<Map<String, dynamic>>()
-      .toList();
+List<PersonPhoto> personPhotosFrom(Map<String, dynamic>? faceGroup) {
+  final byMedia = <String, ({Map<String, dynamic> media, List<String> faces})>{};
 
-  media.sort((a, b) => _shotAt(b).compareTo(_shotAt(a)));
+  final faces = (faceGroup?['imageFaces'] as List<dynamic>? ?? const [])
+      .whereType<Map<String, dynamic>>();
 
-  return media.map(MediaItem.fromJson).toList();
+  for (final face in faces) {
+    final media = face['media'];
+    if (media is! Map<String, dynamic>) continue;
+
+    final id = media['id']?.toString();
+    if (id == null) continue;
+
+    final entry = byMedia.putIfAbsent(
+      id,
+      () => (media: media, faces: <String>[]),
+    );
+
+    final faceId = face['id']?.toString();
+    if (faceId != null) entry.faces.add(faceId);
+  }
+
+  final photos = byMedia.values.toList()
+    ..sort((a, b) => _shotAt(b.media).compareTo(_shotAt(a.media)));
+
+  return [
+    for (final photo in photos)
+      PersonPhoto(
+        media: MediaItem.fromJson(photo.media),
+        faceIds: List.unmodifiable(photo.faces),
+      ),
+  ];
 }
 
 /// When a photo was taken, for sorting only.

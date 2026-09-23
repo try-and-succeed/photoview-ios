@@ -484,6 +484,50 @@
       }
     }
   },
+  "personFacesMove": "Move to another person",
+  "@personFacesMove": {
+    "description": "Tooltip of the action that files the ticked photos under another person."
+  },
+  "personFacesMovePick": "Choose the person to move them to",
+  "@personFacesMovePick": {
+    "description": "Title of the dialog that lists the other people, when the ticked photos are being moved to one of them."
+  },
+  "personFacesMoved": "Moved to {name}",
+  "@personFacesMoved": {
+    "description": "Confirmation after moving photos, naming the person they went to.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Anna"
+      }
+    }
+  },
+  "personFacesMoveFailed": "Could not move the photos: {error}",
+  "@personFacesMoveFailed": {
+    "description": "The photos could not be filed under the other person.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "personFacesDetach": "Split off as a new person",
+  "@personFacesDetach": {
+    "description": "Tooltip of the action that lifts the ticked photos out into a person of their own."
+  },
+  "personFacesDetached": "Split off as a new person",
+  "@personFacesDetached": {
+    "description": "Confirmation after lifting photos out into a new person."
+  },
+  "personFacesDetachFailed": "Could not split them off: {error}",
+  "@personFacesDetachFailed": {
+    "description": "The photos could not be lifted out.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "placesEmpty": "None of your media has location data",
   "@placesEmpty": {
     "description": "No media has location data, so the map is empty."

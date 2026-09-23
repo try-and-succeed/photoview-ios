@@ -24,7 +24,7 @@ class _CountingClient extends PhotoviewClient {
   final personReads = <String>[];
 
   @override
-  Future<List<MediaItem>> personMedia(String faceGroupId) async {
+  Future<List<PersonPhoto>> personPhotos(String faceGroupId) async {
     personReads.add(faceGroupId);
     return const [];
   }
@@ -34,6 +34,24 @@ class _CountingClient extends PhotoviewClient {
     required int limit,
     required int offset,
   }) async => const [];
+
+  final detached = <List<String>>[];
+  final moved = <List<String>>[];
+
+  @override
+  Future<String?> detachImageFaces(List<String> imageFaceIds) async {
+    detached.add(imageFaceIds);
+    return '42';
+  }
+
+  @override
+  Future<String?> moveImageFaces(
+    List<String> imageFaceIds,
+    String destinationFaceGroupId,
+  ) async {
+    moved.add(imageFaceIds);
+    return 'Anna';
+  }
 
   @override
   Future<int> recognizeUnlabeledFaces() async => 3;
@@ -66,26 +84,41 @@ void main() {
     final client = _CountingClient();
     final container = await _container(client);
 
-    await container.read(personMediaProvider('7').future);
-    await container.read(personMediaProvider('8').future);
+    await container.read(personPhotosProvider('7').future);
+    await container.read(personPhotosProvider('8').future);
     expect(client.personReads, ['7', '8']);
 
     await container.read(faceActionsProvider).recognizeUnlabeled();
 
     // `invalidate` rebuilds on the next read, so reading is the proof.
-    await container.read(personMediaProvider('7').future);
-    await container.read(personMediaProvider('8').future);
+    await container.read(personPhotosProvider('7').future);
+    await container.read(personPhotosProvider('8').future);
 
     expect(client.personReads, ['7', '8', '7', '8']);
+  });
+
+  test('nothing ticked means nothing is sent', () async {
+    // `detachImageFaces` with an empty list is not an error at the server: it
+    // creates an empty face group, measured against a live instance, which
+    // answered with a brand new id. The library then holds a person who is in
+    // no photos and cannot be deleted.
+    final client = _CountingClient();
+    final container = await _container(client);
+
+    expect(await container.read(faceActionsProvider).detachFaces([]), isNull);
+    expect(await container.read(faceActionsProvider).moveFaces([], '9'), isNull);
+
+    expect(client.detached, isEmpty);
+    expect(client.moved, isEmpty);
   });
 
   test('a merge drops the list of the person that grew', () async {
     final client = _CountingClient();
     final container = await _container(client);
 
-    await container.read(personMediaProvider('7').future);
+    await container.read(personPhotosProvider('7').future);
     await container.read(faceActionsProvider).merge('7', ['9']);
-    await container.read(personMediaProvider('7').future);
+    await container.read(personPhotosProvider('7').future);
 
     expect(client.personReads, ['7', '7']);
   });
