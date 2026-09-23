@@ -92,6 +92,7 @@
   "personMerged": "{name} slogs ihop",
   "personMergeFailed": "Personerna kunde inte slås ihop: {error}",
   "personFacesMove": "Flytta till en annan person",
+  "personFacesMovePick": "Välj personen de ska flyttas till",
   "personFacesMoved": "Flyttad till {name}",
   "personFacesMoveFailed": "Bilderna kunde inte flyttas: {error}",
   "personFacesDetach": "Bryt ut som ny person",

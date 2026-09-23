@@ -92,6 +92,7 @@
   "personMerged": "{name} bateratu da",
   "personMergeFailed": "Ezin izan dira pertsonak bateratu: {error}",
   "personFacesMove": "Eraman beste pertsona batera",
+  "personFacesMovePick": "Aukeratu nora eraman",
   "personFacesMoved": "{name} pertsonara eraman da",
   "personFacesMoveFailed": "Ezin izan dira argazkiak eraman: {error}",
   "personFacesDetach": "Bereizi pertsona berri gisa",

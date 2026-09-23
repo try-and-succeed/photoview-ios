@@ -92,6 +92,7 @@
   "personMerged": "Połączono: {name}",
   "personMergeFailed": "Nie udało się połączyć osób: {error}",
   "personFacesMove": "Przenieś do innej osoby",
+  "personFacesMovePick": "Wybierz osobę, do której przenieść",
   "personFacesMoved": "Przeniesiono do: {name}",
   "personFacesMoveFailed": "Nie udało się przenieść zdjęć: {error}",
   "personFacesDetach": "Wydziel jako nową osobę",

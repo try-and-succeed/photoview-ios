@@ -92,6 +92,7 @@
   "personMerged": "已合并 {name}",
   "personMergeFailed": "无法合并人物：{error}",
   "personFacesMove": "移动到其他人物",
+  "personFacesMovePick": "选择要移动到的人物",
   "personFacesMoved": "已移动到 {name}",
   "personFacesMoveFailed": "无法移动照片：{error}",
   "personFacesDetach": "拆分为新的人物",

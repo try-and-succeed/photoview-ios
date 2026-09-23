@@ -92,6 +92,7 @@
   "personMerged": "{name} is samengevoegd",
   "personMergeFailed": "De personen konden niet worden samengevoegd: {error}",
   "personFacesMove": "Verplaatsen naar een andere persoon",
+  "personFacesMovePick": "Kies de persoon om ze naartoe te verplaatsen",
   "personFacesMoved": "Verplaatst naar {name}",
   "personFacesMoveFailed": "De foto’s konden niet worden verplaatst: {error}",
   "personFacesDetach": "Afsplitsen als nieuwe persoon",

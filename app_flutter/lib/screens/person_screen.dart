@@ -83,7 +83,10 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
   Future<void> _merge() async {
     final other = await showDialog<FaceGroup>(
       context: context,
-      builder: (context) => _PickPersonDialog(exclude: widget.faceGroup.id),
+      builder: (context) => _PickPersonDialog(
+        exclude: widget.faceGroup.id,
+        title: AppLocalizations.of(context).personMergePick,
+      ),
     );
     if (other == null || !mounted) return;
 
@@ -146,7 +149,10 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
 
     final other = await showDialog<FaceGroup>(
       context: context,
-      builder: (context) => _PickPersonDialog(exclude: widget.faceGroup.id),
+      builder: (context) => _PickPersonDialog(
+        exclude: widget.faceGroup.id,
+        title: AppLocalizations.of(context).personFacesMovePick,
+      ),
     );
     if (other == null || !mounted) return;
 
@@ -391,7 +397,11 @@ class _PickPersonDialog extends ConsumerWidget {
   /// The person doing the absorbing, which cannot absorb itself.
   final String exclude;
 
-  const _PickPersonDialog({required this.exclude});
+  /// What the list is being picked for — merging a whole person in, or
+  /// sending a few photos across. The same list, two different questions.
+  final String title;
+
+  const _PickPersonDialog({required this.exclude, required this.title});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -401,7 +411,7 @@ class _PickPersonDialog extends ConsumerWidget {
         ref.watch(peopleOrderProvider).valueOrNull ?? PeopleOrder.alphabetical;
 
     return AlertDialog(
-      title: Text(l10n.personMergePick),
+      title: Text(title),
       content: SizedBox(
         width: 320,
         height: 380,

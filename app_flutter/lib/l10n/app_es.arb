@@ -92,6 +92,7 @@
   "personMerged": "Se combinó {name}",
   "personMergeFailed": "No se pudieron combinar las personas: {error}",
   "personFacesMove": "Mover a otra persona",
+  "personFacesMovePick": "Elige la persona a la que moverlas",
   "personFacesMoved": "Movido a {name}",
   "personFacesMoveFailed": "No se pudieron mover las fotos: {error}",
   "personFacesDetach": "Separar como persona nueva",

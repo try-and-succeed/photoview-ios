@@ -92,6 +92,7 @@
   "personMerged": "{name} wurde zusammengeführt",
   "personMergeFailed": "Die Personen konnten nicht zusammengeführt werden: {error}",
   "personFacesMove": "Zu anderer Person verschieben",
+  "personFacesMovePick": "Person zum Verschieben wählen",
   "personFacesMoved": "Zu {name} verschoben",
   "personFacesMoveFailed": "Die Bilder konnten nicht verschoben werden: {error}",
   "personFacesDetach": "Als neue Person herauslösen",

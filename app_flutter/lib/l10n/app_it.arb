@@ -92,6 +92,7 @@
   "personMerged": "{name} è stato unito",
   "personMergeFailed": "Non è stato possibile unire le persone: {error}",
   "personFacesMove": "Sposta su un'altra persona",
+  "personFacesMovePick": "Scegli la persona a cui spostarle",
   "personFacesMoved": "Spostato su {name}",
   "personFacesMoveFailed": "Non è stato possibile spostare le foto: {error}",
   "personFacesDetach": "Separa come nuova persona",

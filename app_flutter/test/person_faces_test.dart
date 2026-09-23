@@ -132,6 +132,24 @@ void main() {
     expect(find.textContaining('Moved to Anna'), findsOneWidget);
   });
 
+  testWidgets('the picker asks the question it was opened for', (tester) async {
+    // The same list serves two actions. Found on the device: moving a photo
+    // opened a dialog headed "choose the person to merge in", which is not
+    // what the tap was about and would have been read as the wrong action.
+    final client = _FacesClient(
+      photos: [_photo('1', ['10'])],
+      people: [anna],
+    );
+    await _open(tester, client);
+    await _pickFirst(tester);
+
+    await tester.tap(find.byIcon(Icons.person_add_alt));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Choose the person to move them to'), findsOneWidget);
+    expect(find.text('Choose the person to merge in'), findsNothing);
+  });
+
   testWidgets('a photo this person is in twice moves whole', (tester) async {
     // The tile stands for the photo's faces in this group. Leaving one behind
     // would file half a photo under somebody else.

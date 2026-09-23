@@ -92,6 +92,7 @@
   "personMerged": "{name} объединён",
   "personMergeFailed": "Не удалось объединить людей: {error}",
   "personFacesMove": "Перенести к другому человеку",
+  "personFacesMovePick": "Выберите человека, к которому перенести",
   "personFacesMoved": "Перенесено к {name}",
   "personFacesMoveFailed": "Не удалось перенести фотографии: {error}",
   "personFacesDetach": "Выделить в нового человека",

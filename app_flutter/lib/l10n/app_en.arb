@@ -488,6 +488,10 @@
   "@personFacesMove": {
     "description": "Tooltip of the action that files the ticked photos under another person."
   },
+  "personFacesMovePick": "Choose the person to move them to",
+  "@personFacesMovePick": {
+    "description": "Title of the dialog that lists the other people, when the ticked photos are being moved to one of them."
+  },
   "personFacesMoved": "Moved to {name}",
   "@personFacesMoved": {
     "description": "Confirmation after moving photos, naming the person they went to.",
