@@ -405,6 +405,29 @@
   "@peopleEmpty": {
     "description": "No faces have been recognised. Two lines."
   },
+  "peopleRecognize": "Match unnamed faces",
+  "@peopleRecognize": {
+    "description": "Tooltip of the button that asks the server to match unnamed faces against the named people."
+  },
+  "peopleRecognized": "Faces filed: {count}",
+  "@peopleRecognized": {
+    "description": "How many faces the server filed under a named person. The number is last so no language has to inflect around it.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "12"
+      }
+    }
+  },
+  "peopleRecognizeFailed": "The match failed: {error}",
+  "@peopleRecognizeFailed": {
+    "description": "The match could not be run.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "personUnlabeled": "Unlabeled",
   "@personUnlabeled": {
     "description": "A face group without a name."
@@ -424,6 +447,37 @@
   "personNameFailed": "Could not save the name: {error}",
   "@personNameFailed": {
     "description": "The name could not be stored on the server.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "personMerge": "Merge with another person",
+  "@personMerge": {
+    "description": "Tooltip of the button that folds another person into this one."
+  },
+  "personMergePick": "Choose the person to merge in",
+  "@personMergePick": {
+    "description": "Title of the dialog that lists the other people to merge in."
+  },
+  "personMergeNobody": "There is nobody else to merge",
+  "@personMergeNobody": {
+    "description": "The merge dialog when this is the only person there is."
+  },
+  "personMerged": "Merged {name}",
+  "@personMerged": {
+    "description": "Confirmation after a merge, naming the person that was folded in.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Anna"
+      }
+    }
+  },
+  "personMergeFailed": "Could not merge the people: {error}",
+  "@personMergeFailed": {
+    "description": "The merge was refused by the server or never reached it.",
     "placeholders": {
       "error": {
         "type": "String"

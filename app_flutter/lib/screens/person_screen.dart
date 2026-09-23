@@ -4,9 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../api/models.dart';
 import '../l10n/app_localizations.dart';
 import '../state/library.dart';
+import '../state/people_order.dart';
 import '../widgets/action_failure.dart';
 import '../widgets/scrollable_view.dart';
 import '../widgets/async_states.dart';
+import '../widgets/face_grid.dart';
+import '../widgets/load_more.dart';
 import '../widgets/media_grid.dart';
 
 class PersonScreen extends ConsumerStatefulWidget {
@@ -72,6 +75,47 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
     }
   }
 
+  /// Folds another person into this one.
+  ///
+  /// This one is the destination, so the user stays where they are and the
+  /// picked person is the one that disappears — which is also the server's
+  /// only way of getting rid of a face group at all.
+  Future<void> _merge() async {
+    final other = await showDialog<FaceGroup>(
+      context: context,
+      builder: (context) => _PickPersonDialog(exclude: widget.faceGroup.id),
+    );
+    if (other == null || !mounted) return;
+
+    final l10n = AppLocalizations.of(context);
+    setState(() => _busy = true);
+
+    try {
+      final label = await ref
+          .read(faceActionsProvider)
+          .merge(widget.faceGroup.id, [other.id]);
+
+      if (!mounted) return;
+      setState(() => _label = label);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.personMerged(_describe(other, l10n)))),
+      );
+    } catch (error) {
+      if (mounted) {
+        await showActionFailure(
+          context,
+          ref,
+          error: error,
+          message: l10n.personMergeFailed,
+          retry: _merge,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -92,12 +136,18 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
                 ),
               ),
             )
-          else
+          else ...[
             IconButton(
               icon: const Icon(Icons.edit_outlined),
               tooltip: l10n.personName,
               onPressed: _rename,
             ),
+            IconButton(
+              icon: const Icon(Icons.merge_type),
+              tooltip: l10n.personMerge,
+              onPressed: _merge,
+            ),
+          ],
         ],
       ),
       body: media.when(
@@ -176,3 +226,93 @@ class _NameDialogState extends State<_NameDialog> {
     );
   }
 }
+
+/// Picks the person to fold into this one.
+///
+/// The whole list, named and unnamed alike: the two tiles that turn out to be
+/// the same person are often one of each — the reason for merging in the
+/// first place. Sorted the way the People tab is, so the order is the one the
+/// user just came from.
+class _PickPersonDialog extends ConsumerWidget {
+  /// The person doing the absorbing, which cannot absorb itself.
+  final String exclude;
+
+  const _PickPersonDialog({required this.exclude});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final people = ref.watch(faceGroupsProvider);
+    final order =
+        ref.watch(peopleOrderProvider).valueOrNull ?? PeopleOrder.alphabetical;
+
+    return AlertDialog(
+      title: Text(l10n.personMergePick),
+      content: SizedBox(
+        width: 320,
+        height: 380,
+        child: people.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, _) => ErrorMessage.forError(
+            error,
+            onRetry: () => ref.invalidate(faceGroupsProvider),
+          ),
+          data: (data) {
+            final others = orderedFaceGroups(
+              [for (final g in data.groups) if (g.id != exclude) g],
+              order,
+            );
+
+            if (others.isEmpty) {
+              return EmptyMessage(
+                message: l10n.personMergeNobody,
+                icon: Icons.person_outline,
+              );
+            }
+
+            // The people list is paged, so this dialog pages too: without it
+            // the only people on offer would be the first forty, and the one
+            // being looked for is as likely to be further down.
+            return LoadMoreOnScroll(
+              hasMore: data.hasMore,
+              onLoadMore: () =>
+                  ref.read(faceGroupsProvider.notifier).loadMore(),
+              child: ListView.builder(
+                itemCount: others.length + (data.loadingMore ? 1 : 0),
+                itemBuilder: (context, index) {
+                  if (index >= others.length) {
+                    return const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+
+                  final person = others[index];
+
+                  return ListTile(
+                    leading: FaceThumbnail(face: person, size: 40),
+                    title: Text(_describe(person, l10n)),
+                    onTap: () => Navigator.of(context).pop(person),
+                  );
+                },
+              ),
+            );
+          },
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l10n.actionCancel),
+        ),
+      ],
+    );
+  }
+}
+
+/// How a person reads in a list: their name, or the word for the unnamed with
+/// the count that tells them apart.
+String _describe(FaceGroup person, AppLocalizations l10n) =>
+    faceGroupIsNamed(person)
+    ? person.label!
+    : unlabeledFaceLabel(l10n.personUnlabeled, person.imageFaceCount);

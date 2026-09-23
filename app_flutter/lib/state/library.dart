@@ -291,4 +291,38 @@ class FaceActions {
     _ref.invalidate(faceGroupsProvider);
     return stored;
   }
+
+  /// Files [sources] under [destination], which is how two tiles of the same
+  /// person become one.
+  ///
+  /// Returns the name the destination carries afterwards — the server keeps
+  /// its own, so merging a named person into an unnamed one leaves it unnamed.
+  Future<String?> merge(String destination, List<String> sources) async {
+    final label = await _ref.requireClient.combineFaceGroups(
+      destination,
+      sources,
+    );
+
+    // The sources are gone and the destination has grown: both lists say
+    // something that is no longer true.
+    _ref.invalidate(faceGroupsProvider);
+    _ref.invalidate(personMediaProvider(destination));
+    return label;
+  }
+
+  /// Asks the server to match the unnamed faces against the named ones again,
+  /// returning how many it filed.
+  Future<int> recognizeUnlabeled() async {
+    final filed = await _ref.requireClient.recognizeUnlabeledFaces();
+
+    // Whatever it matched moved from an unnamed group into a named one.
+    _ref.invalidate(faceGroupsProvider);
+
+    // The whole family, because the server decides which people grew — and
+    // unlike a merge, nothing here says which. A person's photo list does not
+    // rebuild with the people list; it would otherwise keep showing what it
+    // read before the match, however long the screen stays open.
+    _ref.invalidate(personMediaProvider);
+    return filed;
+  }
 }
