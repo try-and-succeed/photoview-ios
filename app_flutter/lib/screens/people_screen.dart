@@ -128,6 +128,7 @@ class _PeopleScreenState extends ConsumerState<PeopleScreen> {
                         data.groups,
                         ref.watch(peopleOrderProvider).valueOrNull ??
                             PeopleOrder.nameAscending,
+                        unnamedFewestFirst: data.fewestFirst,
                       ),
                     ),
                   ),

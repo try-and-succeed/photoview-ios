@@ -41,6 +41,7 @@ class _FacesClient extends PhotoviewClient {
   Future<List<FaceGroup>> faceGroups({
     required int limit,
     required int offset,
+    bool fewestFirst = false,
   }) async => people.skip(offset).take(limit).toList();
 
   @override

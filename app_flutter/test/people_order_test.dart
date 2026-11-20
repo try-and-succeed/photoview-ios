@@ -95,6 +95,21 @@ void main() {
       }
     });
 
+    test('the unnamed run fewest first when the server paged them so', () {
+      final ordered = orderedFaceGroups(
+        [
+          _group('1', count: 30),
+          _group('2', label: 'Zoe', count: 400),
+          _group('3', count: 3),
+          _group('4', label: 'Anna', count: 2),
+        ],
+        PeopleOrder.countAscending,
+        unnamedFewestFirst: true,
+      );
+
+      expect(ordered.map((g) => g.id), ['4', '2', '3', '1']);
+    });
+
     test('umlauts sort where a reader expects them', () {
       // Dart compares code units, which puts "Ö" after "Z".
       final ordered = orderedFaceGroups([
@@ -112,11 +127,10 @@ void main() {
         _group('2', count: 8),
       ], PeopleOrder.nameAscending);
 
-      expect(
-        ordered.map((g) => g.id),
-        ['2', '1'],
-        reason: 'both unnamed, so by count',
-      );
+      expect(ordered.map((g) => g.id), [
+        '2',
+        '1',
+      ], reason: 'both unnamed, so by count');
     });
 
     test('equal keys fall back to the id, so paging cannot drop a person', () {
@@ -205,20 +219,23 @@ void main() {
       }
     });
 
-    test('a stored value we no longer know falls back to the default', () async {
-      final container = ProviderContainer(
-        overrides: [
-          settingsStoreProvider.overrideWithValue(
-            _MemorySettings()..order = 'by-phase-of-the-moon',
-          ),
-        ],
-      );
-      addTearDown(container.dispose);
+    test(
+      'a stored value we no longer know falls back to the default',
+      () async {
+        final container = ProviderContainer(
+          overrides: [
+            settingsStoreProvider.overrideWithValue(
+              _MemorySettings()..order = 'by-phase-of-the-moon',
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
 
-      expect(
-        await container.read(peopleOrderProvider.future),
-        PeopleOrder.nameAscending,
-      );
-    });
+        expect(
+          await container.read(peopleOrderProvider.future),
+          PeopleOrder.nameAscending,
+        );
+      },
+    );
   });
 }

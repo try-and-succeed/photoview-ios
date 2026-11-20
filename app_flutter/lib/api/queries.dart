@@ -48,7 +48,8 @@ query InitialSetup {
 }
 ''';
 
-const timelineQuery = '''
+const timelineQuery =
+    '''
 query timeline(\$limit: Int!, \$offset: Int!, \$fromDate: Time) {
   # fromDate is the server's own way of starting the timeline further back:
   # "only fetch media that is older than this date". Null asks for the newest.
@@ -65,7 +66,8 @@ query timeline(\$limit: Int!, \$offset: Int!, \$fromDate: Time) {
 $_mediaItemFragment
 ''';
 
-const myAlbumsQuery = '''
+const myAlbumsQuery =
+    '''
 query myAlbums {
   myAlbums(order: {order_by: "title"}, onlyRoot: true, showEmpty: true) {
     ...AlbumItem
@@ -74,7 +76,8 @@ query myAlbums {
 $_albumItemFragment
 ''';
 
-const singleAlbumQuery = '''
+const singleAlbumQuery =
+    '''
 query albumViewSingleAlbum(\$albumID: ID!, \$limit: Int!, \$offset: Int!) {
   album(id: \$albumID) {
     id
@@ -93,34 +96,57 @@ $_albumItemFragment
 
 // Paginated: resolving a thumbnail for every face group at once takes the
 // server well over a minute on a sizeable library.
-const myFacesThumbnailsQuery = r'''
+const myFacesThumbnailsQuery =
+    r'''
 query myFacesThumbnails($limit: Int!, $offset: Int!) {
   myFaceGroups(paginate: {limit: $limit, offset: $offset}) {
+    ...faceGroupThumbnail
+  }
+}
+''' +
+    _faceGroupThumbnailFragment;
+
+/// Fewest photos first. A document of its own rather than a variable on the
+/// one above: a server without `countDirection` rejects the whole request for
+/// naming it, even with a null value, so it is only sent where the
+/// capability says the server has it.
+const myFacesThumbnailsFewestFirstQuery =
+    r'''
+query myFacesThumbnailsFewestFirst($limit: Int!, $offset: Int!) {
+  myFaceGroups(countDirection: ASC, paginate: {limit: $limit, offset: $offset}) {
+    ...faceGroupThumbnail
+  }
+}
+''' +
+    _faceGroupThumbnailFragment;
+
+const _faceGroupThumbnailFragment = r'''
+fragment faceGroupThumbnail on FaceGroup {
+  id
+  label
+  imageFaceCount
+  imageFaces(paginate: {limit: 1}) {
     id
-    label
-    imageFaceCount
-    imageFaces(paginate: {limit: 1}) {
+    rectangle {
+      minX
+      maxX
+      minY
+      maxY
+    }
+    media {
       id
-      rectangle {
-        minX
-        maxX
-        minY
-        maxY
-      }
-      media {
-        id
-        thumbnail {
-          url
-          width
-          height
-        }
+      thumbnail {
+        url
+        width
+        height
       }
     }
   }
 }
 ''';
 
-const singlePersonQuery = '''
+const singlePersonQuery =
+    '''
 query singlePerson(\$faceGroupID: ID!) {
   faceGroup(id: \$faceGroupID) {
     id
@@ -213,7 +239,8 @@ query mediaGeoJson {
 }
 ''';
 
-const placesClusterDetailsQuery = '''
+const placesClusterDetailsQuery =
+    '''
 query placesClusterDetails(\$ids: [ID!]!) {
   mediaList(ids: \$ids) {
     ...MediaItem
@@ -222,7 +249,8 @@ query placesClusterDetails(\$ids: [ID!]!) {
 $_mediaItemFragment
 ''';
 
-const mediaDetailsQuery = '''
+const mediaDetailsQuery =
+    '''
 query mediaDetails(\$mediaID: ID!) {
   media(id: \$mediaID) {
     id
@@ -285,7 +313,8 @@ $_mediaItemFragment
 /// treats 0 as unlimited — both measured against a live instance. The
 /// `searchResultLimit` preference is *not* applied server-side to `search`, so
 /// it is the client that reads the preference and passes it here.
-const mediaSearchQuery = '''
+const mediaSearchQuery =
+    '''
 query mediaSearch(\$query: String!, \$limitMedia: Int, \$limitAlbums: Int) {
   search(query: \$query, limitAlbums: \$limitAlbums, limitMedia: \$limitMedia) {
     query

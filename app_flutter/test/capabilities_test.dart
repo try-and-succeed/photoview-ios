@@ -5,8 +5,7 @@ import 'package:photoview/api/client.dart';
 
 /// Wordings copied verbatim from a live Photoview instance, so the patterns
 /// are matched against what the server really sends rather than a guess.
-const _missingField =
-    'Cannot query field "albumTreeChildren" on type "Query".';
+const _missingField = 'Cannot query field "albumTreeChildren" on type "Query".';
 const _missingPreference =
     'Cannot query field "searchResultLimit" on type "UserPreferences".';
 const _missingScanner =
@@ -61,13 +60,35 @@ void main() {
           },
           'albumTreeChildren': <dynamic>[],
           'scannerQueueStatus': <dynamic>[],
+          // Empty, as asked for with a limit of 0: the list being there is the
+          // evidence, as the server on :8080 answered.
+          'myFaceGroups': <dynamic>[],
         },
       );
 
-      expect(states[Capability.searchLimitPreference], CapabilityState.supported);
+      expect(
+        states[Capability.searchLimitPreference],
+        CapabilityState.supported,
+      );
       expect(states[Capability.albumTreePreference], CapabilityState.supported);
       expect(states[Capability.albumTree], CapabilityState.supported);
       expect(states[Capability.scanner], CapabilityState.supported);
+      expect(
+        states[Capability.faceGroupCountDirection],
+        CapabilityState.supported,
+      );
+    });
+
+    test('a server that cannot sort people both ways says so by name', () {
+      final states = readProbe(
+        errorMessages: [
+          'Unknown argument "countDirection" on field "Query.myFaceGroups".',
+        ],
+      );
+
+      expect(states, {
+        Capability.faceGroupCountDirection: CapabilityState.unsupported,
+      });
     });
 
     test('a null value still counts as the field being present', () {
@@ -80,7 +101,10 @@ void main() {
         },
       );
 
-      expect(states[Capability.searchLimitPreference], CapabilityState.supported);
+      expect(
+        states[Capability.searchLimitPreference],
+        CapabilityState.supported,
+      );
     });
 
     test('marks a capability unsupported when an error names its field', () {
@@ -115,7 +139,10 @@ void main() {
         states[Capability.searchLimitPreference],
         CapabilityState.unsupported,
       );
-      expect(states[Capability.albumTreePreference], CapabilityState.unsupported);
+      expect(
+        states[Capability.albumTreePreference],
+        CapabilityState.unsupported,
+      );
     });
 
     test('leaves everything unknown when the probe was refused', () {
@@ -170,11 +197,16 @@ void main() {
     /// The complete response `photoview/photoview:latest` gives to the batched
     /// probe, captured from a live container. Validation fails, so there is no
     /// data at all and every missing field is named in its own error.
+    ///
+    /// The last line came later, with `countDirection`, when that container
+    /// was no longer running: it is the wording the same server gave live for
+    /// another unknown argument (see `unsupportedFieldIn`).
     const upstreamErrors = [
       'Cannot query field "searchResultLimit" on type "UserPreferences".',
       'Cannot query field "showAlbumTree" on type "UserPreferences".',
       'Cannot query field "albumTreeChildren" on type "Query".',
       'Cannot query field "scannerQueueStatus" on type "Query".',
+      'Unknown argument "countDirection" on field "Query.myFaceGroups".',
     ];
 
     test('one round trip settles every capability', () {
@@ -253,15 +285,17 @@ void main() {
     });
 
     test('rules out the capabilities its field identifies', () {
+      expect(UnsupportedFieldException(field: 'scanAlbum').ruledOut, {
+        Capability.scanner,
+      });
+      expect(UnsupportedFieldException(field: 'myUserPreferences').ruledOut, {
+        Capability.searchLimitPreference,
+        Capability.albumTreePreference,
+      });
       expect(
-        UnsupportedFieldException(field: 'scanAlbum').ruledOut,
-        {Capability.scanner},
+        UnsupportedFieldException(field: 'somethingElse').ruledOut,
+        isEmpty,
       );
-      expect(
-        UnsupportedFieldException(field: 'myUserPreferences').ruledOut,
-        {Capability.searchLimitPreference, Capability.albumTreePreference},
-      );
-      expect(UnsupportedFieldException(field: 'somethingElse').ruledOut, isEmpty);
     });
   });
 
@@ -349,6 +383,7 @@ void main() {
             Capability.albumTreePreference => 'showAlbumTree',
             Capability.albumTree => 'albumTreeChildren',
             Capability.scanner => 'scannerQueueStatus',
+            Capability.faceGroupCountDirection => 'countDirection',
           };
 
           expect(

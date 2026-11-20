@@ -1,17 +1,18 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../api/capabilities.dart';
 import '../api/models.dart';
+import 'capabilities.dart';
 import 'search_limit.dart' show settingsStoreProvider;
 
-/// How the people who have a name are ordered.
+/// How the people are ordered.
 ///
-/// The unnamed are always ordered most photos first, whatever is chosen here.
-/// They have nothing else to be ordered by, the biggest heaps are the ones
-/// worth naming first — and that is the order the server pages them in. The
-/// named are all loaded before the first unnamed one shows (see
-/// `FaceGroupsNotifier`), so any order works for them; the unnamed arrive a
-/// page at a time, and fewest-first would slot every new page in above
-/// wherever the user has scrolled to.
+/// The named are all loaded before the first unnamed one shows (see
+/// `FaceGroupsNotifier`), so any order works for them. The unnamed have only
+/// their count, and they arrive a page at a time in the order the server
+/// sends: most photos first, or fewest first where the server can be asked to
+/// (see [unnamedFewestFirstProvider]). Sorting them any other way here would
+/// slot every new page in above wherever the user has scrolled to.
 enum PeopleOrder {
   /// By name, A to Z. The default: face detection splits one person into
   /// several groups often enough that ordering by count scatters the same
@@ -50,19 +51,60 @@ enum PeopleOrder {
 /// names in this app's languages are made of.
 String sortableName(String name) {
   const folded = {
-    'ä': 'a', 'à': 'a', 'á': 'a', 'â': 'a', 'ã': 'a', 'å': 'a', 'ā': 'a',
+    'ä': 'a',
+    'à': 'a',
+    'á': 'a',
+    'â': 'a',
+    'ã': 'a',
+    'å': 'a',
+    'ā': 'a',
     'æ': 'ae',
-    'ç': 'c', 'ć': 'c', 'č': 'c',
-    'ď': 'd', 'đ': 'd',
-    'è': 'e', 'é': 'e', 'ê': 'e', 'ë': 'e', 'ē': 'e', 'ę': 'e', 'ě': 'e',
-    'ì': 'i', 'í': 'i', 'î': 'i', 'ï': 'i', 'ī': 'i',
-    'ł': 'l', 'ñ': 'n', 'ń': 'n', 'ň': 'n',
-    'ö': 'o', 'ò': 'o', 'ó': 'o', 'ô': 'o', 'õ': 'o', 'ø': 'o', 'ō': 'o',
-    'ř': 'r', 'ś': 's', 'š': 's', 'ş': 's', 'ß': 'ss',
-    'ť': 't', 'ţ': 't',
-    'ü': 'u', 'ù': 'u', 'ú': 'u', 'û': 'u', 'ū': 'u', 'ů': 'u',
-    'ý': 'y', 'ÿ': 'y',
-    'ž': 'z', 'ź': 'z', 'ż': 'z',
+    'ç': 'c',
+    'ć': 'c',
+    'č': 'c',
+    'ď': 'd',
+    'đ': 'd',
+    'è': 'e',
+    'é': 'e',
+    'ê': 'e',
+    'ë': 'e',
+    'ē': 'e',
+    'ę': 'e',
+    'ě': 'e',
+    'ì': 'i',
+    'í': 'i',
+    'î': 'i',
+    'ï': 'i',
+    'ī': 'i',
+    'ł': 'l',
+    'ñ': 'n',
+    'ń': 'n',
+    'ň': 'n',
+    'ö': 'o',
+    'ò': 'o',
+    'ó': 'o',
+    'ô': 'o',
+    'õ': 'o',
+    'ø': 'o',
+    'ō': 'o',
+    'ř': 'r',
+    'ś': 's',
+    'š': 's',
+    'ş': 's',
+    'ß': 'ss',
+    'ť': 't',
+    'ţ': 't',
+    'ü': 'u',
+    'ù': 'u',
+    'ú': 'u',
+    'û': 'u',
+    'ū': 'u',
+    'ů': 'u',
+    'ý': 'y',
+    'ÿ': 'y',
+    'ž': 'z',
+    'ź': 'z',
+    'ż': 'z',
   };
 
   final buffer = StringBuffer();
@@ -76,26 +118,35 @@ String sortableName(String name) {
 ///
 /// A label of spaces counts as none: the server stores what it is sent, and a
 /// person called " " would sort among the named and show an empty title.
-bool faceGroupIsNamed(FaceGroup group) =>
-    (group.label ?? '').trim().isNotEmpty;
+bool faceGroupIsNamed(FaceGroup group) => (group.label ?? '').trim().isNotEmpty;
 
 /// The people, in the order they are shown.
 ///
-/// Named people first, then the unnamed. Ordering happens here rather than
-/// being asked of the server, which sorts by name-or-not and then by count and
-/// offers nothing else.
+/// Named people first, then the unnamed. The named are ordered here rather
+/// than by the server, which sorts by name-or-not and then by count and offers
+/// nothing else. The unnamed follow [unnamedFewestFirst], which has to be the
+/// direction the server paged them in.
 ///
 /// Every comparison ends at the id, so that two people with the same name, or
 /// the same number of photos, keep a fixed order. Without that last step the
 /// database is free to return equal rows in a different order on the next page
 /// request, and a person shows up twice or not at all.
-List<FaceGroup> orderedFaceGroups(List<FaceGroup> groups, PeopleOrder order) {
-  final named = [for (final g in groups) if (faceGroupIsNamed(g)) g];
-  final unnamed = [for (final g in groups) if (!faceGroupIsNamed(g)) g];
+List<FaceGroup> orderedFaceGroups(
+  List<FaceGroup> groups,
+  PeopleOrder order, {
+  bool unnamedFewestFirst = false,
+}) {
+  final named = [
+    for (final g in groups)
+      if (faceGroupIsNamed(g)) g,
+  ];
+  final unnamed = [
+    for (final g in groups)
+      if (!faceGroupIsNamed(g)) g,
+  ];
 
-  int byCount(FaceGroup a, FaceGroup b) => a.imageFaceCount.compareTo(
-    b.imageFaceCount,
-  );
+  int byCount(FaceGroup a, FaceGroup b) =>
+      a.imageFaceCount.compareTo(b.imageFaceCount);
   int byName(FaceGroup a, FaceGroup b) =>
       sortableName(a.label!).compareTo(sortableName(b.label!));
 
@@ -113,7 +164,7 @@ List<FaceGroup> orderedFaceGroups(List<FaceGroup> groups, PeopleOrder order) {
     PeopleOrder.countDescending => then(byCount, up: false),
     PeopleOrder.countAscending => then(byCount, up: true),
   });
-  unnamed.sort(then(byCount, up: false));
+  unnamed.sort(then(byCount, up: unnamedFewestFirst));
 
   return [...named, ...unnamed];
 }
@@ -135,3 +186,23 @@ final peopleOrderProvider =
     AsyncNotifierProvider<PeopleOrderNotifier, PeopleOrder>(
       PeopleOrderNotifier.new,
     );
+
+/// Whether the unnamed are to be fetched, and so shown, fewest photos first.
+///
+/// Only for "fewest photos first", and only from a server that can page them
+/// that way: anything else would need every unnamed group loaded before the
+/// first one could be shown in the right place.
+///
+/// Most first for as long as either answer is outstanding, rather than
+/// waiting for it: the people must not wait on a setting that cannot be read,
+/// nor on a probe. Should the answers then call for fewest first, the change
+/// fetches the people again — once, and only for whoever chose that order.
+/// The capabilities are only watched under that order, so no other order
+/// sets a probe going on the people's account.
+final unnamedFewestFirstProvider = Provider<bool>((ref) {
+  final order = ref.watch(peopleOrderProvider).valueOrNull;
+  if (order != PeopleOrder.countAscending) return false;
+
+  return ref.watch(capabilityProvider(Capability.faceGroupCountDirection)) ==
+      CapabilityState.supported;
+});

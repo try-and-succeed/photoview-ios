@@ -451,6 +451,7 @@ class _PickPersonDialog extends ConsumerWidget {
             final others = orderedFaceGroups(
               [for (final g in data.groups) if (g.id != exclude) g],
               order,
+              unnamedFewestFirst: data.fewestFirst,
             );
 
             if (others.isEmpty) {
