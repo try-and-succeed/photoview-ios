@@ -84,26 +84,38 @@ class PhotoFacesOverlay extends ConsumerWidget {
         ),
     ];
     final names = [for (final face in found) describePerson(face.group, l10n)];
+    // On top of the style the text inherits — font, spacing — which the
+    // measuring below has to see as well: measured without it, the names came
+    // out narrower than they are drawn and were cut short on the device.
+    final inherited = DefaultTextStyle.of(context).style;
     final styles = [
       for (final face in found)
-        TextStyle(
-          color: Colors.white,
-          fontSize: unit * 3.5,
-          fontStyle: faceGroupIsNamed(face.group) ? null : FontStyle.italic,
+        inherited.merge(
+          TextStyle(
+            color: Colors.white,
+            fontSize: unit * 3.5,
+            fontStyle: faceGroupIsNamed(face.group) ? null : FontStyle.italic,
+          ),
         ),
     ];
 
     // Measured as drawn: with the photo's own unit and no system text scale,
-    // which would make the names grow apart from the photo they label.
+    // which would make the names grow apart from the photo they label. The
+    // width rounded up, so a fraction of a pixel cannot cost a name its end.
     final sizes = [
       for (var i = 0; i < found.length; i++)
-        (TextPainter(
-              text: TextSpan(text: names[i], style: styles[i]),
-              textDirection: direction,
-              textScaler: TextScaler.noScaling,
-              maxLines: 1,
-            )..layout(maxWidth: size.width - padding.horizontal)).size +
-            Offset(padding.horizontal, padding.vertical),
+        () {
+          final painter = TextPainter(
+            text: TextSpan(text: names[i], style: styles[i]),
+            textDirection: direction,
+            textScaler: TextScaler.noScaling,
+            maxLines: 1,
+          )..layout(maxWidth: size.width - padding.horizontal);
+          return Size(
+            painter.width.ceilToDouble() + padding.horizontal,
+            painter.height + padding.vertical,
+          );
+        }(),
     ];
 
     final labels = placeLabels(

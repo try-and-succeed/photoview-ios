@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:photoview/api/client.dart';
@@ -77,6 +78,9 @@ Future<void> _pump(
 
   /// What the system font setting does to text.
   double textScale = 1,
+
+  /// The style text inherits there, as the app's theme sets one.
+  TextStyle inherited = const TextStyle(),
 }) async {
   await tester.pumpWidget(
     ProviderScope(
@@ -95,7 +99,10 @@ Future<void> _pump(
                   data: MediaQueryData(
                     textScaler: TextScaler.linear(textScale),
                   ),
-                  child: const PhotoFacesOverlay(mediaId: '55'),
+                  child: DefaultTextStyle.merge(
+                    style: inherited,
+                    child: const PhotoFacesOverlay(mediaId: '55'),
+                  ),
                 ),
               ),
               // What the gallery does once it has worked out which face a
@@ -457,6 +464,26 @@ void main() {
       ),
     );
     expect(text.textScaler, TextScaler.noScaling);
+  });
+
+  testWidgets('a name is shown whole, in the style it inherits', (
+    tester,
+  ) async {
+    // Found on the device: measured without the theme's font and spacing,
+    // every name came out narrower than drawn and ended in "…".
+    await _pump(
+      tester,
+      _FacesClient([_regina]),
+      inherited: const TextStyle(letterSpacing: 4),
+    );
+
+    final paragraph = tester.renderObject<RenderParagraph>(
+      find.descendant(
+        of: find.byType(PhotoFacesOverlay),
+        matching: find.byType(RichText),
+      ),
+    );
+    expect(paragraph.didExceedMaxLines, isFalse);
   });
 
   testWidgets('the frames take no taps of their own', (tester) async {
