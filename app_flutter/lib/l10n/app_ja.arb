@@ -101,7 +101,7 @@
   "personFacesDetached": "新しい人物として切り離しました",
   "personFacesDetachFailed": "切り離せませんでした: {error}",
   "personMoveToNew": "新しい人物…",
-  "personMoveToNewHint": "写真を名前付きの新しい人物にまとめる",
+  "personMoveToNewHint": "名前を付けて新しい人物を作成",
   "personMoveToUnlabeledHint": "名前を付けずにこの人物から外す",
   "personMoveConfirmTitle": "写真を移動しますか？",
   "personMoveConfirmAction": "移動",

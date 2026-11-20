@@ -540,13 +540,13 @@
   "@personMoveToNew": {
     "description": "Entry at the top of the move dialog: the photos go to a person made for them, after asking for a name."
   },
-  "personMoveToNewHint": "Give the photos a person of their own, with a name",
+  "personMoveToNewHint": "Make a new person and give it a name",
   "@personMoveToNewHint": {
-    "description": "Second line of the \"New person…\" entry."
+    "description": "Second line of the \"New person…\" entry. Names nothing that moves: the same dialog moves ticked photos on a person's screen and a single face in the gallery."
   },
-  "personMoveToUnlabeledHint": "Take the photos out of this person, without a name",
+  "personMoveToUnlabeledHint": "Take out of this person, without a name",
   "@personMoveToUnlabeledHint": {
-    "description": "Second line of the unnamed entry in the move dialog, which lifts the photos out without a name."
+    "description": "Second line of the unnamed entry in the move dialog, which lifts out without a name. Names nothing that moves, for the same reason."
   },
   "personMoveConfirmTitle": "Move photos?",
   "@personMoveConfirmTitle": {
