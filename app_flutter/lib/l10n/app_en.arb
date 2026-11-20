@@ -536,6 +536,56 @@
       }
     }
   },
+  "personMoveToNew": "New person…",
+  "@personMoveToNew": {
+    "description": "Entry at the top of the move dialog: the photos go to a person made for them, after asking for a name."
+  },
+  "personMoveToNewHint": "Give the photos a person of their own, with a name",
+  "@personMoveToNewHint": {
+    "description": "Second line of the \"New person…\" entry."
+  },
+  "personMoveToUnlabeledHint": "Take the photos out of this person, without a name",
+  "@personMoveToUnlabeledHint": {
+    "description": "Second line of the unnamed entry in the move dialog, which lifts the photos out without a name."
+  },
+  "personMoveConfirmTitle": "Move photos?",
+  "@personMoveConfirmTitle": {
+    "description": "Title of the question asked before photos are moved."
+  },
+  "personMoveConfirmAction": "Move",
+  "@personMoveConfirmAction": {
+    "description": "Button that confirms moving the photos."
+  },
+  "personMoveConfirm": "{count, plural, =1{Move 1 photo from {from} to {to}?} other{Move {count} photos from {from} to {to}?}}",
+  "@personMoveConfirm": {
+    "description": "Question before moving photos to another person. Asked every time, so that what an icon does is said in words before it happens.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "from": {
+        "type": "String",
+        "example": "Regina"
+      },
+      "to": {
+        "type": "String",
+        "example": "Anna"
+      }
+    }
+  },
+  "personMoveConfirmUnlabeled": "{count, plural, =1{Take 1 photo out of {from}? It will show under “Unlabeled”.} other{Take {count} photos out of {from}? They will show under “Unlabeled”.}}",
+  "@personMoveConfirmUnlabeled": {
+    "description": "Question before lifting photos out into a person without a name. Names the word the People tab shows for such a person.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "from": {
+        "type": "String",
+        "example": "Regina"
+      }
+    }
+  },
   "placesEmpty": "None of your media has location data",
   "@placesEmpty": {
     "description": "No media has location data, so the map is empty."
