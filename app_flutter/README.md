@@ -23,7 +23,11 @@ The Dart code is newly written, following the behaviour of the Swift original.
 
 ## Differences from the iOS original
 
-Same server API — all thirteen GraphQL operations are unchanged.
+Same server API. The original GraphQL operations are kept verbatim; the ones
+the iOS client never had — for the album tree, the scanner, editing people —
+are added beside them. What depends on a newer server is offered only once the
+server has been asked whether it can, so the app still works against a stock
+Photoview.
 
 Added:
 
@@ -38,6 +42,13 @@ Added:
 - **Paginated face groups.** Requesting every group at once takes the server
   well over a minute on a sizeable library; the iOS client had the same query
   but no request timeout, so it simply waited.
+- **Editing people.** Naming, merging two people into one, matching the
+  unnamed against the named, and moving single faces to someone else, a new
+  person or nobody — from a person's page for the ticked photos, or from the
+  photo itself, where a frame and a name are drawn over every face so it is
+  clear which one is whose. Every move is confirmed in words first. People sort
+  by name or by photo count in either direction, and the person picker filters
+  by name as you type.
 - Pull-to-refresh, a favourite marker on thumbnails (the field was fetched but
   never shown), an image cache that can be cleared, and error messages that
   name the cause — an untrusted certificate reads differently from an
@@ -76,7 +87,7 @@ so no single host can be allowlisted. The Swift client allowed the same.
 
 Verified against a live Photoview instance on an Android device: sign-in,
 timeline, albums, the places map with clustering and reverse geocoding, people
-with face crops, media details with EXIF, downloads, share links, search and
-video playback.
+with face crops, editing people and their faces, media details with EXIF,
+downloads, share links, search and video playback.
 
 The iOS side is unverified — it has never been built, as that needs macOS.
