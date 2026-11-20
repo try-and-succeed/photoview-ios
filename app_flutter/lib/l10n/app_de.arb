@@ -102,6 +102,7 @@
   "personFacesDetachFailed": "Das Herauslösen ist fehlgeschlagen: {error}",
   "personMoveToNew": "Neue Person…",
   "personMoveToNewHint": "Eine neue Person anlegen und benennen",
+  "personMoveToNewNamed": "Neue Person „{name}“…",
   "personMoveToUnlabeledHint": "Aus dieser Person herausnehmen, ohne Namen",
   "personFilterHint": "Nach Namen suchen",
   "personFilterNoMatch": "Niemand mit diesem Namen",

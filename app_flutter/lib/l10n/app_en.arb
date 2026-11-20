@@ -544,6 +544,16 @@
   "@personMoveToNewHint": {
     "description": "Second line of the \"New person…\" entry. Names nothing that moves: the same dialog moves ticked photos on a person's screen and a single face in the gallery."
   },
+  "personMoveToNewNamed": "New person “{name}”…",
+  "@personMoveToNewNamed": {
+    "description": "The \"New person…\" entry of the move dialog while a name is typed into its filter: one line, with the typed name, which the new person is then offered.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Max"
+      }
+    }
+  },
   "personMoveToUnlabeledHint": "Take out of this person, without a name",
   "@personMoveToUnlabeledHint": {
     "description": "Second line of the unnamed entry in the move dialog, which lifts out without a name. Names nothing that moves, for the same reason."

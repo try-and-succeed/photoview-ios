@@ -102,6 +102,7 @@
   "personFacesDetachFailed": "Udskillelsen mislykkedes: {error}",
   "personMoveToNew": "Ny person…",
   "personMoveToNewHint": "Opret en ny person med et navn",
+  "personMoveToNewNamed": "Ny person „{name}“…",
   "personMoveToUnlabeledHint": "Tag ud af denne person, uden navn",
   "personFilterHint": "Søg efter navn",
   "personFilterNoMatch": "Ingen med det navn",

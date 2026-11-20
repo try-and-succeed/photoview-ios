@@ -102,6 +102,7 @@
   "personFacesDetachFailed": "Ayrılamadı: {error}",
   "personMoveToNew": "Yeni kişi…",
   "personMoveToNewHint": "Adı olan yeni bir kişi oluştur",
+  "personMoveToNewNamed": "Yeni kişi “{name}”…",
   "personMoveToUnlabeledHint": "Bu kişiden adsız olarak çıkar",
   "personFilterHint": "Ada göre ara",
   "personFilterNoMatch": "Bu adda kimse yok",

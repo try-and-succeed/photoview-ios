@@ -102,6 +102,7 @@
   "personFacesDetachFailed": "無法分拆：{error}",
   "personMoveToNew": "新人物…",
   "personMoveToNewHint": "新增一個有名字的人物",
+  "personMoveToNewNamed": "新人物「{name}」…",
   "personMoveToUnlabeledHint": "從此人物中移出，不命名",
   "personFilterHint": "依名字搜尋",
   "personFilterNoMatch": "沒有叫這個名字的人",

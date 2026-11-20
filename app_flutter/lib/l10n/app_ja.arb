@@ -102,6 +102,7 @@
   "personFacesDetachFailed": "切り離せませんでした: {error}",
   "personMoveToNew": "新しい人物…",
   "personMoveToNewHint": "名前を付けて新しい人物を作成",
+  "personMoveToNewNamed": "新しい人物「{name}」…",
   "personMoveToUnlabeledHint": "名前を付けずにこの人物から外す",
   "personFilterHint": "名前で検索",
   "personFilterNoMatch": "その名前の人物はいません",

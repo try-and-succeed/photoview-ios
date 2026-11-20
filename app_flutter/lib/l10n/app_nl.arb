@@ -102,6 +102,7 @@
   "personFacesDetachFailed": "Het afsplitsen is mislukt: {error}",
   "personMoveToNew": "Nieuwe persoon…",
   "personMoveToNewHint": "Een nieuwe persoon maken, met een naam",
+  "personMoveToNewNamed": "Nieuwe persoon ‘{name}’…",
   "personMoveToUnlabeledHint": "Uit deze persoon halen, zonder naam",
   "personFilterHint": "Zoeken op naam",
   "personFilterNoMatch": "Niemand met die naam",

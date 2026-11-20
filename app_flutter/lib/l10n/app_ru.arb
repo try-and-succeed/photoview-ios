@@ -102,6 +102,7 @@
   "personFacesDetachFailed": "Не удалось выделить: {error}",
   "personMoveToNew": "Новый человек…",
   "personMoveToNewHint": "Создать нового человека с именем",
+  "personMoveToNewNamed": "Новый человек «{name}»…",
   "personMoveToUnlabeledHint": "Убрать у этого человека, без имени",
   "personFilterHint": "Поиск по имени",
   "personFilterNoMatch": "Нет никого с таким именем",

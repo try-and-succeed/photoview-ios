@@ -102,6 +102,7 @@
   "personFacesDetachFailed": "Não foi possível separar: {error}",
   "personMoveToNew": "Nova pessoa…",
   "personMoveToNewHint": "Criar uma pessoa nova, com nome",
+  "personMoveToNewNamed": "Pessoa nova “{name}”…",
   "personMoveToUnlabeledHint": "Retirar desta pessoa, sem nome",
   "personFilterHint": "Procurar pelo nome",
   "personFilterNoMatch": "Ninguém com esse nome",

@@ -102,6 +102,7 @@
   "personFacesDetachFailed": "Ezin izan dira bereizi: {error}",
   "personMoveToNew": "Pertsona berria…",
   "personMoveToNewHint": "Sortu pertsona berria izenarekin",
+  "personMoveToNewNamed": "Pertsona berria: «{name}»…",
   "personMoveToUnlabeledHint": "Atera pertsona honetatik, izenik gabe",
   "personFilterHint": "Bilatu izenaren arabera",
   "personFilterNoMatch": "Ez dago izen hori duenik",

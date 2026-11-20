@@ -102,6 +102,7 @@
   "personFacesDetachFailed": "Не вдалося виділити: {error}",
   "personMoveToNew": "Нова особа…",
   "personMoveToNewHint": "Створити нову особу з іменем",
+  "personMoveToNewNamed": "Нова особа «{name}»…",
   "personMoveToUnlabeledHint": "Прибрати з цієї особи, без імені",
   "personFilterHint": "Пошук за іменем",
   "personFilterNoMatch": "Немає нікого з таким іменем",
