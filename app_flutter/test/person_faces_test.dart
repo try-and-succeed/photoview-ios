@@ -48,12 +48,18 @@ class _FacesClient extends PhotoviewClient {
   @override
   Future<List<PersonPhoto>> personPhotos(String faceGroupId) async => photos;
 
+  /// The offsets of the pages of people asked for, in order.
+  final pageOffsets = <int>[];
+
   @override
   Future<List<FaceGroup>> faceGroups({
     required int limit,
     required int offset,
     bool fewestFirst = false,
-  }) async => people.skip(offset).take(limit).toList();
+  }) async {
+    pageOffsets.add(offset);
+    return people.skip(offset).take(limit).toList();
+  }
 
   @override
   Future<String?> moveImageFaces(
@@ -587,6 +593,129 @@ void main() {
         ['10'],
       ]);
       expect(client.moves, isEmpty);
+    });
+
+    group('typing a name', () {
+      const bernd = FaceGroup(id: '11', label: 'Bernd', imageFaceCount: 2);
+      const hanna = FaceGroup(id: '12', label: 'Hanna', imageFaceCount: 1);
+      const nameless = FaceGroup(id: '13', imageFaceCount: 4);
+
+      Finder inDialog(String text) => find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text(text),
+      );
+
+      Future<void> openPicker(WidgetTester tester, _FacesClient client) async {
+        await _open(tester, client);
+        await _pickFirst(tester);
+        await tester.tap(find.byIcon(Icons.person_add_alt));
+        await tester.pumpAndSettle();
+      }
+
+      testWidgets('keeps only the people whose name holds it, in any case', (
+        tester,
+      ) async {
+        final client = _FacesClient(
+          photos: [
+            _photo('1', ['10']),
+          ],
+          people: [anna, bernd, hanna, nameless],
+        );
+        await openPicker(tester, client);
+        expect(inDialog('Bernd'), findsOneWidget);
+
+        await tester.enterText(find.byType(TextField), 'AN');
+        await tester.pumpAndSettle();
+
+        expect(inDialog('Anna'), findsOneWidget);
+        expect(inDialog('Hanna'), findsOneWidget);
+        expect(inDialog('Bernd'), findsNothing);
+        expect(
+          find.descendant(
+            of: find.byType(AlertDialog),
+            matching: find.textContaining('Unlabeled'),
+          ),
+          findsNothing,
+          reason: 'the unnamed have no name to match, nor does their entry',
+        );
+
+        await tester.tap(find.byIcon(Icons.clear));
+        await tester.pumpAndSettle();
+        expect(inDialog('Bernd'), findsOneWidget);
+      });
+
+      testWidgets('a match is picked like any other', (tester) async {
+        final client = _FacesClient(
+          photos: [
+            _photo('1', ['10']),
+          ],
+          people: [anna, bernd],
+        );
+        await openPicker(tester, client);
+
+        await tester.enterText(find.byType(TextField), 'ber');
+        await tester.pumpAndSettle();
+        await tester.tap(inDialog('Bernd'));
+        await tester.pumpAndSettle();
+        await _confirm(tester);
+
+        expect(client.moves.single.destination, '11');
+        expect(client.moves.single.faces, ['10']);
+      });
+
+      testWidgets('says so when nobody matches, and offers the name for a '
+          'new person', (tester) async {
+        final client = _FacesClient(
+          photos: [
+            _photo('1', ['10']),
+          ],
+          people: [anna, bernd],
+        );
+        await openPicker(tester, client);
+
+        await tester.enterText(find.byType(TextField), ' Max ');
+        await tester.pumpAndSettle();
+        expect(inDialog('Nobody by that name'), findsOneWidget);
+
+        await tester.tap(find.text('New person…'));
+        await tester.pumpAndSettle();
+
+        final field = tester.widget<TextField>(find.byType(TextField));
+        expect(field.controller!.text, 'Max');
+        expect(
+          find.text('Remove'),
+          findsNothing,
+          reason: 'a suggestion, not a name to take away',
+        );
+
+        await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+        await tester.pumpAndSettle();
+        await _confirm(tester);
+        expect(client.renames.single, (group: '42', label: 'Max'));
+      });
+
+      testWidgets('fetches no further pages of the unnamed', (tester) async {
+        // Every named person comes with the first page; the pages after it
+        // hold only the unnamed, which a name never matches.
+        final client = _FacesClient(
+          photos: [
+            _photo('1', ['10']),
+          ],
+          people: [
+            anna,
+            for (var i = 0; i < 60; i++)
+              FaceGroup(id: 'u$i', imageFaceCount: 60 - i),
+          ],
+        );
+        await openPicker(tester, client);
+        final before = [...client.pageOffsets];
+
+        await tester.enterText(find.byType(TextField), 'anna');
+        await tester.pumpAndSettle();
+
+        expect(inDialog('Anna'), findsOneWidget);
+        expect(client.pageOffsets, before);
+      });
     });
 
     testWidgets('merging offers only the people there are', (tester) async {

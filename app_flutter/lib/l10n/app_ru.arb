@@ -103,6 +103,8 @@
   "personMoveToNew": "Новый человек…",
   "personMoveToNewHint": "Создать нового человека с именем",
   "personMoveToUnlabeledHint": "Убрать у этого человека, без имени",
+  "personFilterHint": "Поиск по имени",
+  "personFilterNoMatch": "Нет никого с таким именем",
   "personMoveConfirmTitle": "Переместить снимки?",
   "personMoveConfirmAction": "Переместить",
   "personMoveConfirm": "{count, plural, one{Переместить {count} снимок из «{from}» в «{to}»?} few{Переместить {count} снимка из «{from}» в «{to}»?} many{Переместить {count} снимков из «{from}» в «{to}»?} other{Переместить {count} снимка из «{from}» в «{to}»?}}",

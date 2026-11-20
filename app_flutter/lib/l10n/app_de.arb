@@ -103,6 +103,8 @@
   "personMoveToNew": "Neue Person…",
   "personMoveToNewHint": "Eine neue Person anlegen und benennen",
   "personMoveToUnlabeledHint": "Aus dieser Person herausnehmen, ohne Namen",
+  "personFilterHint": "Nach Namen suchen",
+  "personFilterNoMatch": "Niemand mit diesem Namen",
   "personMoveConfirmTitle": "Fotos verschieben?",
   "personMoveConfirmAction": "Verschieben",
   "personMoveConfirm": "{count, plural, =1{1 Foto von {from} zu {to} verschieben?} other{{count} Fotos von {from} zu {to} verschieben?}}",

@@ -103,6 +103,8 @@
   "personMoveToNew": "Nieuwe persoon…",
   "personMoveToNewHint": "Een nieuwe persoon maken, met een naam",
   "personMoveToUnlabeledHint": "Uit deze persoon halen, zonder naam",
+  "personFilterHint": "Zoeken op naam",
+  "personFilterNoMatch": "Niemand met die naam",
   "personMoveConfirmTitle": "Foto’s verplaatsen?",
   "personMoveConfirmAction": "Verplaatsen",
   "personMoveConfirm": "{count, plural, =1{1 foto van {from} naar {to} verplaatsen?} other{{count} foto’s van {from} naar {to} verplaatsen?}}",

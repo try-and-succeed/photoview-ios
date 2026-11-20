@@ -103,6 +103,8 @@
   "personMoveToNew": "Nowa osoba…",
   "personMoveToNewHint": "Utwórz nową osobę z imieniem",
   "personMoveToUnlabeledHint": "Wyjmij z tej osoby, bez imienia",
+  "personFilterHint": "Szukaj po imieniu",
+  "personFilterNoMatch": "Nikt o tym imieniu",
   "personMoveConfirmTitle": "Przenieść zdjęcia?",
   "personMoveConfirmAction": "Przenieś",
   "personMoveConfirm": "{count, plural, =1{Przenieść 1 zdjęcie z „{from}” do „{to}”?} few{Przenieść {count} zdjęcia z „{from}” do „{to}”?} many{Przenieść {count} zdjęć z „{from}” do „{to}”?} other{Przenieść {count} zdjęcia z „{from}” do „{to}”?}}",

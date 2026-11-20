@@ -103,6 +103,8 @@
   "personMoveToNew": "Yeni kişi…",
   "personMoveToNewHint": "Adı olan yeni bir kişi oluştur",
   "personMoveToUnlabeledHint": "Bu kişiden adsız olarak çıkar",
+  "personFilterHint": "Ada göre ara",
+  "personFilterNoMatch": "Bu adda kimse yok",
   "personMoveConfirmTitle": "Fotoğraflar taşınsın mı?",
   "personMoveConfirmAction": "Taşı",
   "personMoveConfirm": "{count, plural, =1{1 fotoğraf “{from}” kişisinden “{to}” kişisine taşınsın mı?} other{{count} fotoğraf “{from}” kişisinden “{to}” kişisine taşınsın mı?}}",

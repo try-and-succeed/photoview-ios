@@ -103,6 +103,8 @@
   "personMoveToNew": "Pertsona berria…",
   "personMoveToNewHint": "Sortu pertsona berria izenarekin",
   "personMoveToUnlabeledHint": "Atera pertsona honetatik, izenik gabe",
+  "personFilterHint": "Bilatu izenaren arabera",
+  "personFilterNoMatch": "Ez dago izen hori duenik",
   "personMoveConfirmTitle": "Argazkiak mugitu?",
   "personMoveConfirmAction": "Mugitu",
   "personMoveConfirm": "{count, plural, =1{1 argazki mugitu «{from}»(e)tik «{to}»(e)ra?} other{{count} argazki mugitu «{from}»(e)tik «{to}»(e)ra?}}",

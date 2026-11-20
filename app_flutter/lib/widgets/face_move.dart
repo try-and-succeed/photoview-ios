@@ -78,10 +78,11 @@ class FaceMove {
         }
         await _sendMove(ref, l10n, faceIds, person);
 
-      case MoveToNewPerson():
+      case MoveToNewPerson(name: final typed):
         final name = (await showDialog<String>(
           context: context,
-          builder: (context) => const PersonNameDialog(initial: null),
+          builder: (context) =>
+              PersonNameDialog(initial: null, suggestion: typed),
         ))?.trim();
         if (name == null || name.isEmpty || !context.mounted) return;
         if (!await confirmFaceMove(
@@ -212,7 +213,11 @@ Future<bool> confirmFaceMove(BuildContext context, String question) async {
 class PersonNameDialog extends StatefulWidget {
   final String? initial;
 
-  const PersonNameDialog({super.key, required this.initial});
+  /// Filled in for a person who has no name yet — what was typed while
+  /// looking for them. Unlike [initial], nothing there to remove.
+  final String? suggestion;
+
+  const PersonNameDialog({super.key, required this.initial, this.suggestion});
 
   @override
   State<PersonNameDialog> createState() => _PersonNameDialogState();
@@ -220,7 +225,7 @@ class PersonNameDialog extends StatefulWidget {
 
 class _PersonNameDialogState extends State<PersonNameDialog> {
   late final TextEditingController _controller = TextEditingController(
-    text: widget.initial ?? '',
+    text: widget.initial ?? widget.suggestion ?? '',
   );
 
   @override
@@ -267,7 +272,7 @@ class _PersonNameDialogState extends State<PersonNameDialog> {
 /// the same person are often one of each — the reason for merging in the
 /// first place. Sorted the way the People tab is, so the order is the one the
 /// user just came from.
-class PickPersonDialog extends ConsumerWidget {
+class PickPersonDialog extends ConsumerStatefulWidget {
   /// The person doing the absorbing, which cannot absorb itself.
   final String exclude;
 
@@ -287,38 +292,77 @@ class PickPersonDialog extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PickPersonDialog> createState() => _PickPersonDialogState();
+}
+
+class _PickPersonDialogState extends ConsumerState<PickPersonDialog> {
+  final _filter = TextEditingController();
+
+  @override
+  void dispose() {
+    _filter.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final people = ref.watch(faceGroupsProvider);
     final order =
         ref.watch(peopleOrderProvider).valueOrNull ?? PeopleOrder.nameAscending;
+    final query = _filter.text.trim();
 
     return AlertDialog(
-      title: Text(title),
+      title: Text(widget.title),
       content: SizedBox(
         width: 320,
         height: 380,
         child: Column(
           children: [
+            // Not focused on opening: the keyboard would cover most of the
+            // list, and most of the time the person is near the top anyway.
+            TextField(
+              controller: _filter,
+              autocorrect: false,
+              textInputAction: TextInputAction.search,
+              decoration: InputDecoration(
+                hintText: l10n.personFilterHint,
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: query.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () => setState(_filter.clear),
+                      ),
+                isDense: true,
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
             // Above the list rather than in it, so they are there at once —
             // before the people have loaded, and however far down the user
             // scrolls.
-            if (offerNewAndUnlabeled) ...[
+            if (widget.offerNewAndUnlabeled) ...[
               ListTile(
                 leading: const Icon(Icons.person_add_alt_1_outlined),
                 title: Text(l10n.personMoveToNew),
                 subtitle: Text(l10n.personMoveToNewHint),
-                onTap: () => Navigator.of(context).pop(const MoveToNewPerson()),
+                // A name typed and not found is most likely the new person's.
+                onTap: () => Navigator.of(context)
+                    .pop(MoveToNewPerson(name: query.isEmpty ? null : query)),
               ),
-              ListTile(
-                leading: const Icon(Icons.person_off_outlined),
-                title: Text(l10n.personUnlabeled),
-                subtitle: Text(l10n.personMoveToUnlabeledHint),
-                onTap: () => Navigator.of(context).pop(const MoveToUnlabeled()),
-              ),
+              // Not while looking for a name: the unnamed have none to find,
+              // and the keyboard leaves little room.
+              if (query.isEmpty)
+                ListTile(
+                  leading: const Icon(Icons.person_off_outlined),
+                  title: Text(l10n.personUnlabeled),
+                  subtitle: Text(l10n.personMoveToUnlabeledHint),
+                  onTap: () =>
+                      Navigator.of(context).pop(const MoveToUnlabeled()),
+                ),
               const Divider(),
             ],
-            Expanded(child: _people(context, ref, people, order, l10n)),
+            Expanded(child: _people(context, people, order, query, l10n)),
           ],
         ),
       ),
@@ -333,9 +377,9 @@ class PickPersonDialog extends ConsumerWidget {
 
   Widget _people(
     BuildContext context,
-    WidgetRef ref,
     AsyncValue<FaceGroupsData> people,
     PeopleOrder order,
+    String query,
     AppLocalizations l10n,
   ) => people.when(
     loading: () => const Center(child: CircularProgressIndicator()),
@@ -347,7 +391,7 @@ class PickPersonDialog extends ConsumerWidget {
       final others = orderedFaceGroups(
         [
           for (final g in data.groups)
-            if (g.id != exclude) g,
+            if (g.id != widget.exclude && personMatches(g, query)) g,
         ],
         order,
         unnamedFewestFirst: data.fewestFirst,
@@ -355,16 +399,21 @@ class PickPersonDialog extends ConsumerWidget {
 
       if (others.isEmpty) {
         return EmptyMessage(
-          message: l10n.personMergeNobody,
+          message: query.isEmpty
+              ? l10n.personMergeNobody
+              : l10n.personFilterNoMatch,
           icon: Icons.person_outline,
         );
       }
 
       // The people list is paged, so this dialog pages too: without it
       // the only people on offer would be the first forty, and the one
-      // being looked for is as likely to be further down.
+      // being looked for is as likely to be further down. Not while
+      // filtering: every named person is loaded with the first page (see
+      // FaceGroupsNotifier), so further pages hold only the unnamed, which a
+      // name never matches.
       return LoadMoreOnScroll(
-        hasMore: data.hasMore,
+        hasMore: query.isEmpty && data.hasMore,
         onLoadMore: () => ref.read(faceGroupsProvider.notifier).loadMore(),
         child: ListView.builder(
           itemCount: others.length + (data.loadingMore ? 1 : 0),
@@ -404,7 +453,20 @@ class MoveToPerson extends FaceMoveTarget {
 
 /// To a person made for them, named before anything is sent.
 class MoveToNewPerson extends FaceMoveTarget {
-  const MoveToNewPerson();
+  /// What was typed into the filter, offered as the name.
+  final String? name;
+
+  const MoveToNewPerson({this.name});
+}
+
+/// Whether [person] is kept by the dialog's name filter: everyone for an
+/// empty [query], else the named whose name holds it, in any case.
+bool personMatches(FaceGroup person, String query) {
+  final q = query.trim().toLowerCase();
+  if (q.isEmpty) return true;
+  // The unnamed drop out by themselves: no label, or a blank one, holds a
+  // query that is not blank.
+  return person.label?.toLowerCase().contains(q) ?? false;
 }
 
 /// Out of this person, without a name: one more of the unnamed.

@@ -548,6 +548,14 @@
   "@personMoveToUnlabeledHint": {
     "description": "Second line of the unnamed entry in the move dialog, which lifts out without a name. Names nothing that moves, for the same reason."
   },
+  "personFilterHint": "Find by name",
+  "@personFilterHint": {
+    "description": "Hint of the field that filters the person picker by name as you type."
+  },
+  "personFilterNoMatch": "Nobody by that name",
+  "@personFilterNoMatch": {
+    "description": "The person picker has no named person matching what was typed."
+  },
   "personMoveConfirmTitle": "Move photos?",
   "@personMoveConfirmTitle": {
     "description": "Title of the question asked before photos are moved."

@@ -103,6 +103,8 @@
   "personMoveToNew": "Ny person…",
   "personMoveToNewHint": "Skapa en ny person med namn",
   "personMoveToUnlabeledHint": "Ta ut ur den här personen, utan namn",
+  "personFilterHint": "Sök på namn",
+  "personFilterNoMatch": "Ingen med det namnet",
   "personMoveConfirmTitle": "Flytta bilder?",
   "personMoveConfirmAction": "Flytta",
   "personMoveConfirm": "{count, plural, =1{Flytta 1 bild från {from} till {to}?} other{Flytta {count} bilder från {from} till {to}?}}",

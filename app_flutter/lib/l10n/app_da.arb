@@ -103,6 +103,8 @@
   "personMoveToNew": "Ny person…",
   "personMoveToNewHint": "Opret en ny person med et navn",
   "personMoveToUnlabeledHint": "Tag ud af denne person, uden navn",
+  "personFilterHint": "Søg efter navn",
+  "personFilterNoMatch": "Ingen med det navn",
   "personMoveConfirmTitle": "Flyt billeder?",
   "personMoveConfirmAction": "Flyt",
   "personMoveConfirm": "{count, plural, =1{Flyt 1 billede fra {from} til {to}?} other{Flyt {count} billeder fra {from} til {to}?}}",

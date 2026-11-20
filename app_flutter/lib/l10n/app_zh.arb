@@ -103,6 +103,8 @@
   "personMoveToNew": "新人物…",
   "personMoveToNewHint": "新建一个有名字的人物",
   "personMoveToUnlabeledHint": "从此人物中移出，不命名",
+  "personFilterHint": "按名字查找",
+  "personFilterNoMatch": "没有叫这个名字的人",
   "personMoveConfirmTitle": "移动照片？",
   "personMoveConfirmAction": "移动",
   "personMoveConfirm": "{count, plural, other{将 {count} 张照片从 {from} 移到 {to}？}}",
