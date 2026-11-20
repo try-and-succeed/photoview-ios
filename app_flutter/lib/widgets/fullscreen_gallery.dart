@@ -17,6 +17,7 @@ import '../state/auth.dart';
 import '../state/library.dart';
 import '../state/slideshow.dart';
 import 'media_details_sheet.dart';
+import 'photo_faces.dart';
 
 void showFullscreenGallery(
   BuildContext context, {
@@ -86,6 +87,11 @@ class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
   Timer? _slideshow;
 
   bool _playing = false;
+
+  /// Whether the faces found on the photos are framed and named. Kept while
+  /// paging, so someone going through a set of photos to sort people out
+  /// does not have to switch it on again on each one.
+  bool _showFaces = false;
 
   /// Read afresh in `build`, so a change made in the settings takes hold on
   /// the next picture instead of only on the next slideshow.
@@ -183,6 +189,43 @@ class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
   }
 
   void _toggleControls() => _setControlsVisible(!_controlsVisible);
+
+  /// A tap on a photo: on a framed face it files that face elsewhere,
+  /// anywhere else it shows or hides the controls as it always has.
+  ///
+  /// Worked out here rather than by the frames themselves, because the photo
+  /// view claims every tap on the photo — a frame never got one. The view
+  /// reports where the tap landed and how the photo is zoomed and shifted,
+  /// which is enough to say which face was under the finger.
+  void _onPhotoTap(
+    BuildContext pageContext,
+    MediaItem item,
+    Size childSize,
+    TapUpDetails details,
+    PhotoViewControllerValue value,
+  ) {
+    final faces = _showFaces
+        ? ref.read(mediaFacesProvider(item.id)).valueOrNull
+        : null;
+    final viewport = pageContext.size;
+
+    if (faces != null && faces.isNotEmpty && viewport != null) {
+      final point = photoPointAt(
+        tap: details.localPosition,
+        viewport: viewport,
+        childSize: childSize,
+        scale: value.scale,
+        position: value.position,
+      );
+      final face = point == null ? null : faceAt(faces, point);
+      if (face != null) {
+        assignPhotoFace(context, ref, face);
+        return;
+      }
+    }
+
+    _toggleControls();
+  }
 
   /// Everything known about the photo on screen — camera data, the files it
   /// can be downloaded as, its public links — without leaving the gallery.
@@ -282,6 +325,16 @@ class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
                         : AppLocalizations.of(context).slideshowStart,
                     onPressed: _toggleSlideshow,
                   ),
+                // Videos have no faces the server would have looked for.
+                if (widget.media[_index].type != MediaType.video)
+                  IconButton(
+                    icon: Icon(_showFaces ? Icons.face : Icons.face_outlined),
+                    tooltip: _showFaces
+                        ? AppLocalizations.of(context).galleryFacesHide
+                        : AppLocalizations.of(context).galleryFacesShow,
+                    isSelected: _showFaces,
+                    onPressed: () => setState(() => _showFaces = !_showFaces),
+                  ),
                 IconButton(
                   icon: const Icon(Icons.info_outline),
                   tooltip: AppLocalizations.of(context).galleryInfo,
@@ -338,7 +391,11 @@ class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
                 // scales the canvas, and the full image is drawn from its own
                 // pixels at whatever scale that is.
                 return PhotoViewGalleryPageOptions.customChild(
-                  child: _PhotoPage(item: item, session: session),
+                  child: _PhotoPage(
+                    item: item,
+                    session: session,
+                    showFaces: _showFaces,
+                  ),
                   childSize: Size(
                     thumbnail.width.toDouble(),
                     thumbnail.height.toDouble(),
@@ -346,7 +403,16 @@ class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
                   heroAttributes: PhotoViewHeroAttributes(tag: item.id),
                   minScale: PhotoViewComputedScale.contained,
                   maxScale: PhotoViewComputedScale.covered * 4,
-                  onTapUp: (_, _, _) => _toggleControls(),
+                  onTapUp: (context, details, value) => _onPhotoTap(
+                    context,
+                    item,
+                    Size(
+                      thumbnail.width.toDouble(),
+                      thumbnail.height.toDouble(),
+                    ),
+                    details,
+                    value,
+                  ),
                 );
               },
             ),
@@ -374,8 +440,7 @@ List<Thumbnail> galleryLayers(MediaItem item, MediaDetails? details) {
 
   return [
     ?thumbnail,
-    if (full != null && full.url.isNotEmpty && full.url != thumbnail?.url)
-      full,
+    if (full != null && full.url.isNotEmpty && full.url != thumbnail?.url) full,
   ];
 }
 
@@ -388,7 +453,15 @@ class _PhotoPage extends ConsumerWidget {
   final MediaItem item;
   final Session session;
 
-  const _PhotoPage({required this.item, required this.session});
+  /// Whether the faces are framed over the photo — inside the page, so they
+  /// zoom and pan with it.
+  final bool showFaces;
+
+  const _PhotoPage({
+    required this.item,
+    required this.session,
+    this.showFaces = false,
+  });
 
   ImageProvider _provider(Thumbnail rendition) => CachedNetworkImageProvider(
     session.resolve(rendition.url).toString(),
@@ -433,6 +506,7 @@ class _PhotoPage extends ConsumerWidget {
               // which is still a picture of the right thing.
               errorBuilder: (context, error, stack) => const SizedBox.shrink(),
             ),
+        if (showFaces) PhotoFacesOverlay(mediaId: item.id),
       ],
     );
   }
@@ -538,7 +612,9 @@ class _VideoPageState extends ConsumerState<_VideoPage> {
           );
         }
 
-        WidgetsBinding.instance.addPostFrameCallback((_) => _setup(session, url));
+        WidgetsBinding.instance.addPostFrameCallback(
+          (_) => _setup(session, url),
+        );
         return const Center(child: CircularProgressIndicator());
       },
     );

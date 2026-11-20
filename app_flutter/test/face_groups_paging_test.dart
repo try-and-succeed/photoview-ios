@@ -20,6 +20,9 @@ final _session = Session(
 class _FixedAuth extends AuthNotifier {
   @override
   Future<Session?> build() async => _session;
+
+  /// Signs in somewhere else, as switching servers does.
+  void use(Session session) => state = AsyncData(session);
 }
 
 class _MemorySettings extends SettingsStore {
@@ -164,6 +167,111 @@ void main() {
     expect(client.requests, [0]);
     expect(data.groups, isEmpty);
     expect(data.hasMore, isFalse);
+  });
+
+  group('fetched again', () {
+    test('as many people as were there, not just the first page', () async {
+      // After a move the list is fetched again. Cut back to its first page,
+      // it ended far above where the user had scrolled to.
+      final client = _PagingClient(named: 3, unnamed: 300);
+      final container = _container(client);
+      await _settled(container);
+      container.listen(faceGroupsProvider, (_, _) {});
+      await container.read(faceGroupsProvider.future);
+      final notifier = container.read(faceGroupsProvider.notifier);
+      for (var i = 0; i < 3; i++) {
+        await notifier.loadMore();
+      }
+      expect(container.read(faceGroupsProvider).value!.groups, hasLength(160));
+      client.requests.clear();
+
+      container.invalidate(faceGroupsProvider);
+      final data = await container.read(faceGroupsProvider.future);
+
+      expect(data.groups, hasLength(160));
+      expect(client.requests, [0, 40, 80, 120]);
+    });
+
+    test('another account starts at one page', () async {
+      // The length is the user's scroll position in one library; in another
+      // library it means nothing, and fetching that many would only be slow.
+      final client = _PagingClient(named: 3, unnamed: 300);
+      final container = _container(client);
+      await _settled(container);
+      container.listen(faceGroupsProvider, (_, _) {});
+      await container.read(faceGroupsProvider.future);
+      final notifier = container.read(faceGroupsProvider.notifier);
+      for (var i = 0; i < 3; i++) {
+        await notifier.loadMore();
+      }
+      client.requests.clear();
+
+      (container.read(authProvider.notifier) as _FixedAuth).use(
+        Session(
+          endpoint: Uri.parse('http://other:8081/api/graphql'),
+          token: 'tok',
+          username: 'admin',
+        ),
+      );
+      final data = await container.read(faceGroupsProvider.future);
+
+      expect(client.requests, [0]);
+      expect(data.groups, hasLength(40));
+    });
+
+    test('a changed direction starts at one page', () async {
+      // The list then begins with other people, so its old length says
+      // nothing about where the user wants to be.
+      final client = _PagingClient(named: 3, unnamed: 300);
+      final container = _container(
+        client,
+        order: PeopleOrder.countDescending,
+        countDirection: CapabilityState.supported,
+      );
+      await _settled(container);
+      container.listen(faceGroupsProvider, (_, _) {});
+      await container.read(faceGroupsProvider.future);
+      final notifier = container.read(faceGroupsProvider.notifier);
+      for (var i = 0; i < 3; i++) {
+        await notifier.loadMore();
+      }
+      client.requests.clear();
+
+      await container
+          .read(peopleOrderProvider.notifier)
+          .choose(PeopleOrder.countAscending);
+      final data = await container.read(faceGroupsProvider.future);
+
+      expect(client.requests, [0]);
+      expect(data.fewestFirst, isTrue);
+    });
+
+    test('the first time, one page as before', () async {
+      final client = _PagingClient(named: 3, unnamed: 300);
+
+      await _load(client);
+
+      expect(client.requests, [0]);
+    });
+
+    test(
+      'scrolling while it is fetched again adds nothing to the old list',
+      () async {
+        final client = _PagingClient(named: 3, unnamed: 300);
+        final container = _container(client);
+        await _settled(container);
+        container.listen(faceGroupsProvider, (_, _) {});
+        await container.read(faceGroupsProvider.future);
+        client.requests.clear();
+
+        container.invalidate(faceGroupsProvider);
+        container.read(faceGroupsProvider);
+        await container.read(faceGroupsProvider.notifier).loadMore();
+        await container.read(faceGroupsProvider.future);
+
+        expect(client.requests, [0], reason: 'only the fetch that replaces it');
+      },
+    );
   });
 
   group('fewest photos first', () {

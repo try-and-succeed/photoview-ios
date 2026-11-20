@@ -204,6 +204,41 @@ class PersonPhoto {
   const PersonPhoto({required this.media, required this.faceIds});
 }
 
+/// One face the detector found on a photo, and the person it is filed under.
+///
+/// A photo belongs to a person only through a face: with three faces found on
+/// it, it shows under three people. This is what lets the gallery say who is
+/// on a photo, and which rectangle is whose.
+class PhotoFace {
+  final String id;
+  final FaceRectangle rectangle;
+
+  /// The group the face is filed under, without a thumbnail of its own.
+  final FaceGroup group;
+
+  const PhotoFace({
+    required this.id,
+    required this.rectangle,
+    required this.group,
+  });
+
+  factory PhotoFace.fromJson(Map<String, dynamic> json) {
+    final group = json['faceGroup'] as Map<String, dynamic>? ?? const {};
+
+    return PhotoFace(
+      id: json['id'].toString(),
+      rectangle: FaceRectangle.fromJson(
+        json['rectangle'] as Map<String, dynamic>? ?? const {},
+      ),
+      group: FaceGroup(
+        id: group['id']?.toString() ?? '',
+        label: group['label'] as String?,
+        imageFaceCount: _asInt(group['imageFaceCount']),
+      ),
+    );
+  }
+}
+
 /// Where a photo was taken, as the server reports it.
 ///
 /// Its own type rather than two loose numbers: half a position is no
