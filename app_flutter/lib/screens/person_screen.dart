@@ -434,7 +434,7 @@ class _PickPersonDialog extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final people = ref.watch(faceGroupsProvider);
     final order =
-        ref.watch(peopleOrderProvider).valueOrNull ?? PeopleOrder.alphabetical;
+        ref.watch(peopleOrderProvider).valueOrNull ?? PeopleOrder.nameAscending;
 
     return AlertDialog(
       title: Text(title),

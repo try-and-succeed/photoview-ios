@@ -5,24 +5,40 @@ import 'search_limit.dart' show settingsStoreProvider;
 
 /// How the people who have a name are ordered.
 ///
-/// The unnamed are always ordered by how many photos they appear in: they have
-/// nothing else to be ordered by, and the biggest heaps are the ones worth
-/// naming first.
+/// The unnamed are always ordered most photos first, whatever is chosen here.
+/// They have nothing else to be ordered by, the biggest heaps are the ones
+/// worth naming first — and that is the order the server pages them in. The
+/// named are all loaded before the first unnamed one shows (see
+/// `FaceGroupsNotifier`), so any order works for them; the unnamed arrive a
+/// page at a time, and fewest-first would slot every new page in above
+/// wherever the user has scrolled to.
 enum PeopleOrder {
-  /// By name. The default: face detection splits one person into several
-  /// groups often enough that ordering by count scatters the same person over
-  /// the whole list, and the person with the most photos is rarely the one
-  /// being looked for.
-  alphabetical,
+  /// By name, A to Z. The default: face detection splits one person into
+  /// several groups often enough that ordering by count scatters the same
+  /// person over the whole list, and the person with the most photos is rarely
+  /// the one being looked for.
+  nameAscending,
+
+  /// By name, Z to A.
+  nameDescending,
 
   /// Most photos first, which is what the server sends.
-  byCount;
+  countDescending,
+
+  /// Fewest photos first: the people named once and then hardly seen again.
+  countAscending;
+
+  /// What earlier versions stored, when there were only two orders.
+  static const _formerNames = {
+    'alphabetical': nameAscending,
+    'byCount': countDescending,
+  };
 
   static PeopleOrder? byName(String? name) {
     for (final order in values) {
       if (order.name == name) return order;
     }
-    return null;
+    return _formerNames[name];
   }
 }
 
@@ -77,22 +93,27 @@ List<FaceGroup> orderedFaceGroups(List<FaceGroup> groups, PeopleOrder order) {
   final named = [for (final g in groups) if (faceGroupIsNamed(g)) g];
   final unnamed = [for (final g in groups) if (!faceGroupIsNamed(g)) g];
 
-  int byCount(FaceGroup a, FaceGroup b) {
-    final count = b.imageFaceCount.compareTo(a.imageFaceCount);
-    return count != 0 ? count : a.id.compareTo(b.id);
-  }
-
-  named.sort(
-    order == PeopleOrder.alphabetical
-        ? (a, b) {
-            final name = sortableName(
-              a.label!,
-            ).compareTo(sortableName(b.label!));
-            return name != 0 ? name : a.id.compareTo(b.id);
-          }
-        : byCount,
+  int byCount(FaceGroup a, FaceGroup b) => a.imageFaceCount.compareTo(
+    b.imageFaceCount,
   );
-  unnamed.sort(byCount);
+  int byName(FaceGroup a, FaceGroup b) =>
+      sortableName(a.label!).compareTo(sortableName(b.label!));
+
+  // The direction turns the key round, never the id: ties keep the same fixed
+  // order both ways, so switching back and forth cannot shuffle equals.
+  Comparator<FaceGroup> then(Comparator<FaceGroup> key, {required bool up}) =>
+      (a, b) {
+        final compared = up ? key(a, b) : key(b, a);
+        return compared != 0 ? compared : a.id.compareTo(b.id);
+      };
+
+  named.sort(switch (order) {
+    PeopleOrder.nameAscending => then(byName, up: true),
+    PeopleOrder.nameDescending => then(byName, up: false),
+    PeopleOrder.countDescending => then(byCount, up: false),
+    PeopleOrder.countAscending => then(byCount, up: true),
+  });
+  unnamed.sort(then(byCount, up: false));
 
   return [...named, ...unnamed];
 }
@@ -102,7 +123,7 @@ class PeopleOrderNotifier extends AsyncNotifier<PeopleOrder> {
   @override
   Future<PeopleOrder> build() async =>
       PeopleOrder.byName(await ref.read(settingsStoreProvider).peopleOrder()) ??
-      PeopleOrder.alphabetical;
+      PeopleOrder.nameAscending;
 
   Future<void> choose(PeopleOrder order) async {
     state = AsyncData(order);
