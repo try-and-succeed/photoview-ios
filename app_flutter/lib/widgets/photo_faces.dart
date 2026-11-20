@@ -53,86 +53,157 @@ class PhotoFacesOverlay extends ConsumerWidget {
                   text: AppLocalizations.of(context).galleryFacesNone,
                   unit: unit,
                 )
-              : IgnorePointer(
-                  child: Stack(
-                    children: [
-                      for (final face in found)
-                        ..._frame(context, face, size, unit),
-                    ],
-                  ),
-                ),
+              : IgnorePointer(child: _faces(context, found, size, unit)),
         );
       },
     );
   }
 
-  /// The frame around [face] and the name under it.
-  List<Widget> _frame(
+  /// The frames, and the names placed where they cover no other face and
+  /// no other name.
+  Widget _faces(
     BuildContext context,
-    PhotoFace face,
+    List<PhotoFace> found,
     Size size,
     double unit,
   ) {
     final l10n = AppLocalizations.of(context);
-    final rect = face.rectangle;
-    final left = rect.minX * size.width;
-    final top = rect.minY * size.height;
-    final width = rect.width * size.width;
-    final height = rect.height * size.height;
-    final labelHeight = unit * 6;
+    final direction = Directionality.of(context);
+    final padding = EdgeInsets.symmetric(
+      horizontal: unit * 1.5,
+      vertical: unit * 0.5,
+    );
 
-    // Under the face, or above it when the face is at the bottom edge.
-    final below = top + height + unit + labelHeight <= size.height;
-
-    return [
-      Positioned(
-        left: left,
-        top: top,
-        width: width,
-        height: height,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.white, width: unit * 0.5),
-            borderRadius: BorderRadius.circular(unit),
-            boxShadow: [BoxShadow(color: Colors.black54, blurRadius: unit)],
-          ),
+    final frames = [
+      for (final face in found)
+        Rect.fromLTWH(
+          face.rectangle.minX * size.width,
+          face.rectangle.minY * size.height,
+          face.rectangle.width * size.width,
+          face.rectangle.height * size.height,
         ),
-      ),
-      Positioned(
-        left: left,
-        top: below ? top + height + unit : null,
-        bottom: below ? null : size.height - top + unit,
-        // Wider than the face may be — a name is often longer than a face is
-        // wide — but never past the photo's edge.
-        width: (size.width - left).clamp(0, width * 3),
-        child: Align(
-          alignment: AlignmentDirectional.centerStart,
-          child: Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: unit * 1.5,
-              vertical: unit * 0.5,
-            ),
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.7),
-              borderRadius: BorderRadius.circular(unit),
-            ),
-            child: Text(
-              describePerson(face.group, l10n),
+    ];
+    final names = [for (final face in found) describePerson(face.group, l10n)];
+    final styles = [
+      for (final face in found)
+        TextStyle(
+          color: Colors.white,
+          fontSize: unit * 3.5,
+          fontStyle: faceGroupIsNamed(face.group) ? null : FontStyle.italic,
+        ),
+    ];
+
+    // Measured as drawn: with the photo's own unit and no system text scale,
+    // which would make the names grow apart from the photo they label.
+    final sizes = [
+      for (var i = 0; i < found.length; i++)
+        (TextPainter(
+              text: TextSpan(text: names[i], style: styles[i]),
+              textDirection: direction,
+              textScaler: TextScaler.noScaling,
               maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: unit * 3.5,
-                fontStyle: faceGroupIsNamed(face.group)
-                    ? null
-                    : FontStyle.italic,
+            )..layout(maxWidth: size.width - padding.horizontal)).size +
+            Offset(padding.horizontal, padding.vertical),
+    ];
+
+    final labels = placeLabels(
+      frames: frames,
+      labels: sizes,
+      area: size,
+      gap: unit,
+    );
+
+    return Stack(
+      children: [
+        for (final frame in frames)
+          Positioned.fromRect(
+            rect: frame,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.white, width: unit * 0.5),
+                borderRadius: BorderRadius.circular(unit),
+                boxShadow: [BoxShadow(color: Colors.black54, blurRadius: unit)],
               ),
             ),
           ),
-        ),
-      ),
-    ];
+        for (var i = 0; i < found.length; i++)
+          Positioned.fromRect(
+            rect: labels[i],
+            child: Container(
+              padding: padding,
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.7),
+                borderRadius: BorderRadius.circular(unit),
+              ),
+              child: Text(
+                names[i],
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textScaler: TextScaler.noScaling,
+                style: styles[i],
+              ),
+            ),
+          ),
+      ],
+    );
   }
+}
+
+/// Where each face's name goes, as a box on the photo.
+///
+/// Under its face if that is free, else further down, else above — free
+/// meaning off every other face and every name already placed, and inside
+/// the photo. Names were first put straight under their faces, and on a
+/// group photo one covered the next face and the name under it. Where
+/// nothing is free, under the face after all: a covered name still beats
+/// none. A name that would run off the right edge is moved left to fit.
+///
+/// Faces are taken top to bottom, then left to right, so the result does not
+/// depend on the order the server listed them in.
+List<Rect> placeLabels({
+  required List<Rect> frames,
+  required List<Size> labels,
+  required Size area,
+  required double gap,
+}) {
+  final order = List.generate(frames.length, (i) => i)
+    ..sort((a, b) {
+      final byTop = frames[a].top.compareTo(frames[b].top);
+      return byTop != 0 ? byTop : frames[a].left.compareTo(frames[b].left);
+    });
+
+  final placed = List<Rect?>.filled(frames.length, null);
+  const tries = 4;
+
+  for (final i in order) {
+    final frame = frames[i];
+    final label = labels[i];
+    final width = label.width < area.width ? label.width : area.width;
+    final left = frame.left + width > area.width
+        ? area.width - width
+        : frame.left;
+    Rect at(double top) => Rect.fromLTWH(left, top, width, label.height);
+
+    bool free(Rect box) =>
+        box.top >= 0 &&
+        box.bottom <= area.height &&
+        !placed.any((other) => other != null && other.overlaps(box)) &&
+        !frames.indexed.any((f) => f.$1 != i && f.$2.overlaps(box));
+
+    final step = label.height + gap;
+    final candidates = [
+      for (var k = 0; k < tries; k++) at(frame.bottom + gap + k * step),
+      for (var k = 0; k < tries; k++)
+        at(frame.top - gap - label.height - k * step),
+    ];
+
+    final fallback = frame.bottom + gap + label.height <= area.height
+        ? candidates.first
+        : candidates[tries];
+    placed[i] = candidates.firstWhere(free, orElse: () => fallback);
+  }
+
+  return [for (final box in placed) box!];
 }
 
 /// Files [face] under someone else, a new person, or nobody — the same dialog

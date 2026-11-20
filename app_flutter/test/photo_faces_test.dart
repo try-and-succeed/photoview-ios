@@ -71,7 +71,13 @@ class _FacesClient extends PhotoviewClient {
 
 const _photo = Size(400, 300);
 
-Future<void> _pump(WidgetTester tester, _FacesClient client) async {
+Future<void> _pump(
+  WidgetTester tester,
+  _FacesClient client, {
+
+  /// What the system font setting does to text.
+  double textScale = 1,
+}) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
@@ -85,7 +91,12 @@ Future<void> _pump(WidgetTester tester, _FacesClient client) async {
             children: [
               SizedBox.fromSize(
                 size: _photo,
-                child: const PhotoFacesOverlay(mediaId: '55'),
+                child: MediaQuery(
+                  data: MediaQueryData(
+                    textScaler: TextScaler.linear(textScale),
+                  ),
+                  child: const PhotoFacesOverlay(mediaId: '55'),
+                ),
               ),
               // What the gallery does once it has worked out which face a
               // tap landed on.
@@ -244,6 +255,208 @@ void main() {
       expect(faceAt([behind, _regina], const Offset(0.2, 0.3)), _regina);
       expect(faceAt([_regina, behind], const Offset(0.2, 0.3)), _regina);
     });
+  });
+
+  group('placeLabels', () {
+    const area = Size(400, 300);
+    const label = Size(100, 20);
+
+    test('a name goes under its face when that is free', () {
+      final boxes = placeLabels(
+        frames: [const Rect.fromLTWH(50, 50, 40, 40)],
+        labels: [label],
+        area: area,
+        gap: 4,
+      );
+
+      expect(boxes.single, const Rect.fromLTWH(50, 94, 100, 20));
+    });
+
+    test('a name does not cover the next face', () {
+      // The group photo on the device: the first name ran across the face
+      // beside and below it.
+      final frames = [
+        const Rect.fromLTWH(100, 100, 40, 40),
+        const Rect.fromLTWH(160, 115, 40, 40),
+      ];
+      final boxes = placeLabels(
+        frames: frames,
+        labels: [label, label],
+        area: area,
+        gap: 4,
+      );
+
+      for (final (i, box) in boxes.indexed) {
+        for (final (j, frame) in frames.indexed) {
+          if (i != j) expect(box.overlaps(frame), isFalse, reason: '$i on $j');
+        }
+      }
+      expect(boxes[0].overlaps(boxes[1]), isFalse);
+    });
+
+    test('two names side by side do not cover each other', () {
+      final boxes = placeLabels(
+        frames: [
+          const Rect.fromLTWH(50, 50, 40, 40),
+          const Rect.fromLTWH(110, 50, 40, 40),
+        ],
+        labels: [label, label],
+        area: area,
+        gap: 4,
+      );
+
+      expect(boxes[0].overlaps(boxes[1]), isFalse);
+      expect(boxes[0].left, 50, reason: 'each starts at its own face');
+      expect(boxes[1].left, 110);
+    });
+
+    test('a name at the bottom edge goes above its face', () {
+      final boxes = placeLabels(
+        frames: [const Rect.fromLTWH(50, 260, 40, 40)],
+        labels: [label],
+        area: area,
+        gap: 4,
+      );
+
+      expect(boxes.single.bottom, lessThanOrEqualTo(256));
+    });
+
+    test('a name at the right edge is moved left to fit', () {
+      final boxes = placeLabels(
+        frames: [const Rect.fromLTWH(360, 50, 30, 30)],
+        labels: [label],
+        area: area,
+        gap: 4,
+      );
+
+      expect(boxes.single.right, lessThanOrEqualTo(area.width));
+      expect(boxes.single.width, label.width, reason: 'not cut short');
+    });
+
+    test('the order the server lists the faces in changes nothing', () {
+      final a = const Rect.fromLTWH(100, 100, 40, 40);
+      final b = const Rect.fromLTWH(160, 115, 40, 40);
+
+      final forward = placeLabels(
+        frames: [a, b],
+        labels: [label, label],
+        area: area,
+        gap: 4,
+      );
+      final backward = placeLabels(
+        frames: [b, a],
+        labels: [label, label],
+        area: area,
+        gap: 4,
+      );
+
+      expect(backward, [forward[1], forward[0]]);
+    });
+  });
+
+  testWidgets('on screen, no name covers another face or name', (tester) async {
+    // The faces of the group photo the overlap was found on, roughly.
+    const faces = [
+      PhotoFace(
+        id: '1',
+        rectangle: FaceRectangle(
+          minX: 0.20,
+          maxX: 0.27,
+          minY: 0.38,
+          maxY: 0.48,
+        ),
+        group: FaceGroup(id: '1', label: 'Simone Bauer'),
+      ),
+      PhotoFace(
+        id: '2',
+        rectangle: FaceRectangle(
+          minX: 0.39,
+          maxX: 0.46,
+          minY: 0.41,
+          maxY: 0.51,
+        ),
+        group: FaceGroup(id: '2', label: 'Sabine Bauer'),
+      ),
+      PhotoFace(
+        id: '3',
+        rectangle: FaceRectangle(
+          minX: 0.50,
+          maxX: 0.57,
+          minY: 0.45,
+          maxY: 0.55,
+        ),
+        group: FaceGroup(id: '3', label: 'Tonja Lipp'),
+      ),
+    ];
+    await _pump(tester, _FacesClient(faces));
+
+    final photo = tester.getRect(find.byType(PhotoFacesOverlay));
+    final frames = [
+      for (final face in faces)
+        Rect.fromLTRB(
+          photo.left + face.rectangle.minX * photo.width,
+          photo.top + face.rectangle.minY * photo.height,
+          photo.left + face.rectangle.maxX * photo.width,
+          photo.top + face.rectangle.maxY * photo.height,
+        ),
+    ];
+    final names = [
+      for (final face in faces)
+        tester.getRect(
+          find.ancestor(
+            of: find.text(face.group.label!),
+            matching: find.byType(Container),
+          ),
+        ),
+    ];
+
+    for (final (i, name) in names.indexed) {
+      for (final (j, frame) in frames.indexed) {
+        if (i != j) {
+          expect(name.overlaps(frame), isFalse, reason: 'name $i on face $j');
+        }
+      }
+      for (final (j, other) in names.indexed) {
+        if (i < j) {
+          expect(name.overlaps(other), isFalse, reason: 'name $i on name $j');
+        }
+      }
+    }
+  });
+
+  testWidgets('the names keep their size to the photo, whatever the font '
+      'setting', (tester) async {
+    // They label the photo, so they are measured in parts of it. Scaled by the
+    // system setting they would outgrow the boxes measured for them, and
+    // cover the faces the placing kept them off.
+    Future<Rect> nameAt(double scale) async {
+      await _pump(tester, _FacesClient([_regina]), textScale: scale);
+      return tester.getRect(
+        find.ancestor(
+          of: find.text('Regina'),
+          matching: find.byType(Container),
+        ),
+      );
+    }
+
+    final normal = await nameAt(1);
+    final large = await nameAt(2);
+
+    expect(large.size, normal.size);
+    expect(
+      find.descendant(
+        of: find.byType(PhotoFacesOverlay),
+        matching: find.byType(RichText),
+      ),
+      findsOneWidget,
+    );
+    final text = tester.widget<RichText>(
+      find.descendant(
+        of: find.byType(PhotoFacesOverlay),
+        matching: find.byType(RichText),
+      ),
+    );
+    expect(text.textScaler, TextScaler.noScaling);
   });
 
   testWidgets('the frames take no taps of their own', (tester) async {
