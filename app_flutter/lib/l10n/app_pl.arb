@@ -102,6 +102,7 @@
   "personFacesDetachFailed": "Nie udało się wydzielić: {error}",
   "personMoveToNew": "Nowa osoba…",
   "personMoveToNewHint": "Utwórz nową osobę z imieniem",
+  "personMoveToNewNamed": "Nowa osoba „{name}”…",
   "personMoveToUnlabeledHint": "Wyjmij z tej osoby, bez imienia",
   "personFilterHint": "Szukaj po imieniu",
   "personFilterNoMatch": "Nikt o tym imieniu",

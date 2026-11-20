@@ -102,6 +102,7 @@
   "personFacesDetachFailed": "La séparation a échoué : {error}",
   "personMoveToNew": "Nouvelle personne…",
   "personMoveToNewHint": "Créer une nouvelle personne avec un nom",
+  "personMoveToNewNamed": "Nouvelle personne « {name} »…",
   "personMoveToUnlabeledHint": "Retirer de cette personne, sans nom",
   "personFilterHint": "Rechercher par nom",
   "personFilterNoMatch": "Personne ne porte ce nom",

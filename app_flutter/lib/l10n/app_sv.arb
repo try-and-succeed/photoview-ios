@@ -102,6 +102,7 @@
   "personFacesDetachFailed": "Utbrytningen misslyckades: {error}",
   "personMoveToNew": "Ny person…",
   "personMoveToNewHint": "Skapa en ny person med namn",
+  "personMoveToNewNamed": "Ny person ”{name}”…",
   "personMoveToUnlabeledHint": "Ta ut ur den här personen, utan namn",
   "personFilterHint": "Sök på namn",
   "personFilterNoMatch": "Ingen med det namnet",

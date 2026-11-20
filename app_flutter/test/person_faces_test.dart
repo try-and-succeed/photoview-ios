@@ -676,8 +676,11 @@ void main() {
         await tester.enterText(find.byType(TextField), ' Max ');
         await tester.pumpAndSettle();
         expect(inDialog('Nobody by that name'), findsOneWidget);
+        // One line, with the name in it, so the keyboard leaves room for the
+        // people below.
+        expect(inDialog('Make a new person and give it a name'), findsNothing);
 
-        await tester.tap(find.text('New person…'));
+        await tester.tap(inDialog('New person “Max”…'));
         await tester.pumpAndSettle();
 
         final field = tester.widget<TextField>(find.byType(TextField));

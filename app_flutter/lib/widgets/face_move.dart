@@ -342,10 +342,20 @@ class _PickPersonDialogState extends ConsumerState<PickPersonDialog> {
             // before the people have loaded, and however far down the user
             // scrolls.
             if (widget.offerNewAndUnlabeled) ...[
+              // One line while a name is typed, and that name in it: the
+              // keyboard leaves room for little more than a name or two below,
+              // and what the entry does is plain once the name is there.
               ListTile(
                 leading: const Icon(Icons.person_add_alt_1_outlined),
-                title: Text(l10n.personMoveToNew),
-                subtitle: Text(l10n.personMoveToNewHint),
+                title: Text(
+                  query.isEmpty
+                      ? l10n.personMoveToNew
+                      : l10n.personMoveToNewNamed(query),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: query.isEmpty ? Text(l10n.personMoveToNewHint) : null,
+                dense: query.isNotEmpty,
                 // A name typed and not found is most likely the new person's.
                 onTap: () => Navigator.of(context)
                     .pop(MoveToNewPerson(name: query.isEmpty ? null : query)),
