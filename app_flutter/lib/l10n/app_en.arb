@@ -25,13 +25,21 @@
   "@settingsPeopleOrder": {
     "description": "Setting: in what order the people who have a name are listed."
   },
-  "settingsPeopleOrderAlphabetical": "Alphabetical",
-  "@settingsPeopleOrderAlphabetical": {
-    "description": "Ordering option: by name."
+  "settingsPeopleOrderNameAscending": "Name A–Z",
+  "@settingsPeopleOrderNameAscending": {
+    "description": "Ordering option: by name, A to Z."
   },
-  "settingsPeopleOrderByCount": "By number of photos",
-  "@settingsPeopleOrderByCount": {
+  "settingsPeopleOrderNameDescending": "Name Z–A",
+  "@settingsPeopleOrderNameDescending": {
+    "description": "Ordering option: by name, Z to A."
+  },
+  "settingsPeopleOrderMostPhotos": "Most photos first",
+  "@settingsPeopleOrderMostPhotos": {
     "description": "Ordering option: most photos first, which is what the server sends."
+  },
+  "settingsPeopleOrderFewestPhotos": "Fewest photos first",
+  "@settingsPeopleOrderFewestPhotos": {
+    "description": "Ordering option: fewest photos first."
   },
   "settingsPeopleOrderNotSaved": "Could not save the setting: {error}",
   "@settingsPeopleOrderNotSaved": {

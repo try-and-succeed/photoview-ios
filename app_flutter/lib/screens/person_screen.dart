@@ -434,7 +434,7 @@ class _PickPersonDialog extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final people = ref.watch(faceGroupsProvider);
     final order =
-        ref.watch(peopleOrderProvider).valueOrNull ?? PeopleOrder.alphabetical;
+        ref.watch(peopleOrderProvider).valueOrNull ?? PeopleOrder.nameAscending;
 
     return AlertDialog(
       title: Text(title),
@@ -451,6 +451,7 @@ class _PickPersonDialog extends ConsumerWidget {
             final others = orderedFaceGroups(
               [for (final g in data.groups) if (g.id != exclude) g],
               order,
+              unnamedFewestFirst: data.fewestFirst,
             );
 
             if (others.isEmpty) {

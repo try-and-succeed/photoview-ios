@@ -1,9 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../api/capabilities.dart';
 import '../api/models.dart';
 import 'auth.dart';
+import 'capabilities.dart';
 import 'stale_response_guard.dart';
-import 'people_order.dart' show faceGroupIsNamed;
+import 'people_order.dart' show faceGroupIsNamed, unnamedFewestFirstProvider;
 import 'search_limit.dart';
 
 const _albumPageSize = 200;
@@ -21,10 +23,16 @@ class FaceGroupsData {
   final bool hasMore;
   final bool loadingMore;
 
+  /// Whether the server paged the unnamed fewest photos first. Kept with the
+  /// groups so they are shown in the order they were fetched in, even while a
+  /// changed setting is still being fetched anew.
+  final bool fewestFirst;
+
   const FaceGroupsData({
     this.groups = const [],
     this.hasMore = true,
     this.loadingMore = false,
+    this.fewestFirst = false,
   });
 
   FaceGroupsData copyWith({
@@ -35,20 +43,60 @@ class FaceGroupsData {
     groups: groups ?? this.groups,
     hasMore: hasMore ?? this.hasMore,
     loadingMore: loadingMore ?? this.loadingMore,
+    fewestFirst: fewestFirst,
   );
 }
 
 class FaceGroupsNotifier extends AsyncNotifier<FaceGroupsData>
     with StaleResponseGuard {
+  var _fewestFirst = false;
+
   @override
   Future<FaceGroupsData> build() async {
     beginGeneration(ref);
 
-    final first = await ref.guarded(
-      (c) => c.faceGroups(limit: _faceGroupPageSize, offset: 0),
-    );
+    // A plain bool, so switching between orders that page the same way — A to
+    // Z and Z to A — re-sorts what is there instead of fetching it again.
+    _fewestFirst = ref.watch(unnamedFewestFirstProvider);
+    final serverId = ref.read(sessionProvider)?.serverId;
+
+    List<FaceGroup> first;
+    try {
+      first = await ref.guarded(
+        (c) => c.faceGroups(
+          limit: _faceGroupPageSize,
+          offset: 0,
+          fewestFirst: _fewestFirst,
+        ),
+      );
+    } on UnsupportedFieldException catch (failure) {
+      if (!_fewestFirst) rethrow;
+
+      // The cache said this server can page fewest first and it cannot — a
+      // server rolled back, most likely. Recorded so the setting stops asking,
+      // and answered most first meanwhile rather than with an error.
+      if (serverId != null) {
+        await ref.read(capabilityDowngradeProvider)(serverId, failure);
+      }
+      _fewestFirst = false;
+      first = await _page(0);
+    }
 
     return _throughTheNamed(first);
+  }
+
+  Future<List<FaceGroup>> _page(int offset) {
+    final fewestFirst = _fewestFirst;
+
+    // `guardedRead`, not `guarded`: this runs after an await, where watching
+    // the client would attach to a build that has already finished.
+    return ref.guardedRead(
+      (c) => c.faceGroups(
+        limit: _faceGroupPageSize,
+        offset: offset,
+        fewestFirst: fewestFirst,
+      ),
+    );
   }
 
   /// Keeps fetching while a page holds nothing but named people.
@@ -67,16 +115,16 @@ class FaceGroupsNotifier extends AsyncNotifier<FaceGroupsData>
     var hasMore = first.length >= _faceGroupPageSize;
 
     while (hasMore && lastPage.isNotEmpty && lastPage.every(faceGroupIsNamed)) {
-      // `guardedRead`, not `guarded`: watching the client after an await would
-      // attach to a build that has already finished.
-      lastPage = await ref.guardedRead(
-        (c) => c.faceGroups(limit: _faceGroupPageSize, offset: groups.length),
-      );
+      lastPage = await _page(groups.length);
       groups.addAll(lastPage);
       hasMore = lastPage.length >= _faceGroupPageSize;
     }
 
-    return FaceGroupsData(groups: groups, hasMore: hasMore);
+    return FaceGroupsData(
+      groups: groups,
+      hasMore: hasMore,
+      fewestFirst: _fewestFirst,
+    );
   }
 
   Future<void> loadMore() async {
@@ -87,12 +135,7 @@ class FaceGroupsNotifier extends AsyncNotifier<FaceGroupsData>
     state = AsyncData(current.copyWith(loadingMore: true));
 
     try {
-      final page = await ref.guardedRead(
-        (c) => c.faceGroups(
-          limit: _faceGroupPageSize,
-          offset: current.groups.length,
-        ),
-      );
+      final page = await _page(current.groups.length);
 
       if (movedOn(generation)) return;
       state = AsyncData(
@@ -125,8 +168,9 @@ final placesMarkersProvider = FutureProvider<List<PlacesMarker>>(
 /// Keyed by the joined ids because family arguments are compared with `==`,
 /// and a `List` would create a fresh provider on every rebuild.
 final clusterMediaProvider = FutureProvider.family<List<MediaItem>, String>(
-  (ref, joinedIds) =>
-      ref.guarded((c) => c.mediaList(joinedIds.split(',')..removeWhere((s) => s.isEmpty))),
+  (ref, joinedIds) => ref.guarded(
+    (c) => c.mediaList(joinedIds.split(',')..removeWhere((s) => s.isEmpty)),
+  ),
 );
 
 final mediaDetailsProvider = FutureProvider.family<MediaDetails, String>(
@@ -246,9 +290,7 @@ final albumProvider =
 
 /// Share links are created and revoked through mutations, then the details
 /// query is refetched so the list reflects the server.
-final shareActionsProvider = Provider<ShareActions>(
-  (ref) => ShareActions(ref),
-);
+final shareActionsProvider = Provider<ShareActions>((ref) => ShareActions(ref));
 
 class ShareActions {
   final Ref _ref;
@@ -315,7 +357,10 @@ class FaceActions {
   ///
   /// Returns the destination's name afterwards. Two people change, so both
   /// their photo lists go, and the counts on the people list with them.
-  Future<String?> moveFaces(List<String> imageFaceIds, String destination) async {
+  Future<String?> moveFaces(
+    List<String> imageFaceIds,
+    String destination,
+  ) async {
     if (imageFaceIds.isEmpty) return null;
 
     final label = await _ref.requireClient.moveImageFaces(

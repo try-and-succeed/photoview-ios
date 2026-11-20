@@ -125,8 +125,10 @@ class _PeopleOrderTile extends ConsumerWidget {
 
   static String _label(AppLocalizations l10n, PeopleOrder order) =>
       switch (order) {
-        PeopleOrder.alphabetical => l10n.settingsPeopleOrderAlphabetical,
-        PeopleOrder.byCount => l10n.settingsPeopleOrderByCount,
+        PeopleOrder.nameAscending => l10n.settingsPeopleOrderNameAscending,
+        PeopleOrder.nameDescending => l10n.settingsPeopleOrderNameDescending,
+        PeopleOrder.countDescending => l10n.settingsPeopleOrderMostPhotos,
+        PeopleOrder.countAscending => l10n.settingsPeopleOrderFewestPhotos,
       };
 
   Future<void> _choose(BuildContext context, WidgetRef ref) async {
@@ -177,7 +179,7 @@ class _PeopleOrderTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final order =
-        ref.watch(peopleOrderProvider).valueOrNull ?? PeopleOrder.alphabetical;
+        ref.watch(peopleOrderProvider).valueOrNull ?? PeopleOrder.nameAscending;
 
     return ListTile(
       leading: const Icon(Icons.sort_by_alpha),

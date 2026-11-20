@@ -33,6 +33,7 @@ class _CountingClient extends PhotoviewClient {
   Future<List<FaceGroup>> faceGroups({
     required int limit,
     required int offset,
+    bool fewestFirst = false,
   }) async => const [];
 
   final detached = <List<String>>[];

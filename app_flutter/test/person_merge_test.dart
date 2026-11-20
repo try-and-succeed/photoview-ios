@@ -42,6 +42,7 @@ class _MergingClient extends PhotoviewClient {
   Future<List<FaceGroup>> faceGroups({
     required int limit,
     required int offset,
+    bool fewestFirst = false,
   }) async => _people.skip(offset).take(limit).toList();
 
   @override
