@@ -249,6 +249,33 @@ query placesClusterDetails(\$ids: [ID!]!) {
 $_mediaItemFragment
 ''';
 
+/// The faces found on one photo, and whose they are.
+///
+/// Apart from [mediaDetailsQuery] so the details stay as quick as they were:
+/// the faces are only asked for when the gallery is told to show them. A
+/// server with face detection switched off answers an empty list.
+const mediaFacesQuery = r'''
+query mediaFaces($mediaID: ID!) {
+  media(id: $mediaID) {
+    id
+    faces {
+      id
+      rectangle {
+        minX
+        maxX
+        minY
+        maxY
+      }
+      faceGroup {
+        id
+        label
+        imageFaceCount
+      }
+    }
+  }
+}
+''';
+
 const mediaDetailsQuery =
     '''
 query mediaDetails(\$mediaID: ID!) {

@@ -60,7 +60,10 @@ Future<void> _openGallery(WidgetTester tester, {bool exif = true}) async {
 
 double _controlsOpacity(WidgetTester tester) => tester
     .widget<AnimatedOpacity>(
-      find.ancestor(of: find.byType(AppBar), matching: find.byType(AnimatedOpacity)),
+      find.ancestor(
+        of: find.byType(AppBar),
+        matching: find.byType(AnimatedOpacity),
+      ),
     )
     .opacity;
 
@@ -72,7 +75,11 @@ Future<void> _tapPhoto(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-const _thumbnail = Thumbnail(url: '/api/photo/thumbnail_a.jpg', width: 1024, height: 576);
+const _thumbnail = Thumbnail(
+  url: '/api/photo/thumbnail_a.jpg',
+  width: 1024,
+  height: 576,
+);
 const _full = Thumbnail(url: '/api/photo/a.jpg', width: 1920, height: 1080);
 
 const _item = MediaItem(id: '4', type: MediaType.photo, thumbnail: _thumbnail);
@@ -89,7 +96,10 @@ void main() {
     test('layers the full image over the thumbnail once it is known', () {
       // The point of this stage: the gallery used to show only the thumbnail,
       // at most 1024 px, even full screen and zoomed in.
-      expect(galleryLayers(_item, _details(highRes: _full)), [_thumbnail, _full]);
+      expect(galleryLayers(_item, _details(highRes: _full)), [
+        _thumbnail,
+        _full,
+      ]);
     });
 
     test('adds nothing when the server names no full image', () {
@@ -103,9 +113,18 @@ void main() {
 
   group('galleryActionFor', () {
     test('arrows and page keys turn pages, Escape closes', () {
-      expect(galleryActionFor(LogicalKeyboardKey.arrowLeft), GalleryAction.previous);
-      expect(galleryActionFor(LogicalKeyboardKey.pageUp), GalleryAction.previous);
-      expect(galleryActionFor(LogicalKeyboardKey.arrowRight), GalleryAction.next);
+      expect(
+        galleryActionFor(LogicalKeyboardKey.arrowLeft),
+        GalleryAction.previous,
+      );
+      expect(
+        galleryActionFor(LogicalKeyboardKey.pageUp),
+        GalleryAction.previous,
+      );
+      expect(
+        galleryActionFor(LogicalKeyboardKey.arrowRight),
+        GalleryAction.next,
+      );
       expect(galleryActionFor(LogicalKeyboardKey.pageDown), GalleryAction.next);
       expect(galleryActionFor(LogicalKeyboardKey.escape), GalleryAction.close);
       expect(galleryActionFor(LogicalKeyboardKey.keyI), GalleryAction.info);
@@ -118,6 +137,51 @@ void main() {
   });
 
   group('FullscreenGallery presentation', () {
+    testWidgets('the faces can be switched on, and stay on while paging', (
+      tester,
+    ) async {
+      await _openGallery(tester);
+
+      await tester.tap(find.byTooltip('Show faces'));
+      await tester.pumpAndSettle();
+      expect(find.byTooltip('Hide faces'), findsOneWidget);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await tester.pumpAndSettle();
+      expect(
+        find.byTooltip('Hide faces'),
+        findsOneWidget,
+        reason: 'sorting people out means going through photo after photo',
+      );
+
+      await tester.tap(find.byTooltip('Hide faces'));
+      await tester.pumpAndSettle();
+      expect(find.byTooltip('Show faces'), findsOneWidget);
+    });
+
+    testWidgets('a video offers no faces', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sessionProvider.overrideWithValue(_session),
+            mediaDetailsProvider.overrideWith(
+              (ref, id) async => _detailsFor(id),
+            ),
+          ],
+          child: localizedApp(
+            home: const FullscreenGallery(
+              media: [MediaItem(id: '9', type: MediaType.video)],
+              initialIndex: 0,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byTooltip('Show faces'), findsNothing);
+      expect(find.byTooltip('Info'), findsOneWidget);
+    });
+
     testWidgets('a tap on the photo hides the controls, another shows them', (
       tester,
     ) async {
@@ -139,7 +203,11 @@ void main() {
       expect(_controlsOpacity(tester), 0);
       // The gallery opens as a fullscreen dialog, so its bar has a close
       // button rather than a back button.
-      expect(find.byType(CloseButton), findsOneWidget, reason: 'still in the tree');
+      expect(
+        find.byType(CloseButton),
+        findsOneWidget,
+        reason: 'still in the tree',
+      );
 
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       await tester.pumpAndSettle();
@@ -160,22 +228,23 @@ void main() {
       expect(find.text('1 / 3'), findsOneWidget);
     });
 
-    testWidgets('the info button shows the camera data of the photo on screen', (
-      tester,
-    ) async {
-      await _openGallery(tester);
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
-      await tester.pumpAndSettle();
+    testWidgets(
+      'the info button shows the camera data of the photo on screen',
+      (tester) async {
+        await _openGallery(tester);
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.byTooltip('Info'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.byTooltip('Info'));
+        await tester.pumpAndSettle();
 
-      // Page two is item "1": the panel follows the page, not the photo the
-      // gallery was opened on.
-      expect(find.text('photo-1.jpg'), findsOneWidget);
-      expect(find.text('Camera 1'), findsOneWidget);
-      expect(find.text('Camera 0'), findsNothing);
-    });
+        // Page two is item "1": the panel follows the page, not the photo the
+        // gallery was opened on.
+        expect(find.text('photo-1.jpg'), findsOneWidget);
+        expect(find.text('Camera 1'), findsOneWidget);
+        expect(find.text('Camera 0'), findsNothing);
+      },
+    );
 
     testWidgets('the i key opens the same panel', (tester) async {
       await _openGallery(tester);
@@ -207,10 +276,12 @@ void main() {
     });
   });
 
-  test('decodes full images no larger than twice a phone screen and then some',
-      () {
-    // An original can be tens of megapixels; the gallery keeps neighbouring
-    // pages alive. The limit must stay well above screen size for zoom.
-    expect(fullImageDecodeLimit, inInclusiveRange(2048, 4096));
-  });
+  test(
+    'decodes full images no larger than twice a phone screen and then some',
+    () {
+      // An original can be tens of megapixels; the gallery keeps neighbouring
+      // pages alive. The limit must stay well above screen size for zoom.
+      expect(fullImageDecodeLimit, inInclusiveRange(2048, 4096));
+    },
+  );
 }

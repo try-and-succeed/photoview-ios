@@ -224,6 +224,13 @@ final mediaDetailsProvider = FutureProvider.family<MediaDetails, String>(
   (ref, mediaId) => ref.guarded((c) => c.mediaDetails(mediaId)),
 );
 
+/// Who is on a photo. Auto-disposed: asked for only while the gallery shows
+/// the faces, and stale the moment any face moves.
+final mediaFacesProvider = FutureProvider.autoDispose
+    .family<List<PhotoFace>, String>(
+      (ref, mediaId) => ref.guarded((c) => c.mediaFaces(mediaId)),
+    );
+
 /// Auto-disposed so the results of every intermediate keystroke are not kept.
 /// What a search asks for.
 ///
@@ -362,6 +369,8 @@ class ShareActions {
 /// never used it, and names could only be given in the web interface.
 final faceActionsProvider = Provider<FaceActions>((ref) => FaceActions(ref));
 
+/// Every action here also drops what the gallery knows about whose faces are
+/// on which photo: each of them changes a name or a face's person.
 class FaceActions {
   final Ref _ref;
   const FaceActions(this._ref);
@@ -378,6 +387,7 @@ class FaceActions {
 
     // The grid holds the old name until it is fetched again.
     _ref.invalidate(faceGroupsProvider);
+    _ref.invalidate(mediaFacesProvider);
     return stored;
   }
 
@@ -395,6 +405,7 @@ class FaceActions {
     // The sources are gone and the destination has grown: both lists say
     // something that is no longer true.
     _ref.invalidate(faceGroupsProvider);
+    _ref.invalidate(mediaFacesProvider);
     _ref.invalidate(personPhotosProvider(destination));
     return label;
   }
@@ -416,6 +427,7 @@ class FaceActions {
     );
 
     _ref.invalidate(faceGroupsProvider);
+    _ref.invalidate(mediaFacesProvider);
     _ref.invalidate(personPhotosProvider);
     return label;
   }
@@ -435,6 +447,7 @@ class FaceActions {
     final created = await _ref.requireClient.detachImageFaces(imageFaceIds);
 
     _ref.invalidate(faceGroupsProvider);
+    _ref.invalidate(mediaFacesProvider);
     _ref.invalidate(personPhotosProvider);
     return created;
   }
@@ -446,6 +459,7 @@ class FaceActions {
 
     // Whatever it matched moved from an unnamed group into a named one.
     _ref.invalidate(faceGroupsProvider);
+    _ref.invalidate(mediaFacesProvider);
 
     // The whole family, because the server decides which people grew — and
     // unlike a merge, nothing here says which. A person's photo list does not

@@ -804,6 +804,21 @@ class PhotoviewClient {
     return MediaDetails.fromJson(media);
   }
 
+  /// The faces found on one photo, each with the person it is filed under.
+  Future<List<PhotoFace>> mediaFaces(String mediaId) async {
+    final data = await _query(mediaFacesQuery, {'mediaID': mediaId});
+    final media = data['media'] as Map<String, dynamic>?;
+    if (media == null) {
+      throw const ApiException(
+        'Media not found',
+        problem: ApiProblem.mediaNotFound,
+      );
+    }
+    return (media['faces'] as List<dynamic>? ?? const [])
+        .map((e) => PhotoFace.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
   /// Searches, with [limitMedia] and [limitAlbums] passed through as given.
   ///
   /// Null leaves them out and the server applies its own default of ten each;

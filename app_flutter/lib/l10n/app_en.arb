@@ -645,6 +645,22 @@
   "@galleryInfo": {
     "description": "Tooltip of the gallery button that shows a photo's camera data."
   },
+  "galleryFacesShow": "Show faces",
+  "@galleryFacesShow": {
+    "description": "Gallery button that draws a frame around every face found on the photo, with the name of the person it is filed under."
+  },
+  "galleryFacesHide": "Hide faces",
+  "@galleryFacesHide": {
+    "description": "The same button while the faces are shown."
+  },
+  "galleryFacesNone": "No faces were found on this photo",
+  "@galleryFacesNone": {
+    "description": "Shown on the photo when the faces are switched on and the detector found none."
+  },
+  "galleryFaceAssignPick": "Whose face is this?",
+  "@galleryFaceAssignPick": {
+    "description": "Title of the dialog that opens on tapping a face in the gallery, listing the people to file it under."
+  },
   "slideshowStart": "Start slideshow",
   "@slideshowStart": {
     "description": "Tooltip of the gallery button that starts the slideshow."

@@ -1,0 +1,342 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:photoview/api/client.dart';
+import 'package:photoview/api/models.dart';
+import 'package:photoview/api/session.dart';
+import 'package:photoview/state/auth.dart';
+import 'package:photoview/widgets/photo_faces.dart';
+
+import 'support/localized_app.dart';
+
+final _session = Session(
+  endpoint: Uri.parse('http://host:8081/api/graphql'),
+  token: 'tok',
+  username: 'admin',
+);
+
+class _FixedAuth extends AuthNotifier {
+  @override
+  Future<Session?> build() async => _session;
+}
+
+const _regina = PhotoFace(
+  id: '100',
+  rectangle: FaceRectangle(minX: 0.1, maxX: 0.3, minY: 0.2, maxY: 0.5),
+  group: FaceGroup(id: '7', label: 'Regina', imageFaceCount: 12),
+);
+
+const _stranger = PhotoFace(
+  id: '101',
+  rectangle: FaceRectangle(minX: 0.6, maxX: 0.8, minY: 0.2, maxY: 0.5),
+  group: FaceGroup(id: '8', imageFaceCount: 3),
+);
+
+/// Answers like the server: these faces on the photo, these people to file
+/// them under, and a record of what was moved.
+class _FacesClient extends PhotoviewClient {
+  _FacesClient(this.faces) : super(_session);
+
+  List<PhotoFace> faces;
+  final moves = <({List<String> faces, String destination})>[];
+  var asked = 0;
+
+  @override
+  Future<List<PhotoFace>> mediaFaces(String mediaId) async {
+    asked++;
+    return faces;
+  }
+
+  @override
+  Future<List<FaceGroup>> faceGroups({
+    required int limit,
+    required int offset,
+    bool fewestFirst = false,
+  }) async => offset > 0
+      ? const []
+      : const [
+          FaceGroup(id: '7', label: 'Regina', imageFaceCount: 12),
+          FaceGroup(id: '9', label: 'Anna', imageFaceCount: 5),
+        ];
+
+  @override
+  Future<String?> moveImageFaces(
+    List<String> imageFaceIds,
+    String destinationFaceGroupId,
+  ) async {
+    moves.add((faces: imageFaceIds, destination: destinationFaceGroupId));
+    return 'Anna';
+  }
+}
+
+const _photo = Size(400, 300);
+
+Future<void> _pump(WidgetTester tester, _FacesClient client) async {
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        authProvider.overrideWith(_FixedAuth.new),
+        clientProvider.overrideWithValue(client),
+      ],
+      child: localizedApp(
+        home: Scaffold(
+          body: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox.fromSize(
+                size: _photo,
+                child: const PhotoFacesOverlay(mediaId: '55'),
+              ),
+              // What the gallery does once it has worked out which face a
+              // tap landed on.
+              Consumer(
+                builder: (context, ref, _) => Wrap(
+                  children: [
+                    for (final face in client.faces)
+                      TextButton(
+                        onPressed: () => assignPhotoFace(context, ref, face),
+                        child: Text('assign ${face.id}'),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+/// Where a face's frame ended up, relative to the photo.
+Rect _frameOf(WidgetTester tester, String name) {
+  final photo = tester.getTopLeft(find.byType(PhotoFacesOverlay));
+  final frames = find.descendant(
+    of: find.byType(PhotoFacesOverlay),
+    matching: find.byType(DecoratedBox),
+  );
+  final label = tester.getRect(find.text(name));
+
+  // The frame whose left edge the name starts under.
+  for (final element in frames.evaluate()) {
+    final rect = tester.getRect(find.byWidget(element.widget));
+    if ((rect.left - label.left).abs() < 20) return rect.shift(-photo);
+  }
+  throw StateError('no frame for $name');
+}
+
+void main() {
+  group('PhotoFace.fromJson', () {
+    test('reads the face and the person it is filed under', () {
+      final face = PhotoFace.fromJson({
+        'id': 100,
+        'rectangle': {'minX': 0.1, 'maxX': 0.3, 'minY': 0.2, 'maxY': 0.5},
+        'faceGroup': {'id': 7, 'label': null, 'imageFaceCount': 4},
+      });
+
+      expect(face.id, '100');
+      expect(face.rectangle.width, closeTo(0.2, 1e-9));
+      expect(face.group.id, '7');
+      expect(face.group.label, isNull);
+      expect(face.group.imageFaceCount, 4);
+    });
+  });
+
+  testWidgets('frames each face where it is on the photo, with its name', (
+    tester,
+  ) async {
+    await _pump(tester, _FacesClient([_regina, _stranger]));
+
+    expect(find.text('Regina'), findsOneWidget);
+    expect(find.text('3 · Unlabeled'), findsOneWidget);
+
+    final frame = _frameOf(tester, 'Regina');
+    expect(frame.left, moreOrLessEquals(0.1 * _photo.width));
+    expect(frame.top, moreOrLessEquals(0.2 * _photo.height));
+    expect(frame.width, moreOrLessEquals(0.2 * _photo.width));
+    expect(frame.height, moreOrLessEquals(0.3 * _photo.height));
+  });
+
+  testWidgets('a name at the bottom edge goes above the face', (tester) async {
+    const low = PhotoFace(
+      id: '102',
+      rectangle: FaceRectangle(minX: 0.1, maxX: 0.3, minY: 0.75, maxY: 1),
+      group: FaceGroup(id: '7', label: 'Regina'),
+    );
+    await _pump(tester, _FacesClient([low]));
+
+    final photo = tester.getRect(find.byType(PhotoFacesOverlay));
+    final name = tester.getRect(find.text('Regina'));
+
+    expect(name.bottom, lessThanOrEqualTo(photo.top + 0.75 * _photo.height));
+    expect(name.top, greaterThanOrEqualTo(photo.top));
+  });
+
+  testWidgets('says so when no face was found', (tester) async {
+    await _pump(tester, _FacesClient([]));
+
+    expect(find.text('No faces were found on this photo'), findsOneWidget);
+  });
+
+  group('photoPointAt', () {
+    // A photo of 1000 x 500 in a 400 x 800 view: fitted whole it is shown at
+    // 0.4, as 400 x 200, centred — from y 300 to y 500.
+    const child = Size(1000, 500);
+    const viewport = Size(400, 800);
+
+    test('maps a tap on the fitted photo to its place on the photo', () {
+      final point = photoPointAt(
+        tap: const Offset(100, 350),
+        viewport: viewport,
+        childSize: child,
+        scale: null,
+        position: Offset.zero,
+      )!;
+
+      expect(point.dx, closeTo(0.25, 1e-9));
+      expect(point.dy, closeTo(0.25, 1e-9));
+    });
+
+    test('follows the zoom and the shift', () {
+      // Zoomed to 0.8 the photo is 800 x 400, centred, then moved 100 left:
+      // its left edge at -300, its top at 200.
+      final point = photoPointAt(
+        tap: const Offset(100, 400),
+        viewport: viewport,
+        childSize: child,
+        scale: 0.8,
+        position: const Offset(-100, 0),
+      )!;
+
+      expect(point.dx, closeTo(0.5, 1e-9));
+      expect(point.dy, closeTo(0.5, 1e-9));
+    });
+
+    test('a tap beside the photo is on no part of it', () {
+      expect(
+        photoPointAt(
+          tap: const Offset(200, 100),
+          viewport: viewport,
+          childSize: child,
+          scale: null,
+          position: Offset.zero,
+        ),
+        isNull,
+      );
+    });
+  });
+
+  group('faceAt', () {
+    test('finds the face under the point, with a little slack', () {
+      expect(faceAt([_regina, _stranger], const Offset(0.2, 0.3)), _regina);
+      expect(faceAt([_regina, _stranger], const Offset(0.31, 0.3)), _regina);
+      expect(faceAt([_regina, _stranger], const Offset(0.45, 0.3)), isNull);
+    });
+
+    test('of two faces one behind the other, the smaller', () {
+      const behind = PhotoFace(
+        id: '200',
+        rectangle: FaceRectangle(minX: 0, maxX: 0.5, minY: 0, maxY: 0.8),
+        group: FaceGroup(id: '1'),
+      );
+
+      expect(faceAt([behind, _regina], const Offset(0.2, 0.3)), _regina);
+      expect(faceAt([_regina, behind], const Offset(0.2, 0.3)), _regina);
+    });
+  });
+
+  testWidgets('the frames take no taps of their own', (tester) async {
+    // The photo view under them claims the taps; frames that took them would
+    // be fighting it for each one.
+    await _pump(tester, _FacesClient([_regina]));
+
+    expect(
+      find.descendant(
+        of: find.byType(PhotoFacesOverlay),
+        matching: find.byType(GestureDetector),
+      ),
+      findsNothing,
+    );
+  });
+
+  testWidgets('a tapped face is filed elsewhere, after the question', (
+    tester,
+  ) async {
+    final client = _FacesClient([_regina, _stranger]);
+    await _pump(tester, client);
+
+    await tester.tap(find.text('assign 101'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Whose face is this?'), findsOneWidget);
+    await tester.tap(find.text('Anna'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Move 1 photo from 3 · Unlabeled to Anna?'),
+      findsOneWidget,
+    );
+    expect(client.moves, isEmpty, reason: 'not before the answer');
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Move'));
+    await tester.pumpAndSettle();
+
+    // That face alone — not Regina's, which is on the same photo.
+    expect(client.moves.single.faces, ['101']);
+    expect(client.moves.single.destination, '9');
+    expect(find.text('Moved to Anna'), findsOneWidget);
+  });
+
+  testWidgets('the person a face is filed under is not offered for it', (
+    tester,
+  ) async {
+    await _pump(tester, _FacesClient([_regina]));
+
+    await tester.tap(find.text('assign 100'));
+    await tester.pumpAndSettle();
+
+    final list = find.descendant(
+      of: find.byType(ListView),
+      matching: find.byType(ListTile),
+    );
+    expect(
+      find.descendant(of: list, matching: find.text('Regina')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: list, matching: find.text('Anna')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('after a move the names are asked for again', (tester) async {
+    final client = _FacesClient([_regina, _stranger]);
+    await _pump(tester, client);
+    final before = client.asked;
+
+    client.faces = [
+      _regina,
+      const PhotoFace(
+        id: '101',
+        rectangle: FaceRectangle(minX: 0.6, maxX: 0.8, minY: 0.2, maxY: 0.5),
+        group: FaceGroup(id: '9', label: 'Anna', imageFaceCount: 6),
+      ),
+    ];
+    await tester.tap(find.text('assign 101'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Anna'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Move'));
+    await tester.pumpAndSettle();
+
+    expect(client.asked, greaterThan(before));
+    expect(
+      find.descendant(
+        of: find.byType(PhotoFacesOverlay),
+        matching: find.text('Anna'),
+      ),
+      findsOneWidget,
+    );
+  });
+}
