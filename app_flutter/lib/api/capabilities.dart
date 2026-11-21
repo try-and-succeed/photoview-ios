@@ -19,6 +19,10 @@ enum Capability {
 
   /// `scannerQueueStatus` and the scan mutations.
   scanner,
+
+  /// The `countDirection` argument of `myFaceGroups`, which pages the people
+  /// fewest photos first. Without it the unnamed can only come most first.
+  faceGroupCountDirection,
 }
 
 /// What is known about one capability.
@@ -67,6 +71,7 @@ const _identifyingFields = <Capability, Set<String>>{
     'cancelScanJob',
     'cancelAllScanJobs',
   },
+  Capability.faceGroupCountDirection: {'countDirection'},
 };
 
 /// Capabilities that a rejection of [field] rules out.
@@ -87,8 +92,9 @@ const _evidence = <Capability, ({String topLevelField, String? withinField})>{
     withinField: 'showAlbumTree',
   ),
   Capability.albumTree: (topLevelField: 'albumTreeChildren', withinField: null),
-  Capability.scanner: (
-    topLevelField: 'scannerQueueStatus',
+  Capability.scanner: (topLevelField: 'scannerQueueStatus', withinField: null),
+  Capability.faceGroupCountDirection: (
+    topLevelField: 'myFaceGroups',
     withinField: null,
   ),
 };
@@ -117,22 +123,31 @@ query photoviewCapabilities {
   scannerQueueStatus {
     status
   }
+  myFaceGroups(countDirection: ASC, paginate: {limit: 0}) {
+    id
+  }
 }
 ''';
 
 /// Probes for one capability on its own, for whatever the batch left unclear.
-String singleCapabilityProbeDocument(Capability capability) =>
-    switch (capability) {
-      Capability.searchLimitPreference =>
-        'query photoviewCapability { myUserPreferences { searchResultLimit } }',
-      Capability.albumTreePreference =>
-        'query photoviewCapability { myUserPreferences { showAlbumTree } }',
-      Capability.albumTree =>
-        'query photoviewCapability '
-            '{ albumTreeChildren(albumIds: []) { albumId } }',
-      Capability.scanner =>
-        'query photoviewCapability { scannerQueueStatus { status } }',
-    };
+String singleCapabilityProbeDocument(
+  Capability capability,
+) => switch (capability) {
+  Capability.searchLimitPreference =>
+    'query photoviewCapability { myUserPreferences { searchResultLimit } }',
+  Capability.albumTreePreference =>
+    'query photoviewCapability { myUserPreferences { showAlbumTree } }',
+  Capability.albumTree =>
+    'query photoviewCapability '
+        '{ albumTreeChildren(albumIds: []) { albumId } }',
+  Capability.scanner =>
+    'query photoviewCapability { scannerQueueStatus { status } }',
+  // A limit of 0 so the answer is an empty list: the argument is what is
+  // being asked about, not the people.
+  Capability.faceGroupCountDirection =>
+    'query photoviewCapability '
+        '{ myFaceGroups(countDirection: ASC, paginate: {limit: 0}) { id } }',
+};
 
 /// What the server said about every capability.
 class ServerCapabilities {
@@ -149,9 +164,8 @@ class ServerCapabilities {
       this[capability] == CapabilityState.supported;
 
   /// Capabilities still to be asked about individually.
-  Iterable<Capability> get unresolved => Capability.values.where(
-    (c) => this[c] == CapabilityState.unknown,
-  );
+  Iterable<Capability> get unresolved =>
+      Capability.values.where((c) => this[c] == CapabilityState.unknown);
 
   ServerCapabilities merge(Map<Capability, CapabilityState> newer) =>
       ServerCapabilities({...states, ...newer});

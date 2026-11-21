@@ -1,9 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../api/capabilities.dart';
 import '../api/models.dart';
 import 'auth.dart';
+import 'capabilities.dart';
 import 'stale_response_guard.dart';
-import 'people_order.dart' show faceGroupIsNamed;
+import 'people_order.dart' show faceGroupIsNamed, unnamedFewestFirstProvider;
 import 'search_limit.dart';
 
 const _albumPageSize = 200;
@@ -21,10 +23,21 @@ class FaceGroupsData {
   final bool hasMore;
   final bool loadingMore;
 
+  /// Whether the server paged the unnamed fewest photos first. Kept with the
+  /// groups so they are shown in the order they were fetched in, even while a
+  /// changed setting is still being fetched anew.
+  final bool fewestFirst;
+
+  /// The server account these people belong to, so that fetching them again
+  /// keeps the length of the list only for the same account.
+  final String? serverId;
+
   const FaceGroupsData({
     this.groups = const [],
     this.hasMore = true,
     this.loadingMore = false,
+    this.fewestFirst = false,
+    this.serverId,
   });
 
   FaceGroupsData copyWith({
@@ -35,20 +48,87 @@ class FaceGroupsData {
     groups: groups ?? this.groups,
     hasMore: hasMore ?? this.hasMore,
     loadingMore: loadingMore ?? this.loadingMore,
+    fewestFirst: fewestFirst,
+    serverId: serverId,
   );
 }
 
 class FaceGroupsNotifier extends AsyncNotifier<FaceGroupsData>
     with StaleResponseGuard {
+  var _fewestFirst = false;
+
   @override
   Future<FaceGroupsData> build() async {
     beginGeneration(ref);
 
-    final first = await ref.guarded(
-      (c) => c.faceGroups(limit: _faceGroupPageSize, offset: 0),
-    );
+    // A plain bool, so switching between orders that page the same way — A to
+    // Z and Z to A — re-sorts what is there instead of fetching it again.
+    _fewestFirst = ref.watch(unnamedFewestFirstProvider);
+    // Watched, not read: the people are labelled with the account they came
+    // from, and a label taken before the sign-in had settled would be wrong
+    // for good — every later fetch would take them for another account's, and
+    // cut the list back to one page.
+    final serverId = ref.watch(sessionProvider)?.serverId;
 
-    return _throughTheNamed(first);
+    // As many as were there before, when this is the same account fetching
+    // again — after a move, say. Riverpod keeps the old list on screen
+    // meanwhile, but a new one cut back to its first page put a user who had
+    // scrolled far down at its end, far above where they were. Not after the
+    // direction changed: the list then starts with other people anyway.
+    final before = _stateOrNull?.valueOrNull;
+    final keep =
+        before != null &&
+            before.serverId == serverId &&
+            before.fewestFirst == _fewestFirst
+        ? before.groups.length
+        : 0;
+
+    List<FaceGroup> first;
+    try {
+      first = await ref.guarded(
+        (c) => c.faceGroups(
+          limit: _faceGroupPageSize,
+          offset: 0,
+          fewestFirst: _fewestFirst,
+        ),
+      );
+    } on UnsupportedFieldException catch (failure) {
+      if (!_fewestFirst) rethrow;
+
+      // The cache said this server can page fewest first and it cannot — a
+      // server rolled back, most likely. Recorded so the setting stops asking,
+      // and answered most first meanwhile rather than with an error.
+      if (serverId != null) {
+        await ref.read(capabilityDowngradeProvider)(serverId, failure);
+      }
+      _fewestFirst = false;
+      first = await _page(0);
+    }
+
+    return _throughTheNamed(first, keep: keep, serverId: serverId);
+  }
+
+  /// The state as it stands, or null before the first build has produced one.
+  AsyncValue<FaceGroupsData>? get _stateOrNull {
+    try {
+      return state;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<List<FaceGroup>> _page(int offset) {
+    final fewestFirst = _fewestFirst;
+
+    // `guardedRead`, not `guarded`: this runs after an await, where watching
+    // the client would attach to a build that has already finished.
+    return ref.guardedRead(
+      (c) => c.faceGroups(
+        limit: _faceGroupPageSize,
+        offset: offset,
+        fewestFirst: fewestFirst,
+      ),
+    );
   }
 
   /// Keeps fetching while a page holds nothing but named people.
@@ -61,25 +141,40 @@ class FaceGroupsNotifier extends AsyncNotifier<FaceGroupsData>
   ///
   /// This costs extra requests only for someone who has named more than a page
   /// full of people, which is who it is for.
-  Future<FaceGroupsData> _throughTheNamed(List<FaceGroup> first) async {
+  ///
+  /// Also keeps fetching until there are at least [keep] people, so a list
+  /// fetched again is as long as it was.
+  Future<FaceGroupsData> _throughTheNamed(
+    List<FaceGroup> first, {
+    int keep = 0,
+    String? serverId,
+  }) async {
     final groups = [...first];
     var lastPage = first;
     var hasMore = first.length >= _faceGroupPageSize;
 
-    while (hasMore && lastPage.isNotEmpty && lastPage.every(faceGroupIsNamed)) {
-      // `guardedRead`, not `guarded`: watching the client after an await would
-      // attach to a build that has already finished.
-      lastPage = await ref.guardedRead(
-        (c) => c.faceGroups(limit: _faceGroupPageSize, offset: groups.length),
-      );
+    while (hasMore &&
+        lastPage.isNotEmpty &&
+        (lastPage.every(faceGroupIsNamed) || groups.length < keep)) {
+      lastPage = await _page(groups.length);
       groups.addAll(lastPage);
       hasMore = lastPage.length >= _faceGroupPageSize;
     }
 
-    return FaceGroupsData(groups: groups, hasMore: hasMore);
+    return FaceGroupsData(
+      groups: groups,
+      hasMore: hasMore,
+      fewestFirst: _fewestFirst,
+      serverId: serverId,
+    );
   }
 
   Future<void> loadMore() async {
+    // Not while the whole list is being fetched again: that fetch brings at
+    // least as many as there are, and a page added to the old list would only
+    // be overwritten by it.
+    if (state.isLoading) return;
+
     final current = state.valueOrNull;
     if (current == null || !current.hasMore || current.loadingMore) return;
 
@@ -87,12 +182,7 @@ class FaceGroupsNotifier extends AsyncNotifier<FaceGroupsData>
     state = AsyncData(current.copyWith(loadingMore: true));
 
     try {
-      final page = await ref.guardedRead(
-        (c) => c.faceGroups(
-          limit: _faceGroupPageSize,
-          offset: current.groups.length,
-        ),
-      );
+      final page = await _page(current.groups.length);
 
       if (movedOn(generation)) return;
       state = AsyncData(
@@ -125,13 +215,21 @@ final placesMarkersProvider = FutureProvider<List<PlacesMarker>>(
 /// Keyed by the joined ids because family arguments are compared with `==`,
 /// and a `List` would create a fresh provider on every rebuild.
 final clusterMediaProvider = FutureProvider.family<List<MediaItem>, String>(
-  (ref, joinedIds) =>
-      ref.guarded((c) => c.mediaList(joinedIds.split(',')..removeWhere((s) => s.isEmpty))),
+  (ref, joinedIds) => ref.guarded(
+    (c) => c.mediaList(joinedIds.split(',')..removeWhere((s) => s.isEmpty)),
+  ),
 );
 
 final mediaDetailsProvider = FutureProvider.family<MediaDetails, String>(
   (ref, mediaId) => ref.guarded((c) => c.mediaDetails(mediaId)),
 );
+
+/// Who is on a photo. Auto-disposed: asked for only while the gallery shows
+/// the faces, and stale the moment any face moves.
+final mediaFacesProvider = FutureProvider.autoDispose
+    .family<List<PhotoFace>, String>(
+      (ref, mediaId) => ref.guarded((c) => c.mediaFaces(mediaId)),
+    );
 
 /// Auto-disposed so the results of every intermediate keystroke are not kept.
 /// What a search asks for.
@@ -246,9 +344,7 @@ final albumProvider =
 
 /// Share links are created and revoked through mutations, then the details
 /// query is refetched so the list reflects the server.
-final shareActionsProvider = Provider<ShareActions>(
-  (ref) => ShareActions(ref),
-);
+final shareActionsProvider = Provider<ShareActions>((ref) => ShareActions(ref));
 
 class ShareActions {
   final Ref _ref;
@@ -273,6 +369,8 @@ class ShareActions {
 /// never used it, and names could only be given in the web interface.
 final faceActionsProvider = Provider<FaceActions>((ref) => FaceActions(ref));
 
+/// Every action here also drops what the gallery knows about whose faces are
+/// on which photo: each of them changes a name or a face's person.
 class FaceActions {
   final Ref _ref;
   const FaceActions(this._ref);
@@ -289,6 +387,7 @@ class FaceActions {
 
     // The grid holds the old name until it is fetched again.
     _ref.invalidate(faceGroupsProvider);
+    _ref.invalidate(mediaFacesProvider);
     return stored;
   }
 
@@ -306,6 +405,7 @@ class FaceActions {
     // The sources are gone and the destination has grown: both lists say
     // something that is no longer true.
     _ref.invalidate(faceGroupsProvider);
+    _ref.invalidate(mediaFacesProvider);
     _ref.invalidate(personPhotosProvider(destination));
     return label;
   }
@@ -315,7 +415,10 @@ class FaceActions {
   ///
   /// Returns the destination's name afterwards. Two people change, so both
   /// their photo lists go, and the counts on the people list with them.
-  Future<String?> moveFaces(List<String> imageFaceIds, String destination) async {
+  Future<String?> moveFaces(
+    List<String> imageFaceIds,
+    String destination,
+  ) async {
     if (imageFaceIds.isEmpty) return null;
 
     final label = await _ref.requireClient.moveImageFaces(
@@ -324,6 +427,7 @@ class FaceActions {
     );
 
     _ref.invalidate(faceGroupsProvider);
+    _ref.invalidate(mediaFacesProvider);
     _ref.invalidate(personPhotosProvider);
     return label;
   }
@@ -343,6 +447,7 @@ class FaceActions {
     final created = await _ref.requireClient.detachImageFaces(imageFaceIds);
 
     _ref.invalidate(faceGroupsProvider);
+    _ref.invalidate(mediaFacesProvider);
     _ref.invalidate(personPhotosProvider);
     return created;
   }
@@ -354,6 +459,7 @@ class FaceActions {
 
     // Whatever it matched moved from an unnamed group into a named one.
     _ref.invalidate(faceGroupsProvider);
+    _ref.invalidate(mediaFacesProvider);
 
     // The whole family, because the server decides which people grew — and
     // unlike a merge, nothing here says which. A person's photo list does not

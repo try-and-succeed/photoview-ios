@@ -12,7 +12,7 @@ import 'secure_storage.dart';
 /// probes rather than on the app version. A release that does not touch
 /// capabilities keeps every cached answer, and one that does invalidates them
 /// all without needing a dependency to read the version at runtime.
-const capabilityProbeRevision = 1;
+const capabilityProbeRevision = 2;
 
 /// How long a "your server does not have this" answer is trusted.
 ///

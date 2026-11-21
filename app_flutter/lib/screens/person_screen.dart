@@ -4,12 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../api/models.dart';
 import '../l10n/app_localizations.dart';
 import '../state/library.dart';
-import '../state/people_order.dart';
 import '../widgets/action_failure.dart';
 import '../widgets/scrollable_view.dart';
 import '../widgets/async_states.dart';
-import '../widgets/face_grid.dart';
-import '../widgets/load_more.dart';
+import '../widgets/face_move.dart';
 import '../widgets/media_grid.dart';
 
 class PersonScreen extends ConsumerStatefulWidget {
@@ -32,7 +30,7 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
   Future<void> _rename() async {
     final name = await showDialog<String>(
       context: context,
-      builder: (context) => _NameDialog(initial: _label),
+      builder: (context) => PersonNameDialog(initial: _label),
     );
 
     // Null is "cancelled"; an empty string is "remove the name", which the
@@ -53,10 +51,9 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
 
     setState(() => _busy = true);
     try {
-      final stored = await ref.read(faceActionsProvider).rename(
-        widget.faceGroup.id,
-        label,
-      );
+      final stored = await ref
+          .read(faceActionsProvider)
+          .rename(widget.faceGroup.id, label);
       if (mounted) setState(() => _label = stored);
     } catch (error) {
       if (mounted) {
@@ -81,16 +78,16 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
   /// picked person is the one that disappears — which is also the server's
   /// only way of getting rid of a face group at all.
   Future<void> _merge() async {
-    final other = await showDialog<FaceGroup>(
+    final picked = await showDialog<FaceMoveTarget>(
       context: context,
-      builder: (context) => _PickPersonDialog(
+      builder: (context) => PickPersonDialog(
         exclude: widget.faceGroup.id,
         title: AppLocalizations.of(context).personMergePick,
       ),
     );
-    if (other == null || !mounted) return;
+    if (picked is! MoveToPerson || !mounted) return;
 
-    await _sendMerge(other);
+    await _sendMerge(picked.person);
   }
 
   /// Sends one already-picked person, so a retry repeats the sending alone —
@@ -100,9 +97,10 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
     setState(() => _busy = true);
 
     try {
-      final label = await ref
-          .read(faceActionsProvider)
-          .merge(widget.faceGroup.id, [other.id]);
+      final label = await ref.read(faceActionsProvider).merge(
+        widget.faceGroup.id,
+        [other.id],
+      );
 
       if (!mounted) return;
       setState(() => _label = label);
@@ -110,7 +108,9 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
       ScaffoldMessenger.of(context)
         ..removeCurrentSnackBar()
         ..showSnackBar(
-          SnackBar(content: Text(l10n.personMerged(_describe(other, l10n)))),
+          SnackBar(
+            content: Text(l10n.personMerged(describePerson(other, l10n))),
+          ),
         );
     } catch (error) {
       if (mounted) {
@@ -147,88 +147,59 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
       if (_selected.contains(photo.media.id)) ...photo.faceIds,
   ];
 
-  /// Files the ticked photos under somebody else.
+  /// Files the ticked photos under somebody else, a new person, or nobody.
   ///
   /// The other direction from merging: there the whole person moves, here the
   /// few photos that were never this person in the first place.
-  Future<void> _moveSelection(List<PersonPhoto> photos) async {
-    final faceIds = _tickedFaceIds(photos);
-    if (faceIds.isEmpty) return;
-
-    final other = await showDialog<FaceGroup>(
-      context: context,
-      builder: (context) => _PickPersonDialog(
-        exclude: widget.faceGroup.id,
-        title: AppLocalizations.of(context).personFacesMovePick,
-      ),
-    );
-    if (other == null || !mounted) return;
-
-    await _sendMove(faceIds, other);
-  }
-
-  /// Sends one already-made decision, so a retry repeats the sending alone.
-  ///
-  /// Same rule as [_store]: the user has ticked photos and picked a person,
-  /// and has then been asked about a certificate they did not expect. Sending
-  /// them back to the dialog would throw that away — and the ids are read
-  /// here rather than from the selection, which may have changed while the
-  /// certificate question was up.
-  Future<void> _sendMove(List<String> faceIds, FaceGroup other) async {
-    final l10n = AppLocalizations.of(context);
-
-    await _run(
-      () => ref.read(faceActionsProvider).moveFaces(faceIds, other.id),
-      done: (_) => l10n.personFacesMoved(_describe(other, l10n)),
-      failed: l10n.personFacesMoveFailed,
-      retry: () => _sendMove(faceIds, other),
-    );
-  }
+  Future<void> _moveSelection(List<PersonPhoto> photos) => _mover().pickAndMove(
+    context,
+    ref,
+    faceIds: _tickedFaceIds(photos),
+    count: _tickedCount(photos),
+    title: AppLocalizations.of(context).personFacesMovePick,
+  );
 
   /// Lifts the ticked photos out into a person of their own.
   ///
   /// Also the way back out of a merge that was wrong — the server has no undo
   /// for one, and no way to delete a person either.
-  Future<void> _detachSelection(List<PersonPhoto> photos) async {
-    final faceIds = _tickedFaceIds(photos);
-    if (faceIds.isEmpty) return;
+  Future<void> _detachSelection(List<PersonPhoto> photos) =>
+      _mover().askAndDetach(
+        context,
+        ref,
+        faceIds: _tickedFaceIds(photos),
+        count: _tickedCount(photos),
+      );
 
-    await _sendDetach(faceIds);
-  }
+  /// How many photos are ticked — what the user counts, as opposed to the
+  /// faces behind them, of which a photo may have two.
+  int _tickedCount(List<PersonPhoto> photos) =>
+      photos.where((photo) => _selected.contains(photo.media.id)).length;
 
-  /// The ids as they were when the action was asked for — see [_sendMove].
-  Future<void> _sendDetach(List<String> faceIds) async {
-    final l10n = AppLocalizations.of(context);
-
-    await _run(
-      () => ref.read(faceActionsProvider).detachFaces(faceIds),
-      done: (_) => l10n.personFacesDetached,
-      failed: l10n.personFacesDetachFailed,
-      retry: () => _sendDetach(faceIds),
-    );
-  }
+  FaceMove _mover() => FaceMove(
+    from: _label ?? AppLocalizations.of(context).personUnlabeled,
+    exclude: widget.faceGroup.id,
+    run: _run,
+  );
 
   /// Runs one face action: spinner, message, and out of the picking mode.
   ///
   /// The three are the same either way, and the picking mode has to end on
   /// success — the photos it was holding are no longer this person's.
-  Future<void> _run<T>(
-    Future<T> Function() action, {
-    required String Function(T result) done,
-    // The same shape `showActionFailure` wants: the server's own words go in
-    // where the message says they belong.
+  Future<void> _run(
+    Future<String> Function() action, {
     required String Function(String error) failed,
     required Future<void> Function() retry,
   }) async {
     setState(() => _busy = true);
     try {
-      final result = await action();
+      final done = await action();
 
       if (!mounted) return;
       _clearSelection();
       ScaffoldMessenger.of(context)
         ..removeCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(done(result))));
+        ..showSnackBar(SnackBar(content: Text(done)));
     } catch (error) {
       if (mounted) {
         await showActionFailure(
@@ -358,151 +329,3 @@ class _BusyIndicator extends StatelessWidget {
     ),
   );
 }
-
-/// Asks for the name. Returns the typed name, an empty string to remove the
-/// one there is, or null when the user backed out.
-class _NameDialog extends StatefulWidget {
-  final String? initial;
-
-  const _NameDialog({required this.initial});
-
-  @override
-  State<_NameDialog> createState() => _NameDialogState();
-}
-
-class _NameDialogState extends State<_NameDialog> {
-  late final TextEditingController _controller = TextEditingController(
-    text: widget.initial ?? '',
-  );
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _submit() => Navigator.of(context).pop(_controller.text);
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-
-    return AlertDialog(
-      title: Text(l10n.personName),
-      content: TextField(
-        controller: _controller,
-        autofocus: true,
-        textCapitalization: TextCapitalization.words,
-        textInputAction: TextInputAction.done,
-        decoration: InputDecoration(labelText: l10n.personNameField),
-        onSubmitted: (_) => _submit(),
-      ),
-      actions: [
-        if (widget.initial != null)
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(''),
-            child: Text(l10n.actionRemove),
-          ),
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.actionCancel),
-        ),
-        FilledButton(onPressed: _submit, child: Text(l10n.actionSave)),
-      ],
-    );
-  }
-}
-
-/// Picks the person to fold into this one.
-///
-/// The whole list, named and unnamed alike: the two tiles that turn out to be
-/// the same person are often one of each — the reason for merging in the
-/// first place. Sorted the way the People tab is, so the order is the one the
-/// user just came from.
-class _PickPersonDialog extends ConsumerWidget {
-  /// The person doing the absorbing, which cannot absorb itself.
-  final String exclude;
-
-  /// What the list is being picked for — merging a whole person in, or
-  /// sending a few photos across. The same list, two different questions.
-  final String title;
-
-  const _PickPersonDialog({required this.exclude, required this.title});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
-    final people = ref.watch(faceGroupsProvider);
-    final order =
-        ref.watch(peopleOrderProvider).valueOrNull ?? PeopleOrder.alphabetical;
-
-    return AlertDialog(
-      title: Text(title),
-      content: SizedBox(
-        width: 320,
-        height: 380,
-        child: people.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => ErrorMessage.forError(
-            error,
-            onRetry: () => ref.invalidate(faceGroupsProvider),
-          ),
-          data: (data) {
-            final others = orderedFaceGroups(
-              [for (final g in data.groups) if (g.id != exclude) g],
-              order,
-            );
-
-            if (others.isEmpty) {
-              return EmptyMessage(
-                message: l10n.personMergeNobody,
-                icon: Icons.person_outline,
-              );
-            }
-
-            // The people list is paged, so this dialog pages too: without it
-            // the only people on offer would be the first forty, and the one
-            // being looked for is as likely to be further down.
-            return LoadMoreOnScroll(
-              hasMore: data.hasMore,
-              onLoadMore: () =>
-                  ref.read(faceGroupsProvider.notifier).loadMore(),
-              child: ListView.builder(
-                itemCount: others.length + (data.loadingMore ? 1 : 0),
-                itemBuilder: (context, index) {
-                  if (index >= others.length) {
-                    return const Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Center(child: CircularProgressIndicator()),
-                    );
-                  }
-
-                  final person = others[index];
-
-                  return ListTile(
-                    leading: FaceThumbnail(face: person, size: 40),
-                    title: Text(_describe(person, l10n)),
-                    onTap: () => Navigator.of(context).pop(person),
-                  );
-                },
-              ),
-            );
-          },
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.actionCancel),
-        ),
-      ],
-    );
-  }
-}
-
-/// How a person reads in a list: their name, or the word for the unnamed with
-/// the count that tells them apart.
-String _describe(FaceGroup person, AppLocalizations l10n) =>
-    faceGroupIsNamed(person)
-    ? person.label!
-    : unlabeledFaceLabel(l10n.personUnlabeled, person.imageFaceCount);

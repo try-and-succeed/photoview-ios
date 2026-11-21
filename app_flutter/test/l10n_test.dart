@@ -33,8 +33,14 @@ Map<String, Map<String, dynamic>> _arbFiles() {
 Iterable<String> _messageKeys(Map<String, dynamic> arb) =>
     arb.keys.where((k) => !k.startsWith('@'));
 
-Set<String> _placeholders(String message) =>
-    RegExp(r'\{(\w+)').allMatches(message).map((m) => m.group(1)!).toSet();
+/// The placeholders [message] uses: `{name}`, or `{name, plural, …}`.
+///
+/// Only a name closed by `}` or `,` counts. A plural branch opens with a brace
+/// too — `=1{Move 1 photo …}` — and its first word is the sentence, not a
+/// placeholder, and rightly a different word in every language.
+Set<String> _placeholders(String message) => RegExp(
+  r'\{(\w+)(?=[},])',
+).allMatches(message).map((m) => m.group(1)!).toSet();
 
 void main() {
   group('translations', () {

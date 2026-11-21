@@ -25,13 +25,21 @@
   "@settingsPeopleOrder": {
     "description": "Setting: in what order the people who have a name are listed."
   },
-  "settingsPeopleOrderAlphabetical": "Alphabetical",
-  "@settingsPeopleOrderAlphabetical": {
-    "description": "Ordering option: by name."
+  "settingsPeopleOrderNameAscending": "Name A–Z",
+  "@settingsPeopleOrderNameAscending": {
+    "description": "Ordering option: by name, A to Z."
   },
-  "settingsPeopleOrderByCount": "By number of photos",
-  "@settingsPeopleOrderByCount": {
+  "settingsPeopleOrderNameDescending": "Name Z–A",
+  "@settingsPeopleOrderNameDescending": {
+    "description": "Ordering option: by name, Z to A."
+  },
+  "settingsPeopleOrderMostPhotos": "Most photos first",
+  "@settingsPeopleOrderMostPhotos": {
     "description": "Ordering option: most photos first, which is what the server sends."
+  },
+  "settingsPeopleOrderFewestPhotos": "Fewest photos first",
+  "@settingsPeopleOrderFewestPhotos": {
+    "description": "Ordering option: fewest photos first."
   },
   "settingsPeopleOrderNotSaved": "Could not save the setting: {error}",
   "@settingsPeopleOrderNotSaved": {
@@ -528,6 +536,74 @@
       }
     }
   },
+  "personMoveToNew": "New person…",
+  "@personMoveToNew": {
+    "description": "Entry at the top of the move dialog: the photos go to a person made for them, after asking for a name."
+  },
+  "personMoveToNewHint": "Make a new person and give it a name",
+  "@personMoveToNewHint": {
+    "description": "Second line of the \"New person…\" entry. Names nothing that moves: the same dialog moves ticked photos on a person's screen and a single face in the gallery."
+  },
+  "personMoveToNewNamed": "New person “{name}”…",
+  "@personMoveToNewNamed": {
+    "description": "The \"New person…\" entry of the move dialog while a name is typed into its filter: one line, with the typed name, which the new person is then offered.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Max"
+      }
+    }
+  },
+  "personMoveToUnlabeledHint": "Take out of this person, without a name",
+  "@personMoveToUnlabeledHint": {
+    "description": "Second line of the unnamed entry in the move dialog, which lifts out without a name. Names nothing that moves, for the same reason."
+  },
+  "personFilterHint": "Find by name",
+  "@personFilterHint": {
+    "description": "Hint of the field that filters the person picker by name as you type."
+  },
+  "personFilterNoMatch": "Nobody by that name",
+  "@personFilterNoMatch": {
+    "description": "The person picker has no named person matching what was typed."
+  },
+  "personMoveConfirmTitle": "Move photos?",
+  "@personMoveConfirmTitle": {
+    "description": "Title of the question asked before photos are moved."
+  },
+  "personMoveConfirmAction": "Move",
+  "@personMoveConfirmAction": {
+    "description": "Button that confirms moving the photos."
+  },
+  "personMoveConfirm": "{count, plural, =1{Move 1 photo from {from} to {to}?} other{Move {count} photos from {from} to {to}?}}",
+  "@personMoveConfirm": {
+    "description": "Question before moving photos to another person. Asked every time, so that what an icon does is said in words before it happens.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "from": {
+        "type": "String",
+        "example": "Regina"
+      },
+      "to": {
+        "type": "String",
+        "example": "Anna"
+      }
+    }
+  },
+  "personMoveConfirmUnlabeled": "{count, plural, =1{Take 1 photo out of {from}? It will show under “Unlabeled”.} other{Take {count} photos out of {from}? They will show under “Unlabeled”.}}",
+  "@personMoveConfirmUnlabeled": {
+    "description": "Question before lifting photos out into a person without a name. Names the word the People tab shows for such a person.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "from": {
+        "type": "String",
+        "example": "Regina"
+      }
+    }
+  },
   "placesEmpty": "None of your media has location data",
   "@placesEmpty": {
     "description": "No media has location data, so the map is empty."
@@ -586,6 +662,22 @@
   "galleryInfo": "Info",
   "@galleryInfo": {
     "description": "Tooltip of the gallery button that shows a photo's camera data."
+  },
+  "galleryFacesShow": "Show faces",
+  "@galleryFacesShow": {
+    "description": "Gallery button that draws a frame around every face found on the photo, with the name of the person it is filed under."
+  },
+  "galleryFacesHide": "Hide faces",
+  "@galleryFacesHide": {
+    "description": "The same button while the faces are shown."
+  },
+  "galleryFacesNone": "No faces were found on this photo",
+  "@galleryFacesNone": {
+    "description": "Shown on the photo when the faces are switched on and the detector found none."
+  },
+  "galleryFaceAssignPick": "Whose face is this?",
+  "@galleryFaceAssignPick": {
+    "description": "Title of the dialog that opens on tapping a face in the gallery, listing the people to file it under."
   },
   "slideshowStart": "Start slideshow",
   "@slideshowStart": {
@@ -898,6 +990,28 @@
   "settingsLogOutSubtitle": "Asks for the password again next time",
   "@settingsLogOutSubtitle": {
     "description": "Explains that logging out drops the stored token, leaving the server on the list."
+  },
+  "settingsSectionAbout": "Info",
+  "@settingsSectionAbout": {
+    "description": "Header of the last settings section: the app's name, version and licence."
+  },
+  "settingsVersion": "Version {version} (build {build})",
+  "@settingsVersion": {
+    "description": "The running app's version under Settings › Info and in the About dialog: version name and build number, both read from the build.",
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "1.1.0"
+      },
+      "build": {
+        "type": "String",
+        "example": "2"
+      }
+    }
+  },
+  "aboutLegalese": "Free software under the GNU GPL v3. A modified version of the Photoview iOS client by Viktor Strate Kløvedal.",
+  "@aboutLegalese": {
+    "description": "Licence line in the About dialog. The name of the original author is not translated."
   },
   "caPickerTitle": "Select a CA certificate",
   "@caPickerTitle": {

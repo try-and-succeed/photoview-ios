@@ -77,11 +77,7 @@ class LoginFailure implements Exception {
   const LoginFailure(this.message, {this.problem, this.detail});
 
   LoginFailure.from(ApiException failure)
-    : this(
-        failure.message,
-        problem: failure.problem,
-        detail: failure.detail,
-      );
+    : this(failure.message, problem: failure.problem, detail: failure.detail);
 
   @override
   String toString() => message;
@@ -419,7 +415,9 @@ class PhotoviewClient {
       final unsupported = unsupportedFieldException(exception);
       if (unsupported != null) throw unsupported;
 
-      if (isPermissionDenied(exception)) throw const PermissionDeniedException();
+      if (isPermissionDenied(exception)) {
+        throw const PermissionDeniedException();
+      }
 
       // A pinned certificate can stop matching mid-session — Caddy's internal
       // CA renews twice a day — and every request then fails. Raised as the
@@ -516,10 +514,7 @@ class PhotoviewClient {
     for (final error in graphqlErrorsOf(exception)) {
       final named = unsupportedFieldAndTypeIn(error.message);
       if (named != null) {
-        return UnsupportedFieldException(
-          field: named.field,
-          type: named.type,
-        );
+        return UnsupportedFieldException(field: named.field, type: named.type);
       }
     }
 
@@ -565,9 +560,7 @@ class PhotoviewClient {
   /// [answered] distinguishes "the server said something" — data, GraphQL
   /// errors, or both — from "nothing came back", which is what a timeout or an
   /// unreachable host looks like.
-  Future<
-    ({Map<String, dynamic>? data, List<String> messages, bool answered})
-  >
+  Future<({Map<String, dynamic>? data, List<String> messages, bool answered})>
   _probe(String document) async {
     final result = await _client.query(
       QueryOptions(
@@ -655,14 +648,18 @@ class PhotoviewClient {
     );
   }
 
+  /// The people, named before unnamed, then most photos first — or fewest
+  /// first with [fewestFirst], which only a server with
+  /// [Capability.faceGroupCountDirection] understands.
   Future<List<FaceGroup>> faceGroups({
     required int limit,
     required int offset,
+    bool fewestFirst = false,
   }) async {
-    final data = await _query(myFacesThumbnailsQuery, {
-      'limit': limit,
-      'offset': offset,
-    });
+    final data = await _query(
+      fewestFirst ? myFacesThumbnailsFewestFirstQuery : myFacesThumbnailsQuery,
+      {'limit': limit, 'offset': offset},
+    );
     return (data['myFaceGroups'] as List<dynamic>? ?? const [])
         .map((e) => FaceGroup.fromJson(e as Map<String, dynamic>))
         .toList();
@@ -807,6 +804,21 @@ class PhotoviewClient {
     return MediaDetails.fromJson(media);
   }
 
+  /// The faces found on one photo, each with the person it is filed under.
+  Future<List<PhotoFace>> mediaFaces(String mediaId) async {
+    final data = await _query(mediaFacesQuery, {'mediaID': mediaId});
+    final media = data['media'] as Map<String, dynamic>?;
+    if (media == null) {
+      throw const ApiException(
+        'Media not found',
+        problem: ApiProblem.mediaNotFound,
+      );
+    }
+    return (media['faces'] as List<dynamic>? ?? const [])
+        .map((e) => PhotoFace.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
   /// Searches, with [limitMedia] and [limitAlbums] passed through as given.
   ///
   /// Null leaves them out and the server applies its own default of ten each;
@@ -915,7 +927,9 @@ class PhotoviewClient {
   /// when [Capability.albumTreePreference] says the server has it — otherwise
   /// the missing field fails the read of everything else too.
   Future<UserPreferences> userPreferences({bool withAlbumTree = false}) async {
-    final data = await _query(userPreferencesQuery(withAlbumTree: withAlbumTree));
+    final data = await _query(
+      userPreferencesQuery(withAlbumTree: withAlbumTree),
+    );
     final preferences = data['myUserPreferences'] as Map<String, dynamic>?;
     if (preferences == null) return const UserPreferences();
     return UserPreferences.fromJson(preferences);
@@ -947,8 +961,7 @@ class PhotoviewClient {
       },
     );
 
-    final preferences =
-        data['changeUserPreferences'] as Map<String, dynamic>?;
+    final preferences = data['changeUserPreferences'] as Map<String, dynamic>?;
     if (preferences == null) return const UserPreferences();
     return UserPreferences.fromJson(preferences);
   }
@@ -976,7 +989,8 @@ class PhotoviewClient {
 /// Separate from the client because there is no seam for faking a response.
 @visibleForTesting
 List<PersonPhoto> personPhotosFrom(Map<String, dynamic>? faceGroup) {
-  final byMedia = <String, ({Map<String, dynamic> media, List<String> faces})>{};
+  final byMedia =
+      <String, ({Map<String, dynamic> media, List<String> faces})>{};
 
   final faces = (faceGroup?['imageFaces'] as List<dynamic>? ?? const [])
       .whereType<Map<String, dynamic>>();

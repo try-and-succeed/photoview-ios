@@ -104,18 +104,41 @@ void main() {
     });
   });
 
-  testWidgets('an unnamed face shows its count', (tester) async {
-    await _pumpGrid(tester, [_group(count: 7)]);
+  Finder badge(String text) => find.descendant(
+    of: find.byType(PhotoCountBadge),
+    matching: find.text(text),
+  );
 
-    expect(find.textContaining('Unlabeled'), findsOneWidget);
-    expect(find.text('7 · Unlabeled'), findsOneWidget);
-  });
-
-  testWidgets('the number survives a tile too narrow for the word', (
+  testWidgets('an unnamed face shows its count on the picture', (
     tester,
   ) async {
-    // The reported bug: with the word first, a tile on a phone held upright
-    // cut off the number — the only thing telling two unnamed people apart.
+    await _pumpGrid(tester, [_group(count: 7)]);
+
+    expect(find.text('Unlabeled'), findsOneWidget);
+    expect(badge('7'), findsOneWidget);
+  });
+
+  testWidgets('a named face shows its count too, and keeps its name whole', (
+    tester,
+  ) async {
+    // The request: the count for everyone. In the line it would have cost
+    // the name its last letters; on the picture it costs nothing.
+    await _pumpGrid(
+      tester,
+      [_group(label: 'Regina', count: 7)],
+      width: 320,
+      padded: false,
+    );
+
+    expect(badge('7'), findsOneWidget);
+    expect(_visibleText(tester, find.text('Regina')), 'Regina');
+  });
+
+  testWidgets('the count is whole, grouped as the app language does', (
+    tester,
+  ) async {
+    // The number of the J bug: in the line, a tile on a phone held upright
+    // cut it off. In the pill nothing competes with it for room.
     await _pumpGrid(
       tester,
       [_group(count: 1234)],
@@ -123,17 +146,21 @@ void main() {
       width: 320,
     );
 
-    // Found by the word rather than the whole line, so this asks where the
-    // cut falls and not how the line happens to be worded.
-    final label = find.textContaining('Nicht zugeordnet');
-    expect(label, findsOneWidget);
+    expect(badge('1.234'), findsOneWidget);
+    expect(find.text('Nicht zugeordnet'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 
-    final visible = _visibleText(tester, label);
-    expect(
-      visible,
-      contains('1.234'),
-      reason: 'the count is what has to survive the cut, whole',
-    );
+  testWidgets('the pill sits on the bottom corner of the thumbnail', (
+    tester,
+  ) async {
+    await _pumpGrid(tester, [_group(count: 7)]);
+
+    final picture = tester.getRect(find.byType(FaceThumbnail));
+    final pill = tester.getRect(find.byType(PhotoCountBadge));
+
+    expect(pill.right, moreOrLessEquals(picture.right));
+    expect(pill.bottom, moreOrLessEquals(picture.bottom));
   });
 
   testWidgets('a tile fits its contents in the narrowest column', (
@@ -168,27 +195,22 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('a count of zero is left out entirely', (tester) async {
+  testWidgets('a count of zero gets no pill', (tester) async {
+    // Zero is what the server sends for a group it has not counted, and a
+    // "0" would read as a person in no pictures at all.
     await _pumpGrid(tester, [_group(count: 0)]);
 
     expect(find.text('Unlabeled'), findsOneWidget);
+    expect(find.byType(PhotoCountBadge), findsNothing);
   });
 
-  testWidgets('a named face is left as it was', (tester) async {
-    // The name tells people apart already; the request was for the count
-    // where it is missing.
-    await _pumpGrid(tester, [_group(label: 'Regina', count: 7)]);
-
-    expect(find.text('Regina'), findsOneWidget);
-    expect(find.textContaining('·'), findsNothing);
-  });
-
-  testWidgets('two unnamed faces are told apart by their counts', (
+  testWidgets('the line under the picture carries no count any more', (
     tester,
   ) async {
     await _pumpGrid(tester, [_group(count: 40), _group(count: 2)]);
 
-    expect(find.text('40 · Unlabeled'), findsOneWidget);
-    expect(find.text('2 · Unlabeled'), findsOneWidget);
+    expect(find.textContaining('·'), findsNothing);
+    expect(badge('40'), findsOneWidget);
+    expect(badge('2'), findsOneWidget);
   });
 }
