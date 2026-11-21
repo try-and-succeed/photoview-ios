@@ -167,8 +167,9 @@ class PhotoFacesOverlay extends ConsumerWidget {
 /// meaning off every other face and every name already placed, and inside
 /// the photo. Names were first put straight under their faces, and on a
 /// group photo one covered the next face and the name under it. Where
-/// nothing is free, under the face after all: a covered name still beats
-/// none. A name that would run off the right edge is moved left to fit.
+/// nothing is free, under the face after all — or above it at the bottom
+/// edge — moved into the photo if need be: a covered name still beats none.
+/// A name that would run off the right edge is moved left to fit.
 ///
 /// Faces are taken top to bottom, then left to right, so the result does not
 /// depend on the order the server listed them in.
@@ -196,6 +197,13 @@ List<Rect> placeLabels({
         : frame.left;
     Rect at(double top) => Rect.fromLTWH(left, top, width, label.height);
 
+    // Moved up or down into the photo, or to its top when it is taller.
+    Rect onPhoto(Rect box) {
+      final lowest = area.height - box.height;
+      final top = box.top > lowest ? lowest : box.top;
+      return at(top < 0 ? 0 : top);
+    }
+
     bool free(Rect box) =>
         box.top >= 0 &&
         box.bottom <= area.height &&
@@ -209,9 +217,13 @@ List<Rect> placeLabels({
         at(frame.top - gap - label.height - k * step),
     ];
 
-    final fallback = frame.bottom + gap + label.height <= area.height
-        ? candidates.first
-        : candidates[tries];
+    // Kept on the photo all the same: a face as tall as the photo has no room
+    // above or below, and a name placed off the photo is cut away entirely.
+    final fallback = onPhoto(
+      frame.bottom + gap + label.height <= area.height
+          ? candidates.first
+          : candidates[tries],
+    );
     placed[i] = candidates.firstWhere(free, orElse: () => fallback);
   }
 
@@ -226,28 +238,43 @@ Future<void> assignPhotoFace(
   PhotoFace face,
 ) {
   final l10n = AppLocalizations.of(context);
+  // Taken now, while the gallery is open: the messenger sits above it and
+  // outlives it, so the answer still arrives when the gallery was closed
+  // while the request ran — after a move that went half through, it is the
+  // only word on where the photos are.
+  final messenger = ScaffoldMessenger.of(context);
+
+  void say(String text) => messenger
+    ..removeCurrentSnackBar()
+    ..showSnackBar(SnackBar(content: Text(text)));
+
+  Future<void> run(
+    Future<String> Function() action, {
+    required String Function(String error) failed,
+    required Future<void> Function() retry,
+    bool retryAnyError = false,
+  }) async {
+    try {
+      say(await action());
+    } catch (error) {
+      // Without the gallery, no certificate to review and nothing to retry
+      // from — but still the message.
+      if (!context.mounted) return say(failed(describeError(error, l10n)));
+      await showActionFailure(
+        context,
+        ref,
+        error: error,
+        message: failed,
+        retry: retry,
+        retryAnyError: retryAnyError,
+      );
+    }
+  }
 
   return FaceMove(
     from: describePerson(face.group, l10n),
     exclude: face.group.id,
-    run: (action, {required failed, required retry}) async {
-      try {
-        final done = await action();
-        if (!context.mounted) return;
-        ScaffoldMessenger.of(context)
-          ..removeCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text(done)));
-      } catch (error) {
-        if (!context.mounted) return;
-        await showActionFailure(
-          context,
-          ref,
-          error: error,
-          message: failed,
-          retry: retry,
-        );
-      }
-    },
+    run: run,
   ).pickAndMove(
     context,
     ref,

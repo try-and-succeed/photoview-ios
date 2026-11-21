@@ -7,6 +7,43 @@ Every change raises `version:` in [`app_flutter/pubspec.yaml`](./app_flutter/pub
 — the name and the build number after the `+` — and gets an entry here. The app
 shows the running version under Settings › Info.
 
+## 1.1.1 (3) — 2026-11-21
+
+Fixes from a CodeRabbit review of pull requests #23 to #27.
+
+### Fixed
+
+- A face as tall as the photo no longer loses its name: with no room above or
+  below, the name is kept on the photo, over the face, instead of being placed
+  off it and cut away.
+- The people list no longer keeps loading pages for a fetch that a newer one
+  has already replaced — after two moves in quick succession, a long list sent
+  dozens of needless requests. Nor can such a fetch, refused "fewest first" by
+  the server, switch the order of the one that replaced it, which mixed two
+  orders in one list.
+- Moving photos to a new person: when they were taken out but naming the new
+  person failed for any reason, not only an untrusted certificate, the message
+  now says where the photos are and offers to try naming it again. Before, the
+  new person stayed unnamed with no way back, as the photos were no longer
+  there to be picked again.
+- Moving, splitting and naming send nothing to an account signed in to after
+  the action started — neither right away nor when tried again. Signing in to
+  another server meanwhile could otherwise have moved, split or renamed
+  whatever has the same numbers there. The message then offers no retry, as it
+  could only fail again.
+- A server that splits faces off without naming the new group no longer
+  produces "Moved to …" for a name that was never given; the message says the
+  photos were split off as a new person.
+- A person's page drops photos from the selection once they are no longer
+  there. After a move that went half through, it kept counting them as
+  selected, and Back only ended the picking.
+- "Retry" and "Review certificate" on a message whose page has been left
+  meanwhile now say that it cannot be tried again from there, instead of
+  doing nothing.
+- Filing faces from the photo view or a person's page: the answer is shown even
+  when that screen was closed while the request ran. A move that went half
+  through was otherwise never reported.
+
 ## 1.1.0 (2) — 2026-11-21
 
 ### Added

@@ -60,6 +60,7 @@ class FaceGroupsNotifier extends AsyncNotifier<FaceGroupsData>
   @override
   Future<FaceGroupsData> build() async {
     beginGeneration(ref);
+    final generation = this.generation;
 
     // A plain bool, so switching between orders that page the same way — A to
     // Z and Z to A — re-sorts what is there instead of fetching it again.
@@ -101,11 +102,20 @@ class FaceGroupsNotifier extends AsyncNotifier<FaceGroupsData>
       if (serverId != null) {
         await ref.read(capabilityDowngradeProvider)(serverId, failure);
       }
+      // Not once a newer fetch has taken over: the order is shared with it,
+      // and switching it here mixed two orders into its list. The downgrade
+      // above still stands — the server did refuse.
+      if (movedOn(generation)) rethrow;
       _fewestFirst = false;
       first = await _page(0);
     }
 
-    return _throughTheNamed(first, keep: keep, serverId: serverId);
+    return _throughTheNamed(
+      first,
+      keep: keep,
+      serverId: serverId,
+      generation: generation,
+    );
   }
 
   /// The state as it stands, or null before the first build has produced one.
@@ -144,8 +154,15 @@ class FaceGroupsNotifier extends AsyncNotifier<FaceGroupsData>
   ///
   /// Also keeps fetching until there are at least [keep] people, so a list
   /// fetched again is as long as it was.
+  ///
+  /// Stops once a newer fetch has replaced this one ([generation] is the
+  /// build's). Riverpod drops an overtaken build's result but does not stop
+  /// it, and two moves in quick succession left the first fetch paging on up
+  /// to the old length — a hundred requests for a long list — beside the one
+  /// that replaced it.
   Future<FaceGroupsData> _throughTheNamed(
     List<FaceGroup> first, {
+    required int generation,
     int keep = 0,
     String? serverId,
   }) async {
@@ -153,7 +170,8 @@ class FaceGroupsNotifier extends AsyncNotifier<FaceGroupsData>
     var lastPage = first;
     var hasMore = first.length >= _faceGroupPageSize;
 
-    while (hasMore &&
+    while (!movedOn(generation) &&
+        hasMore &&
         lastPage.isNotEmpty &&
         (lastPage.every(faceGroupIsNamed) || groups.length < keep)) {
       lastPage = await _page(groups.length);
