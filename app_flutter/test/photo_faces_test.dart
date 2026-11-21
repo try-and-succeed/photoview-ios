@@ -328,6 +328,32 @@ void main() {
       expect(boxes.single.bottom, lessThanOrEqualTo(256));
     });
 
+    test('a face as tall as the photo still gets its name on the photo', () {
+      // No room above or below: the name covers the face rather than being
+      // placed off the photo, where the stack cuts it away entirely.
+      final boxes = placeLabels(
+        frames: [const Rect.fromLTWH(50, 0, 100, 300)],
+        labels: [label],
+        area: area,
+        gap: 4,
+      );
+
+      expect(boxes.single.top, greaterThanOrEqualTo(0));
+      expect(boxes.single.bottom, lessThanOrEqualTo(area.height));
+      expect(boxes.single.size, label);
+    });
+
+    test('a name taller than the photo starts at its top', () {
+      final boxes = placeLabels(
+        frames: [const Rect.fromLTWH(0, 0, 40, 10)],
+        labels: [const Size(40, 30)],
+        area: const Size(100, 20),
+        gap: 2,
+      );
+
+      expect(boxes.single.top, 0);
+    });
+
     test('a name at the right edge is moved left to fit', () {
       final boxes = placeLabels(
         frames: [const Rect.fromLTWH(360, 50, 30, 30)],

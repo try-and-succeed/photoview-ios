@@ -7,6 +7,16 @@ Every change raises `version:` in [`app_flutter/pubspec.yaml`](./app_flutter/pub
 — the name and the build number after the `+` — and gets an entry here. The app
 shows the running version under Settings › Info.
 
+## 1.1.1 (3) — 2026-11-21
+
+Fixes from a CodeRabbit review of pull requests #23 to #27.
+
+### Fixed
+
+- A face as tall as the photo no longer loses its name: with no room above or
+  below, the name is kept on the photo, over the face, instead of being placed
+  off it and cut away.
+
 ## 1.1.0 (2) — 2026-11-21
 
 ### Added

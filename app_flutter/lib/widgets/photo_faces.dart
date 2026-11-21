@@ -167,8 +167,9 @@ class PhotoFacesOverlay extends ConsumerWidget {
 /// meaning off every other face and every name already placed, and inside
 /// the photo. Names were first put straight under their faces, and on a
 /// group photo one covered the next face and the name under it. Where
-/// nothing is free, under the face after all: a covered name still beats
-/// none. A name that would run off the right edge is moved left to fit.
+/// nothing is free, under the face after all — or above it at the bottom
+/// edge — moved into the photo if need be: a covered name still beats none.
+/// A name that would run off the right edge is moved left to fit.
 ///
 /// Faces are taken top to bottom, then left to right, so the result does not
 /// depend on the order the server listed them in.
@@ -196,6 +197,13 @@ List<Rect> placeLabels({
         : frame.left;
     Rect at(double top) => Rect.fromLTWH(left, top, width, label.height);
 
+    // Moved up or down into the photo, or to its top when it is taller.
+    Rect onPhoto(Rect box) {
+      final lowest = area.height - box.height;
+      final top = box.top > lowest ? lowest : box.top;
+      return at(top < 0 ? 0 : top);
+    }
+
     bool free(Rect box) =>
         box.top >= 0 &&
         box.bottom <= area.height &&
@@ -209,9 +217,13 @@ List<Rect> placeLabels({
         at(frame.top - gap - label.height - k * step),
     ];
 
-    final fallback = frame.bottom + gap + label.height <= area.height
-        ? candidates.first
-        : candidates[tries];
+    // Kept on the photo all the same: a face as tall as the photo has no room
+    // above or below, and a name placed off the photo is cut away entirely.
+    final fallback = onPhoto(
+      frame.bottom + gap + label.height <= area.height
+          ? candidates.first
+          : candidates[tries],
+    );
     placed[i] = candidates.firstWhere(free, orElse: () => fallback);
   }
 
