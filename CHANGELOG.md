@@ -16,6 +16,9 @@ Fixes from a CodeRabbit review of pull requests #23 to #27.
 - A face as tall as the photo no longer loses its name: with no room above or
   below, the name is kept on the photo, over the face, instead of being placed
   off it and cut away.
+- The people list no longer keeps loading pages for a fetch that a newer one
+  has already replaced — after two moves in quick succession, a long list sent
+  dozens of needless requests.
 
 ## 1.1.0 (2) — 2026-11-21
 

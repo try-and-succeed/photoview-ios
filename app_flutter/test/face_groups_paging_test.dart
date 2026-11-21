@@ -192,6 +192,39 @@ void main() {
       expect(client.requests, [0, 40, 80, 120]);
     });
 
+    test('a fetch overtaken by the next one stops asking for pages', () async {
+      // Two moves in quick succession. Riverpod drops the first fetch's
+      // result but lets it run on, and without a check it went on paging up
+      // to the old length beside the fetch that replaced it.
+      final client = _PagingClient(named: 3, unnamed: 300);
+      final container = _container(client);
+      await _settled(container);
+      container.listen(faceGroupsProvider, (_, _) {});
+      await container.read(faceGroupsProvider.future);
+      final notifier = container.read(faceGroupsProvider.notifier);
+      for (var i = 0; i < 3; i++) {
+        await notifier.loadMore();
+      }
+      client.requests.clear();
+
+      container.invalidate(faceGroupsProvider);
+      final overtaken = container.read(faceGroupsProvider.future);
+      container.invalidate(faceGroupsProvider);
+      final data = await container.read(faceGroupsProvider.future);
+      await overtaken.catchError((_) => data);
+      // Whatever the overtaken fetch still had in flight, let it come back.
+      await pumpEventQueue();
+
+      expect(data.groups, hasLength(160), reason: 'the new fetch keeps going');
+      expect(client.requests..sort(), [
+        0,
+        0,
+        40,
+        80,
+        120,
+      ], reason: 'the overtaken fetch stops after the page it was waiting on');
+    });
+
     test('another account starts at one page', () async {
       // The length is the user's scroll position in one library; in another
       // library it means nothing, and fetching that many would only be slow.
