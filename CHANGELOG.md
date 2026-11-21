@@ -33,6 +33,9 @@ faces a person has confirmed. Against any other server nothing changes.
 - **A review list** (People › To review): every photo with a face waiting for
   review, newest first, across all people, so the faces a run sent elsewhere
   can be checked too. It is also offered right after re-identifying.
+- **Finding a person by name** on the People tab: the magnifier opens a name
+  field, and the list keeps only the people whose name contains what is typed.
+  Back or the cross closes it and shows everybody again.
 
 ### Fixed
 

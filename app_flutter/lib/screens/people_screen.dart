@@ -11,6 +11,7 @@ import '../widgets/scrollable_view.dart';
 import '../widgets/async_states.dart';
 import '../widgets/load_more.dart';
 import '../widgets/face_grid.dart';
+import '../widgets/face_move.dart' show personMatches;
 import 'review_screen.dart';
 
 class PeopleScreen extends ConsumerStatefulWidget {
@@ -22,6 +23,22 @@ class PeopleScreen extends ConsumerStatefulWidget {
 
 class _PeopleScreenState extends ConsumerState<PeopleScreen> {
   bool _recognizing = false;
+
+  /// Whether the name field is open in place of the title.
+  bool _searching = false;
+  final _query = TextEditingController();
+
+  @override
+  void dispose() {
+    _query.dispose();
+    super.dispose();
+  }
+
+  /// Closes the name field and shows everybody again.
+  void _stopSearching() => setState(() {
+    _searching = false;
+    _query.clear();
+  });
 
   /// Asks the server to have another look at the faces nobody has named.
   ///
@@ -39,9 +56,8 @@ class _PeopleScreenState extends ConsumerState<PeopleScreen> {
       final filed = await ref.read(faceActionsProvider).recognizeUnlabeled();
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.peopleRecognized(filed))),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l10n.peopleRecognized(filed))));
     } catch (error) {
       if (mounted) {
         await showActionFailure(
@@ -59,104 +75,159 @@ class _PeopleScreenState extends ConsumerState<PeopleScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final faces = ref.watch(faceGroupsProvider);
+    final query = _query.text.trim();
 
-    return Scaffold(
-      body: RefreshIndicator(
-        // Awaited, as on the timeline: invalidating alone ends the spinner
-        // before the new answer is in.
-        onRefresh: () => ref.refresh(faceGroupsProvider.future),
-        child: LoadMoreOnScroll(
-          hasMore: faces.valueOrNull?.hasMore ?? false,
-          onLoadMore: () => ref.read(faceGroupsProvider.notifier).loadMore(),
-          child: ScrollableView(
-          // See the note in timeline_screen.dart: a short list would otherwise
-          // refuse the pull-to-refresh gesture.
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            SliverAppBar(
-              title: Text(AppLocalizations.of(context).navPeople),
-              floating: true,
-              snap: true,
-              actions: [
-                if (_recognizing)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Center(
-                      child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+    // Back closes the name field before it leaves the tab.
+    return PopScope(
+      canPop: !_searching,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _stopSearching();
+      },
+      child: Scaffold(
+        body: RefreshIndicator(
+          // Awaited, as on the timeline: invalidating alone ends the spinner
+          // before the new answer is in.
+          onRefresh: () => ref.refresh(faceGroupsProvider.future),
+          child: LoadMoreOnScroll(
+            // Not while a name is typed: every named person comes with the
+            // first pages (see _throughTheNamed), and the unnamed further down
+            // have no name to match.
+            hasMore: query.isEmpty && (faces.valueOrNull?.hasMore ?? false),
+            onLoadMore: () => ref.read(faceGroupsProvider.notifier).loadMore(),
+            child: ScrollableView(
+              // See the note in timeline_screen.dart: a short list would otherwise
+              // refuse the pull-to-refresh gesture.
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                SliverAppBar(
+                  title: _searching
+                      ? TextField(
+                          controller: _query,
+                          // Opened by a tap on the magnifier, so typing is next.
+                          autofocus: true,
+                          autocorrect: false,
+                          textInputAction: TextInputAction.search,
+                          decoration: InputDecoration(
+                            hintText: l10n.personFilterHint,
+                            border: InputBorder.none,
+                          ),
+                          onChanged: (_) => setState(() {}),
+                        )
+                      : Text(l10n.navPeople),
+                  floating: true,
+                  snap: true,
+                  actions: [
+                    if (_searching)
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        tooltip: MaterialLocalizations.of(context)
+                            .closeButtonTooltip,
+                        onPressed: _stopSearching,
+                      )
+                    else
+                      IconButton(
+                        icon: const Icon(Icons.search),
+                        tooltip: l10n.personFilterHint,
+                        onPressed: () => setState(() => _searching = true),
                       ),
-                    ),
-                  )
-                else
-                  IconButton(
-                    icon: const Icon(Icons.person_search_outlined),
-                    tooltip: AppLocalizations.of(context).peopleRecognize,
-                    onPressed: _recognize,
-                  ),
-                if (ref.watch(
-                  hasCapabilityProvider(Capability.faceVerification),
-                ))
-                  IconButton(
-                    icon: const Icon(Icons.rate_review_outlined),
-                    tooltip: AppLocalizations.of(context).reviewTitle,
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const ReviewScreen(),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            ...faces.when(
-              loading: () => [
-                const SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(child: CircularProgressIndicator()),
+                    // The name field gets the room while it is open.
+                    if (!_searching) ...[
+                      if (_recognizing)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16),
+                          child: Center(
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                        )
+                      else
+                        IconButton(
+                          icon: const Icon(Icons.person_search_outlined),
+                          tooltip: l10n.peopleRecognize,
+                          onPressed: _recognize,
+                        ),
+                      if (ref.watch(
+                        hasCapabilityProvider(Capability.faceVerification),
+                      ))
+                        IconButton(
+                          icon: const Icon(Icons.rate_review_outlined),
+                          tooltip: l10n.reviewTitle,
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const ReviewScreen(),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ],
                 ),
-              ],
-              error: (error, _) => [
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: ErrorMessage.forError(
-                    error,
-                    onRetry: () => ref.invalidate(faceGroupsProvider),
-                  ),
-                ),
-              ],
-              data: (data) => [
-                if (data.groups.isEmpty)
-                  SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: EmptyMessage(
-                      message: AppLocalizations.of(context).peopleEmpty,
-                      icon: Icons.person_outline,
-                    ),
-                  )
-                else
-                  SliverPadding(
-                    padding: const EdgeInsets.all(16),
-                    sliver: FaceSliverGrid(
-                      faceGroups: orderedFaceGroups(
-                        data.groups,
-                        ref.watch(peopleOrderProvider).valueOrNull ??
-                            PeopleOrder.nameAscending,
-                        unnamedFewestFirst: data.fewestFirst,
-                      ),
-                    ),
-                  ),
-                if (data.loadingMore)
-                  const SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.all(24),
+                ...faces.when(
+                  loading: () => [
+                    const SliverFillRemaining(
+                      hasScrollBody: false,
                       child: Center(child: CircularProgressIndicator()),
                     ),
-                  ),
+                  ],
+                  error: (error, _) => [
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: ErrorMessage.forError(
+                        error,
+                        onRetry: () => ref.invalidate(faceGroupsProvider),
+                      ),
+                    ),
+                  ],
+                  data: (data) {
+                    final shown = [
+                      for (final g in data.groups)
+                        if (personMatches(g, query)) g,
+                    ];
+                    return [
+                      if (data.groups.isEmpty)
+                        SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: EmptyMessage(
+                            message: l10n.peopleEmpty,
+                            icon: Icons.person_outline,
+                          ),
+                        )
+                      else if (shown.isEmpty)
+                        SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: EmptyMessage(
+                            message: l10n.personFilterNoMatch,
+                            icon: Icons.search_off,
+                          ),
+                        )
+                      else
+                        SliverPadding(
+                          padding: const EdgeInsets.all(16),
+                          sliver: FaceSliverGrid(
+                            faceGroups: orderedFaceGroups(
+                              shown,
+                              ref.watch(peopleOrderProvider).valueOrNull ??
+                                  PeopleOrder.nameAscending,
+                              unnamedFewestFirst: data.fewestFirst,
+                            ),
+                          ),
+                        ),
+                      if (data.loadingMore && query.isEmpty)
+                        const SliverToBoxAdapter(
+                          child: Padding(
+                            padding: EdgeInsets.all(24),
+                            child: Center(child: CircularProgressIndicator()),
+                          ),
+                        ),
+                    ];
+                  },
+                ),
               ],
             ),
-          ],
           ),
         ),
       ),
