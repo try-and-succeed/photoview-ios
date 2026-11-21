@@ -991,6 +991,28 @@
   "@settingsLogOutSubtitle": {
     "description": "Explains that logging out drops the stored token, leaving the server on the list."
   },
+  "settingsSectionAbout": "Info",
+  "@settingsSectionAbout": {
+    "description": "Header of the last settings section: the app's name, version and licence."
+  },
+  "settingsVersion": "Version {version} (build {build})",
+  "@settingsVersion": {
+    "description": "The running app's version under Settings › Info and in the About dialog: version name and build number, both read from the build.",
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "1.1.0"
+      },
+      "build": {
+        "type": "String",
+        "example": "2"
+      }
+    }
+  },
+  "aboutLegalese": "Free software under the GNU GPL v3. A modified version of the Photoview iOS client by Viktor Strate Kløvedal.",
+  "@aboutLegalese": {
+    "description": "Licence line in the About dialog. The name of the original author is not translated."
+  },
   "caPickerTitle": "Select a CA certificate",
   "@caPickerTitle": {
     "description": "Title of the file picker for a certificate authority file."

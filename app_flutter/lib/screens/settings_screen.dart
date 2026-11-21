@@ -9,6 +9,7 @@ import '../l10n/app_localizations.dart';
 import '../l10n/error_messages.dart';
 import '../l10n/languages.dart';
 import '../state/app_language.dart';
+import '../state/app_version.dart';
 import '../state/auth.dart';
 import '../state/capabilities.dart';
 import '../state/people_order.dart';
@@ -113,7 +114,44 @@ class SettingsScreen extends ConsumerWidget {
             subtitle: Text(l10n.settingsLogOutSubtitle),
             onTap: () => ref.read(authProvider.notifier).logOut(),
           ),
+          const Divider(),
+          _SectionHeader(l10n.settingsSectionAbout),
+          const AboutAppTile(),
         ],
+      ),
+    );
+  }
+}
+
+/// The app's name and version, opening the usual About dialog with the
+/// licence and the licences of everything it is built from.
+///
+/// The version is read from the build, never written here — see
+/// [appVersionProvider].
+class AboutAppTile extends ConsumerWidget {
+  const AboutAppTile({super.key});
+
+  static const _name = 'Photoview';
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final version = ref
+        .watch(appVersionProvider)
+        .whenData(
+          (info) => l10n.settingsVersion(info.version, info.buildNumber),
+        )
+        .valueOrNull;
+
+    return ListTile(
+      leading: const Icon(Icons.info_outline),
+      title: const Text(_name),
+      subtitle: version == null ? null : Text(version),
+      onTap: () => showAboutDialog(
+        context: context,
+        applicationName: _name,
+        applicationVersion: version,
+        applicationLegalese: l10n.aboutLegalese,
       ),
     );
   }
@@ -423,15 +461,16 @@ class _CertificateAuthoritiesState
       );
     } on InvalidCertificateFile catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(describeError(error, l10n))));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(describeError(error, l10n))));
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.caImportFailed(describeError(error, l10n)))));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.caImportFailed(describeError(error, l10n))),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -459,10 +498,8 @@ class _CertificateAuthoritiesState
             const SizedBox(height: 6),
             SelectableText(
               certificate.readableFingerprint,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                fontFamily: 'monospace',
-                height: 1.5,
-              ),
+              style: Theme.of(context).textTheme.bodySmall
+                  ?.copyWith(fontFamily: 'monospace', height: 1.5),
             ),
           ],
         ),
