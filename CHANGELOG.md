@@ -24,9 +24,10 @@ Fixes from a CodeRabbit review of pull requests #23 to #27.
   now says where the photos are and offers to try naming it again. Before, the
   new person stayed unnamed with no way back, as the photos were no longer
   there to be picked again.
-- A new person is named only on the account it was made on. Signing in to
-  another server while the photos were being taken out could otherwise have
-  renamed a group with the same number there.
+- Moving, splitting and naming send nothing to an account signed in to after
+  the action started — neither right away nor when tried again. Signing in to
+  another server meanwhile could otherwise have moved, split or renamed
+  whatever has the same numbers there.
 
 ## 1.1.0 (2) — 2026-11-21
 

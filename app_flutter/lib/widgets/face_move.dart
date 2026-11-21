@@ -135,15 +135,36 @@ class FaceMove {
     WidgetRef ref,
     AppLocalizations l10n,
     List<String> faceIds,
-    FaceGroup person,
-  ) => run(
-    () async {
-      await ref.read(faceActionsProvider).moveFaces(faceIds, person.id);
-      return l10n.personFacesMoved(describePerson(person, l10n));
-    },
-    failed: l10n.personFacesMoveFailed,
-    retry: () => _sendMove(ref, l10n, faceIds, person),
-  );
+    FaceGroup person, {
+    String? account,
+  }) {
+    final owner = account ?? _signedIn(ref);
+
+    return run(
+      () async {
+        _stillSignedIn(ref, owner);
+        await ref.read(faceActionsProvider).moveFaces(faceIds, person.id);
+        return l10n.personFacesMoved(describePerson(person, l10n));
+      },
+      failed: l10n.personFacesMoveFailed,
+      retry: () => _sendMove(ref, l10n, faceIds, person, account: owner),
+    );
+  }
+
+  /// The account signed in now — the one the face and group ids came from
+  /// when an action starts.
+  static String? _signedIn(WidgetRef ref) =>
+      ref.read(sessionProvider)?.serverId;
+
+  /// Throws unless [owner] is still the one signed in.
+  ///
+  /// Every request goes to whoever is signed in when it runs. The ids belong
+  /// to the account the action started on; sent to another — after a sign-in
+  /// elsewhere while a request or a retry was pending — they would move,
+  /// split or rename whatever has those ids there.
+  static void _stillSignedIn(WidgetRef ref, String? owner) {
+    if (_signedIn(ref) != owner) throw const AccountChangedException();
+  }
 
   /// Lifts the faces out into a group of their own and names it.
   ///
@@ -158,10 +179,9 @@ class FaceMove {
   /// new person the name the user confirmed. The message then says where the
   /// photos are.
   ///
-  /// The group is named only on the account it was made on ([account], kept
-  /// for the retry as well). The naming goes to whoever is signed in when it
-  /// runs; after a sign-in elsewhere meanwhile, the group id from the first
-  /// account would rename whatever group has that id on the second.
+  /// Both requests go only to the account the move started on ([account],
+  /// kept for the retry as well) — checked before each, as the account can
+  /// change while the first is under way. See [_stillSignedIn].
   Future<void> _sendMoveToNew(
     WidgetRef ref,
     AppLocalizations l10n,
@@ -171,17 +191,18 @@ class FaceMove {
     String? account,
   }) {
     final actions = ref.read(faceActionsProvider);
-    final owner = account ?? ref.read(sessionProvider)?.serverId;
+    final owner = account ?? _signedIn(ref);
     var made = created;
 
     return run(
       () async {
-        made ??= await actions.detachFaces(faceIds);
+        if (made == null) {
+          _stillSignedIn(ref, owner);
+          made = await actions.detachFaces(faceIds);
+        }
         final group = made;
         if (group == null) return l10n.personFacesMoved(name);
-        if (ref.read(sessionProvider)?.serverId != owner) {
-          throw const AccountChangedException();
-        }
+        _stillSignedIn(ref, owner);
         final stored = await actions.rename(group, name);
         return l10n.personFacesMoved(stored ?? name);
       },
@@ -206,15 +227,21 @@ class FaceMove {
   Future<void> _sendDetach(
     WidgetRef ref,
     AppLocalizations l10n,
-    List<String> faceIds,
-  ) => run(
-    () async {
-      await ref.read(faceActionsProvider).detachFaces(faceIds);
-      return l10n.personFacesDetached;
-    },
-    failed: l10n.personFacesDetachFailed,
-    retry: () => _sendDetach(ref, l10n, faceIds),
-  );
+    List<String> faceIds, {
+    String? account,
+  }) {
+    final owner = account ?? _signedIn(ref);
+
+    return run(
+      () async {
+        _stillSignedIn(ref, owner);
+        await ref.read(faceActionsProvider).detachFaces(faceIds);
+        return l10n.personFacesDetached;
+      },
+      failed: l10n.personFacesDetachFailed,
+      retry: () => _sendDetach(ref, l10n, faceIds, account: owner),
+    );
+  }
 }
 
 /// Asks before faces move. True only for an explicit yes.

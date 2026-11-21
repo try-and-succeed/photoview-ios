@@ -143,8 +143,95 @@ Future<void> _split(WidgetTester tester) async {
   await _confirm(tester);
 }
 
+/// Signs in to another server, as the settings' server switch does.
+void _signInElsewhere(WidgetTester tester) {
+  final container = ProviderScope.containerOf(
+    tester.element(find.byType(PersonScreen)),
+  );
+  (container.read(authProvider.notifier) as _FixedAuth).switchTo(
+    Session(
+      endpoint: Uri.parse('https://elsewhere/api/graphql'),
+      token: 'other',
+      username: 'someone',
+    ),
+  );
+}
+
 void main() {
   final anna = const FaceGroup(id: '9', label: 'Anna', imageFaceCount: 5);
+
+  group('a retry after a sign-in elsewhere sends nothing', () {
+    // The ids belong to the account the action started on. Every request
+    // goes to whoever is signed in when it runs, so a retry after a switch
+    // would move, split or name whatever has those ids on the other server.
+    testWidgets('a move', (tester) async {
+      final client = _FacesClient(
+        photos: [
+          _photo('1', ['10']),
+        ],
+        people: [anna],
+      )..failWith = CertificateNotTrustedException(_session.endpoint);
+      await _open(tester, client);
+      await _pickFirst(tester);
+      await _moveTo(tester, 'Anna');
+      expect(client.moves, hasLength(1), reason: 'the first attempt failed');
+
+      client.failWith = null;
+      _signInElsewhere(tester);
+      await tester.tap(find.text('Review certificate'));
+      await tester.pumpAndSettle();
+
+      expect(client.moves, hasLength(1));
+    });
+
+    testWidgets('a split', (tester) async {
+      final client = _FacesClient(
+        photos: [
+          _photo('1', ['10']),
+        ],
+        people: [anna],
+      )..failWith = CertificateNotTrustedException(_session.endpoint);
+      await _open(tester, client);
+      await _pickFirst(tester);
+      await _split(tester);
+      expect(client.detaches, hasLength(1), reason: 'the first attempt failed');
+
+      client.failWith = null;
+      _signInElsewhere(tester);
+      await tester.tap(find.text('Review certificate'));
+      await tester.pumpAndSettle();
+
+      expect(client.detaches, hasLength(1));
+    });
+
+    testWidgets('a move to a new person whose split failed', (tester) async {
+      final client = _FacesClient(
+        photos: [
+          _photo('1', ['10']),
+        ],
+        people: [anna],
+      )..failWith = Exception('offline');
+      await _open(tester, client);
+      await _pickFirst(tester);
+      await tester.tap(find.byIcon(Icons.person_add_alt));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('New person…'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Max');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pumpAndSettle();
+      await _confirm(tester);
+      expect(client.detaches, hasLength(1), reason: 'the first attempt failed');
+
+      client.failWith = null;
+      _signInElsewhere(tester);
+      await tester.tap(find.text('Retry'));
+      await tester.pumpAndSettle();
+
+      expect(client.detaches, hasLength(1));
+      expect(client.renames, isEmpty);
+    });
+  });
 
   testWidgets('a long press starts picking, as in the album', (tester) async {
     final client = _FacesClient(
@@ -620,17 +707,7 @@ void main() {
         people: [anna],
       );
       await _open(tester, client);
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(PersonScreen)),
-      );
-      client.whileDetaching = () =>
-          (container.read(authProvider.notifier) as _FixedAuth).switchTo(
-            Session(
-              endpoint: Uri.parse('https://elsewhere/api/graphql'),
-              token: 'other',
-              username: 'someone',
-            ),
-          );
+      client.whileDetaching = () => _signInElsewhere(tester);
       await _pickFirst(tester);
 
       await tester.tap(find.byIcon(Icons.person_add_alt));
