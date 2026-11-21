@@ -47,6 +47,7 @@
   "passwordShow": "Vis adgangskode",
   "passwordHide": "Skjul adgangskode",
   "actionRetry": "Prøv igen",
+  "actionRetryPageClosed": "Siden, hvor dette blev startet, er lukket, så det kan ikke prøves igen herfra.",
   "navTimeline": "Tidslinje",
   "timelineJumpToDay": "Gå til en dato",
   "timelineFromDay": "Fra {day}",

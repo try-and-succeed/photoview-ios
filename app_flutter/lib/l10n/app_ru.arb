@@ -47,6 +47,7 @@
   "passwordShow": "Показать пароль",
   "passwordHide": "Скрыть пароль",
   "actionRetry": "Повторить",
+  "actionRetryPageClosed": "Страница, на которой это началось, закрыта, поэтому повторить отсюда нельзя.",
   "navTimeline": "Фотографии",
   "timelineJumpToDay": "Перейти к дате",
   "timelineFromDay": "С {day}",

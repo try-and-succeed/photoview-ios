@@ -47,6 +47,7 @@
   "passwordShow": "パスワードを表示",
   "passwordHide": "パスワードを非表示",
   "actionRetry": "再試行",
+  "actionRetryPageClosed": "開始したページが閉じられているため、ここから再試行できません。",
   "navTimeline": "タイムライン",
   "timelineJumpToDay": "日付へ移動",
   "timelineFromDay": "{day}から",

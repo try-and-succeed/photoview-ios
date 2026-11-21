@@ -47,6 +47,7 @@
   "passwordShow": "Parolayı göster",
   "passwordHide": "Parolayı gizle",
   "actionRetry": "Yeniden dene",
+  "actionRetryPageClosed": "Bunun başlatıldığı sayfa kapalı, bu yüzden buradan yeniden denenemez.",
   "navTimeline": "Zaman çizelgesi",
   "timelineJumpToDay": "Bir tarihe atla",
   "timelineFromDay": "{day} tarihinden itibaren",

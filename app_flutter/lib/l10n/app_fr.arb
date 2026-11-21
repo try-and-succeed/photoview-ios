@@ -47,6 +47,7 @@
   "passwordShow": "Afficher le mot de passe",
   "passwordHide": "Masquer le mot de passe",
   "actionRetry": "Réessayer",
+  "actionRetryPageClosed": "La page où cela a été lancé est fermée, on ne peut donc pas réessayer d’ici.",
   "navTimeline": "Photos",
   "timelineJumpToDay": "Aller à une date",
   "timelineFromDay": "À partir du {day}",

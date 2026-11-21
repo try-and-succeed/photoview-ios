@@ -58,11 +58,14 @@ class _Harness extends ConsumerWidget {
   final Future<TrustedCertificate?> Function(Uri) probe;
   final Future<bool> Function(BuildContext, TrustedCertificate, {bool replacesTrusted}) confirm;
 
+  final bool retryAnyError;
+
   const _Harness({
     required this.error,
     required this.probe,
     required this.confirm,
     this.onRetry,
+    this.retryAnyError = false,
   });
 
   @override
@@ -75,6 +78,7 @@ class _Harness extends ConsumerWidget {
           error: error,
           message: (description) => 'Scan failed: $description',
           retry: onRetry,
+          retryAnyError: retryAnyError,
           probe: probe,
           confirm: confirm,
         ),
@@ -267,6 +271,124 @@ void main() {
       reason: 'the decision is stored regardless — other screens need it',
     );
     expect(retried, 0, reason: 'nothing to retry on a screen that is gone');
+    expect(
+      find.textContaining('cannot be tried again from here'),
+      findsOneWidget,
+      reason: 'said, not silently skipped',
+    );
+  });
+
+  testWidgets('a retry tapped after its screen was left says it cannot run', (
+    tester,
+  ) async {
+    // The message outlives the screen; the retry cannot. A button that does
+    // nothing would be taken for one that worked.
+    final store = _RecordingStore();
+    var retried = 0;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [trustedCertificatesProvider.overrideWithValue(store)],
+        child: localizedApp(
+          home: _Harness(
+            error: Exception('offline'),
+            onRetry: () => retried++,
+            retryAnyError: true,
+            probe: (_) async => null,
+            confirm: (_, _, {bool replacesTrusted = false}) async => true,
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('act'));
+    await tester.pumpAndSettle();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [trustedCertificatesProvider.overrideWithValue(store)],
+        child: localizedApp(
+          home: const Scaffold(body: Center(child: Text('gone'))),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Retry'));
+    await tester.pumpAndSettle();
+
+    expect(retried, 0);
+    expect(
+      find.textContaining('cannot be tried again from here'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a certificate review tapped after its screen was left says so', (
+    tester,
+  ) async {
+    final store = _RecordingStore();
+    var retried = 0;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [trustedCertificatesProvider.overrideWithValue(store)],
+        child: localizedApp(
+          home: _Harness(
+            error: CertificateNotTrustedException(_endpoint),
+            onRetry: () => retried++,
+            probe: (_) async => _certificate,
+            confirm: (_, _, {bool replacesTrusted = false}) async => true,
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('act'));
+    await tester.pumpAndSettle();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [trustedCertificatesProvider.overrideWithValue(store)],
+        child: localizedApp(
+          home: const Scaffold(body: Center(child: Text('gone'))),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Review certificate'));
+    await tester.pumpAndSettle();
+
+    expect(retried, 0);
+    expect(
+      find.textContaining('cannot be tried again from here'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a retry for any failure runs while its screen is there', (
+    tester,
+  ) async {
+    var retried = 0;
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          trustedCertificatesProvider.overrideWithValue(_RecordingStore()),
+        ],
+        child: localizedApp(
+          home: _Harness(
+            error: Exception('offline'),
+            onRetry: () => retried++,
+            retryAnyError: true,
+            probe: (_) async => null,
+            confirm: (_, _, {bool replacesTrusted = false}) async => true,
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('act'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Retry'));
+    await tester.pumpAndSettle();
+
+    expect(retried, 1);
   });
 
   testWidgets('a second failure replaces the first instead of queueing', (

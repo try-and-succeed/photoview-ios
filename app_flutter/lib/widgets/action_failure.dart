@@ -43,6 +43,15 @@ Future<void> showActionFailure(
   final l10n = AppLocalizations.of(context);
   final messenger = ScaffoldMessenger.of(context);
 
+  // The message outlives the screen — the messenger sits above the
+  // navigator — but the retry does not: it runs on that screen's providers.
+  // Said rather than silently skipped, so a button that did nothing is not
+  // taken for one that did. Queued, not swapped in: the snackbar action hides
+  // the current message after its handler runs, which would be this one.
+  void pageClosed() => messenger.showSnackBar(
+    SnackBar(content: Text(l10n.actionRetryPageClosed)),
+  );
+
   messenger.removeCurrentSnackBar();
 
   if (error is! CertificateNotTrustedException) {
@@ -60,7 +69,11 @@ Future<void> showActionFailure(
             ? SnackBarAction(
                 label: l10n.actionRetry,
                 onPressed: () {
-                  if (context.mounted) retry();
+                  if (context.mounted) {
+                    retry();
+                  } else {
+                    pageClosed();
+                  }
                 },
               )
             : null,
@@ -79,7 +92,7 @@ Future<void> showActionFailure(
       action: SnackBarAction(
         label: l10n.certificateReview,
         onPressed: () async {
-          if (!context.mounted) return;
+          if (!context.mounted) return pageClosed();
 
           final review = await reviewCertificate(
             context: context,
@@ -101,7 +114,7 @@ Future<void> showActionFailure(
               // own `mounted` check. The messenger is safe either way: it
               // lives above the navigator, which is why a message can outlive
               // the screen that raised it.
-              if (!context.mounted) return;
+              if (!context.mounted) return pageClosed();
               await retry?.call();
             case CertificateReview.declined:
               messenger

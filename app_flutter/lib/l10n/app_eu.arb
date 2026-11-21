@@ -47,6 +47,7 @@
   "passwordShow": "Erakutsi pasahitza",
   "passwordHide": "Ezkutatu pasahitza",
   "actionRetry": "Saiatu berriro",
+  "actionRetryPageClosed": "Hau hasi zen orria itxita dago, beraz ezin da hemendik berriro saiatu.",
   "navTimeline": "Denbora-lerroa",
   "timelineJumpToDay": "Joan data batera",
   "timelineFromDay": "{day}(e)tik",

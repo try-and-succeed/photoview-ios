@@ -47,6 +47,7 @@
   "passwordShow": "Passwort anzeigen",
   "passwordHide": "Passwort verbergen",
   "actionRetry": "Erneut versuchen",
+  "actionRetryPageClosed": "Die Seite, auf der das gestartet wurde, ist geschlossen. Von hier aus lässt es sich nicht wiederholen.",
   "navTimeline": "Fotos",
   "timelineJumpToDay": "Zu einem Datum springen",
   "timelineFromDay": "Ab {day}",

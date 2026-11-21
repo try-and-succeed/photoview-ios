@@ -47,6 +47,7 @@
   "passwordShow": "Показати пароль",
   "passwordHide": "Приховати пароль",
   "actionRetry": "Повторити",
+  "actionRetryPageClosed": "Сторінку, на якій це почалося, закрито, тому повторити звідси не можна.",
   "navTimeline": "Хронологія",
   "timelineJumpToDay": "Перейти до дати",
   "timelineFromDay": "Від {day}",

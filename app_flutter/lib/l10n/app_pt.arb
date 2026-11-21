@@ -47,6 +47,7 @@
   "passwordShow": "Mostrar palavra-passe",
   "passwordHide": "Ocultar palavra-passe",
   "actionRetry": "Tentar novamente",
+  "actionRetryPageClosed": "A página onde isto começou está fechada, por isso não é possível tentar de novo daqui.",
   "navTimeline": "Fotos",
   "timelineJumpToDay": "Ir para uma data",
   "timelineFromDay": "A partir de {day}",

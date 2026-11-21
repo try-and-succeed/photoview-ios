@@ -252,6 +252,10 @@
   "@actionRetry": {
     "description": "Button that repeats a failed request."
   },
+  "actionRetryPageClosed": "The page this was started on is closed, so it cannot be tried again from here.",
+  "@actionRetryPageClosed": {
+    "description": "Shown when Retry (or Review certificate) is tapped on a message whose screen has been left meanwhile: the action cannot run without it."
+  },
   "navTimeline": "Timeline",
   "@navTimeline": {
     "description": "Bottom navigation: the timeline of all media, newest first."

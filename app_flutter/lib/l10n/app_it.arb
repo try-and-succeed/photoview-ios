@@ -47,6 +47,7 @@
   "passwordShow": "Mostra password",
   "passwordHide": "Nascondi password",
   "actionRetry": "Riprova",
+  "actionRetryPageClosed": "La pagina da cui è partito è chiusa, quindi non si può riprovare da qui.",
   "navTimeline": "Foto",
   "timelineJumpToDay": "Vai a una data",
   "timelineFromDay": "Dal {day}",

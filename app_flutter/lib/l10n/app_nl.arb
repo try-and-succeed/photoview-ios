@@ -47,6 +47,7 @@
   "passwordShow": "Wachtwoord tonen",
   "passwordHide": "Wachtwoord verbergen",
   "actionRetry": "Opnieuw proberen",
+  "actionRetryPageClosed": "De pagina waar dit is gestart is gesloten, dus het kan hier niet opnieuw worden geprobeerd.",
   "navTimeline": "Tijdlijn",
   "timelineJumpToDay": "Naar een datum springen",
   "timelineFromDay": "Vanaf {day}",

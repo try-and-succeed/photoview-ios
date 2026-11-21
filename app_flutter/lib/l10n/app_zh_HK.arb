@@ -47,6 +47,7 @@
   "passwordShow": "顯示密碼",
   "passwordHide": "隱藏密碼",
   "actionRetry": "重試",
+  "actionRetryPageClosed": "發起此操作的頁面已關閉，無法從這裡重試。",
   "navTimeline": "相片",
   "timelineJumpToDay": "跳至某個日期",
   "timelineFromDay": "由 {day} 起",
