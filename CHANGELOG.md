@@ -40,9 +40,9 @@ Fixes from a CodeRabbit review of pull requests #23 to #27.
 - "Retry" and "Review certificate" on a message whose page has been left
   meanwhile now say that it cannot be tried again from there, instead of
   doing nothing.
-- Filing a face from the photo view: the answer is shown even when the photo
-  view was closed while the request ran. A move that went half through was
-  otherwise never reported.
+- Filing faces from the photo view or a person's page: the answer is shown even
+  when that screen was closed while the request ran. A move that went half
+  through was otherwise never reported.
 
 ## 1.1.0 (2) — 2026-11-21
 

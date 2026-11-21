@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -40,8 +42,12 @@ class _FacesClient extends PhotoviewClient {
   /// A failure for naming alone, after the split before it went through.
   Object? failRenameWith;
 
+  /// Holds the naming open, so the screen can be left while it runs.
+  Completer<void>? holdRename;
+
   @override
   Future<String?> setFaceGroupLabel(String faceGroupId, String? label) async {
+    await holdRename?.future;
     renames.add((group: faceGroupId, label: label));
     final failure = failRenameWith;
     if (failure != null) throw failure;
@@ -768,6 +774,54 @@ void main() {
         find.byIcon(Icons.person_add_alt),
         findsNothing,
         reason: 'out of the picking mode',
+      );
+    });
+
+    testWidgets('the answer arrives when the screen was left meanwhile', (
+      tester,
+    ) async {
+      // The faces went out, the naming failed after the person was left.
+      // That message is the only word on where the photos now are.
+      final client =
+          _FacesClient(
+              photos: [
+                _photo('1', ['10']),
+              ],
+              people: [anna],
+            )
+            ..failRenameWith = Exception('offline')
+            ..holdRename = Completer<void>();
+      await _open(tester, client);
+      await _pickFirst(tester);
+
+      await tester.tap(find.byIcon(Icons.person_add_alt));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('New person…'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Max');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Move'));
+      await tester.pump();
+
+      // The person goes; the app around it, and its messenger, stay.
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            authProvider.overrideWith(_FixedAuth.new),
+            clientProvider.overrideWithValue(client),
+          ],
+          child: localizedApp(
+            home: const Scaffold(body: Center(child: Text('gone'))),
+          ),
+        ),
+      );
+      client.holdRename!.complete();
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining('The photos are with a new, unnamed person'),
+        findsOneWidget,
       );
     });
 

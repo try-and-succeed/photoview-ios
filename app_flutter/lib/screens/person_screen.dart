@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/models.dart';
 import '../l10n/app_localizations.dart';
+import '../l10n/error_messages.dart';
 import '../state/library.dart';
 import '../widgets/action_failure.dart';
 import '../widgets/scrollable_view.dart';
@@ -192,17 +193,28 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
     required Future<void> Function() retry,
     bool retryAnyError = false,
   }) async {
+    // Taken now: the messenger sits above this screen and outlives it, so
+    // the answer still arrives when the screen was left while the request
+    // ran — after a move that went half through, it is the only word on
+    // where the photos are.
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+    void say(String text) => messenger
+      ..removeCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(text)));
+
     setState(() => _busy = true);
     try {
       final done = await action();
 
-      if (!mounted) return;
-      _clearSelection();
-      ScaffoldMessenger.of(context)
-        ..removeCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(done)));
+      if (mounted) _clearSelection();
+      say(done);
     } catch (error) {
-      if (mounted) {
+      if (!mounted) {
+        // No certificate to review and nothing to retry from without the
+        // screen — but still the message.
+        say(failed(describeError(error, l10n)));
+      } else {
         await showActionFailure(
           context,
           ref,
