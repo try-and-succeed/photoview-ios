@@ -244,6 +244,7 @@
   "errorUnreachable": "Sunucuya ulaşılamadı: {reason}",
   "errorNotGraphql": "Sunucu GraphQL döndürmedi. Sunucu adresini denetleyin.",
   "errorTimeout": "Sunucunun yanıt vermesi çok uzun sürdü.",
+  "errorAccountChanged": "o zamandan beri başka bir hesaba giriş yaptınız, bu yüzden olduğu gibi bırakıldı",
   "errorUnknown": "Bilinmeyen hata",
   "errorAlbumNotFound": "Albüm bulunamadı.",
   "errorMediaNotFound": "Medya bulunamadı.",

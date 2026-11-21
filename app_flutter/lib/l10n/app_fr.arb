@@ -244,6 +244,7 @@
   "errorUnreachable": "Impossible de joindre le serveur : {reason}",
   "errorNotGraphql": "Le serveur n'a pas renvoyé de GraphQL. Vérifiez l'adresse de l'instance.",
   "errorTimeout": "Le serveur a mis trop de temps à répondre.",
+  "errorAccountChanged": "tu t’es connecté à un autre compte entre-temps, il a donc été laissé tel quel",
   "errorUnknown": "Erreur inconnue",
   "errorAlbumNotFound": "Album introuvable.",
   "errorMediaNotFound": "Média introuvable.",

@@ -244,6 +244,7 @@
   "errorUnreachable": "Ezin izan da zerbitzarira iritsi: {reason}",
   "errorNotGraphql": "Zerbitzariak ez du GraphQL itzuli. Egiaztatu instantziaren helbidea.",
   "errorTimeout": "Zerbitzariak gehiegi behar izan du erantzuteko.",
+  "errorAccountChanged": "harrezkero beste kontu batean hasi duzu saioa, beraz dagoen bezala utzi da",
   "errorUnknown": "Errore ezezaguna",
   "errorAlbumNotFound": "Ez da albuma aurkitu.",
   "errorMediaNotFound": "Ez da edukia aurkitu.",

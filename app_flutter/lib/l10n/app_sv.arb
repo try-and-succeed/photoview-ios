@@ -244,6 +244,7 @@
   "errorUnreachable": "Det gick inte att nå servern: {reason}",
   "errorNotGraphql": "Servern returnerade inte GraphQL. Kontrollera instansens adress.",
   "errorTimeout": "Servern tog för lång tid att svara.",
+  "errorAccountChanged": "du har sedan dess loggat in på ett annat konto, så det lämnades som det är",
   "errorUnknown": "Okänt fel",
   "errorAlbumNotFound": "Albumet hittades inte.",
   "errorMediaNotFound": "Mediet hittades inte.",

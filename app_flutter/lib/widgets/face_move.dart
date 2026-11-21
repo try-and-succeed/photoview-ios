@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/models.dart';
+import '../api/session.dart';
 import '../l10n/app_localizations.dart';
+import '../state/auth.dart';
 import '../state/library.dart';
 import '../state/people_order.dart';
 import 'async_states.dart';
@@ -155,21 +157,32 @@ class FaceMove {
   /// and cannot be sent again, so the retry is the only way left to give the
   /// new person the name the user confirmed. The message then says where the
   /// photos are.
+  ///
+  /// The group is named only on the account it was made on ([account], kept
+  /// for the retry as well). The naming goes to whoever is signed in when it
+  /// runs; after a sign-in elsewhere meanwhile, the group id from the first
+  /// account would rename whatever group has that id on the second.
   Future<void> _sendMoveToNew(
     WidgetRef ref,
     AppLocalizations l10n,
     List<String> faceIds,
     String name, {
     String? created,
+    String? account,
   }) {
     final actions = ref.read(faceActionsProvider);
+    final owner = account ?? ref.read(sessionProvider)?.serverId;
     var made = created;
 
     return run(
       () async {
         made ??= await actions.detachFaces(faceIds);
         final group = made;
-        final stored = group == null ? null : await actions.rename(group, name);
+        if (group == null) return l10n.personFacesMoved(name);
+        if (ref.read(sessionProvider)?.serverId != owner) {
+          throw const AccountChangedException();
+        }
+        final stored = await actions.rename(group, name);
         return l10n.personFacesMoved(stored ?? name);
       },
       // Read when it fails, by which time it is known whether the faces are
@@ -177,7 +190,14 @@ class FaceMove {
       failed: (error) => made == null
           ? l10n.personFacesMoveFailed(error)
           : l10n.personFacesNameFailed(error),
-      retry: () => _sendMoveToNew(ref, l10n, faceIds, name, created: made),
+      retry: () => _sendMoveToNew(
+        ref,
+        l10n,
+        faceIds,
+        name,
+        created: made,
+        account: owner,
+      ),
       retryAnyError: true,
     );
   }

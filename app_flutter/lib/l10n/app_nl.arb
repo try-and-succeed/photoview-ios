@@ -244,6 +244,7 @@
   "errorUnreachable": "De server is niet bereikbaar: {reason}",
   "errorNotGraphql": "De server gaf geen GraphQL terug. Controleer het adres van de instantie.",
   "errorTimeout": "De server deed er te lang over om te antwoorden.",
+  "errorAccountChanged": "je bent intussen bij een ander account aangemeld, dus het is gelaten zoals het is",
   "errorUnknown": "Onbekende fout",
   "errorAlbumNotFound": "Album niet gevonden.",
   "errorMediaNotFound": "Media niet gevonden.",

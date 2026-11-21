@@ -244,6 +244,7 @@
   "errorUnreachable": "无法连接服务器：{reason}",
   "errorNotGraphql": "服务器未返回 GraphQL。请检查实例地址。",
   "errorTimeout": "服务器响应超时。",
+  "errorAccountChanged": "你之后已登录另一个账户，因此保持原样",
   "errorUnknown": "未知错误",
   "errorAlbumNotFound": "未找到相册。",
   "errorMediaNotFound": "未找到媒体。",

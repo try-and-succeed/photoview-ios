@@ -19,6 +19,9 @@ final _session = Session(
 class _FixedAuth extends AuthNotifier {
   @override
   Future<Session?> build() async => _session;
+
+  /// Signed in elsewhere, as the settings' server switch does it.
+  void switchTo(Session other) => state = AsyncData(other);
 }
 
 /// Records what the screen sends, and answers as the server does.
@@ -72,8 +75,12 @@ class _FacesClient extends PhotoviewClient {
     return 'Anna';
   }
 
+  /// Runs while the faces are being taken out, before the answer.
+  void Function()? whileDetaching;
+
   @override
   Future<String?> detachImageFaces(List<String> imageFaceIds) async {
+    whileDetaching?.call();
     detaches.add(imageFaceIds);
     final failure = failWith;
     if (failure != null) throw failure;
@@ -599,6 +606,56 @@ void main() {
         (group: '42', label: 'Max'),
       ]);
       expect(find.text('Moved to Max'), findsOneWidget);
+    });
+
+    testWidgets('a new person is not named on an account signed in to since', (
+      tester,
+    ) async {
+      // The group id belongs to the first server. Sent to the second, it
+      // would rename whatever group has that id there.
+      final client = _FacesClient(
+        photos: [
+          _photo('1', ['10']),
+        ],
+        people: [anna],
+      );
+      await _open(tester, client);
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(PersonScreen)),
+      );
+      client.whileDetaching = () =>
+          (container.read(authProvider.notifier) as _FixedAuth).switchTo(
+            Session(
+              endpoint: Uri.parse('https://elsewhere/api/graphql'),
+              token: 'other',
+              username: 'someone',
+            ),
+          );
+      await _pickFirst(tester);
+
+      await tester.tap(find.byIcon(Icons.person_add_alt));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('New person…'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Max');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pumpAndSettle();
+      await _confirm(tester);
+
+      expect(client.detaches, hasLength(1));
+      expect(client.renames, isEmpty);
+      expect(
+        find.textContaining('signed in to another account'),
+        findsOneWidget,
+      );
+
+      // Not on retry either: it stays bound to the first account.
+      final retry = find.text('Retry');
+      if (retry.evaluate().isNotEmpty) {
+        await tester.tap(retry);
+        await tester.pumpAndSettle();
+      }
+      expect(client.renames, isEmpty);
     });
 
     testWidgets('a move that fails before anything moved says so', (

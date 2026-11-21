@@ -244,6 +244,7 @@
   "errorUnreachable": "サーバーに接続できませんでした: {reason}",
   "errorNotGraphql": "サーバーが GraphQL を返しませんでした。インスタンスの URL を確認してください。",
   "errorTimeout": "サーバーの応答に時間がかかりすぎました。",
+  "errorAccountChanged": "その後別のアカウントにサインインしたため、そのままにしました",
   "errorUnknown": "不明なエラー",
   "errorAlbumNotFound": "アルバムが見つかりません。",
   "errorMediaNotFound": "メディアが見つかりません。",

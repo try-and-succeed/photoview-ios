@@ -1296,6 +1296,10 @@
   "@errorTimeout": {
     "description": "A request timed out."
   },
+  "errorAccountChanged": "you have signed in to another account since, so it was left as it is",
+  "@errorAccountChanged": {
+    "description": "Why the second half of an action was not sent: another account is signed in than when it began. Fills the {error} of a message such as personFacesNameFailed, so it starts lower-case and has no full stop."
+  },
   "errorUnknown": "Unknown error",
   "@errorUnknown": {
     "description": "A failure without any description."

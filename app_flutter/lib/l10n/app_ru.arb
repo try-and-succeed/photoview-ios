@@ -244,6 +244,7 @@
   "errorUnreachable": "Не удалось связаться с сервером: {reason}",
   "errorNotGraphql": "Сервер не вернул GraphQL. Проверьте адрес сервера.",
   "errorTimeout": "Сервер слишком долго не отвечал.",
+  "errorAccountChanged": "с тех пор вы вошли в другую учётную запись, поэтому всё оставлено как есть",
   "errorUnknown": "Неизвестная ошибка",
   "errorAlbumNotFound": "Альбом не найден.",
   "errorMediaNotFound": "Файл не найден.",
