@@ -37,6 +37,12 @@ faces a person has confirmed. Against any other server nothing changes.
   field, and the list keeps only the people whose name contains what is typed.
   Back or the cross closes it and shows everybody again.
 
+### Changed
+
+- The People tab's buttons for matching unnamed faces and for the review list
+  first say what they do, and act only after a yes. Before, a tap on the icon
+  started the match at once.
+
 ### Fixed
 
 - Re-identifying a person with thousands of faces no longer gives up after a

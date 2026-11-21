@@ -40,6 +40,62 @@ class _PeopleScreenState extends ConsumerState<PeopleScreen> {
     _query.clear();
   });
 
+  /// Says what an action of this tab does and asks whether to go ahead.
+  ///
+  /// The app bar shows only icons, and a tap on one used to act at once —
+  /// with no way to find out beforehand what it was about to do.
+  Future<bool> _confirm({
+    required String title,
+    required String message,
+    required String action,
+  }) async {
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(AppLocalizations.of(context).actionCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(action),
+          ),
+        ],
+      ),
+    );
+    return yes == true && mounted;
+  }
+
+  /// Explains matching the unnamed faces, then runs it on a yes. A retry
+  /// after a failure goes straight to [_recognize]: it has been answered.
+  Future<void> _askRecognize() async {
+    final l10n = AppLocalizations.of(context);
+    if (await _confirm(
+      title: l10n.peopleRecognize,
+      message: l10n.peopleRecognizeConfirm,
+      action: l10n.peopleRecognizeRun,
+    )) {
+      await _recognize();
+    }
+  }
+
+  /// Explains the review list, then opens it on a yes.
+  Future<void> _askReview() async {
+    final l10n = AppLocalizations.of(context);
+    if (await _confirm(
+      title: l10n.reviewTitle,
+      message: l10n.reviewConfirm,
+      action: l10n.reviewOpen,
+    )) {
+      if (!mounted) return;
+      await Navigator.of(context)
+          .push(MaterialPageRoute<void>(builder: (_) => const ReviewScreen()));
+    }
+  }
+
   /// Asks the server to have another look at the faces nobody has named.
   ///
   /// It is the server that does the matching, against the people who already
@@ -149,7 +205,7 @@ class _PeopleScreenState extends ConsumerState<PeopleScreen> {
                         IconButton(
                           icon: const Icon(Icons.person_search_outlined),
                           tooltip: l10n.peopleRecognize,
-                          onPressed: _recognize,
+                          onPressed: _askRecognize,
                         ),
                       if (ref.watch(
                         hasCapabilityProvider(Capability.faceVerification),
@@ -157,11 +213,7 @@ class _PeopleScreenState extends ConsumerState<PeopleScreen> {
                         IconButton(
                           icon: const Icon(Icons.rate_review_outlined),
                           tooltip: l10n.reviewTitle,
-                          onPressed: () => Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) => const ReviewScreen(),
-                            ),
-                          ),
+                          onPressed: _askReview,
                         ),
                     ],
                   ],

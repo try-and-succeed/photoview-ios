@@ -6,7 +6,9 @@ import 'package:photoview/api/client.dart';
 import 'package:photoview/api/models.dart';
 import 'package:photoview/api/queries.dart';
 import 'package:photoview/api/session.dart';
+import 'package:photoview/screens/people_screen.dart';
 import 'package:photoview/screens/person_screen.dart';
+import 'package:photoview/screens/review_screen.dart';
 import 'package:photoview/state/auth.dart';
 import 'package:photoview/state/capabilities.dart';
 import 'package:photoview/widgets/media_grid.dart';
@@ -94,6 +96,13 @@ class _VerifyClient extends PhotoviewClient {
     required int limit,
     required int offset,
   }) async => const [];
+
+  @override
+  Future<List<FaceGroup>> faceGroups({
+    required int limit,
+    required int offset,
+    bool fewestFirst = false,
+  }) async => offset == 0 ? const [_henrik] : const [];
 }
 
 PersonPhoto _photo(
@@ -239,10 +248,25 @@ void main() {
           unmatched: 1,
           verifiedSamples: 40,
           changes: [
-            FaceReassignment(faceId: '1', from: FaceGroup(id: '7'), to: _henrik),
-            FaceReassignment(faceId: '2', from: FaceGroup(id: '7'), to: _henrik),
-            FaceReassignment(faceId: '3', from: FaceGroup(id: '7'), to: _henrik),
-            FaceReassignment(faceId: '4', from: FaceGroup(id: '7')),
+            FaceReassignment(
+              faceId: '1',
+              from: FaceGroup(id: '7'),
+              to: _henrik,
+            ),
+            FaceReassignment(
+              faceId: '2',
+              from: FaceGroup(id: '7'),
+              to: _henrik,
+            ),
+            FaceReassignment(
+              faceId: '3',
+              from: FaceGroup(id: '7'),
+              to: _henrik,
+            ),
+            FaceReassignment(
+              faceId: '4',
+              from: FaceGroup(id: '7'),
+            ),
           ],
         )
         ..done = const ReclassifyResult(checked: 5, moved: 3);
@@ -275,9 +299,7 @@ void main() {
         expect(c.reclassifyRuns, [true]);
       });
 
-      testWidgets('a yes to the preview runs it once for real', (
-        tester,
-      ) async {
+      testWidgets('a yes to the preview runs it once for real', (tester) async {
         final c = client();
         await _openPerson(tester, c);
 
@@ -287,10 +309,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(c.reclassifyRuns, [true, false]);
-        expect(
-          find.text('Re-identified. Faces to review: 5'),
-          findsOneWidget,
-        );
+        expect(find.text('Re-identified. Faces to review: 5'), findsOneWidget);
         expect(find.widgetWithText(SnackBarAction, 'Review'), findsOneWidget);
       });
 
@@ -378,8 +397,11 @@ void main() {
     testWidgets('is not offered without faces or without the capability', (
       tester,
     ) async {
-      await pumpButton(tester, _VerifyClient(faces: [unconfirmed]),
-          supported: false);
+      await pumpButton(
+        tester,
+        _VerifyClient(faces: [unconfirmed]),
+        supported: false,
+      );
       expect(find.byType(IconButton), findsNothing);
 
       await pumpButton(tester, _VerifyClient());
@@ -403,22 +425,58 @@ void main() {
     });
   });
 
+  testWidgets('the review list is explained before it opens', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authProvider.overrideWith(_FixedAuth.new),
+          clientProvider.overrideWithValue(_VerifyClient()),
+          _capability(true),
+        ],
+        child: localizedApp(home: const PeopleScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.rate_review_outlined));
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining('Opening the list changes nothing'),
+      findsOneWidget,
+    );
+    expect(find.byType(ReviewScreen), findsNothing);
+
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(find.byType(ReviewScreen), findsNothing);
+
+    await tester.tap(find.byIcon(Icons.rate_review_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Review'));
+    await tester.pumpAndSettle();
+    expect(find.byType(ReviewScreen), findsOneWidget);
+  });
+
   group('reading the server', () {
     test('re-identifying asks no face counts and may take minutes', () {
       // The server recounts imageFaceCount per change, loading every album
       // each time: four minutes instead of 3.5 s for 7,500 faces.
       expect(reclassifyFaceGroupsMutation, isNot(contains('imageFaceCount')));
-      expect(reclassifyTimeout, greaterThanOrEqualTo(const Duration(minutes: 5)));
+      expect(
+        reclassifyTimeout,
+        greaterThanOrEqualTo(const Duration(minutes: 5)),
+      );
     });
 
     test('a tile is confirmed only when all of its faces are, and up for '
         'review when any is', () {
-      Map<String, dynamic> face(String id, String media, {bool? v, bool? r}) => {
-        'id': id,
-        'verified': ?v,
-        'needsReview': ?r,
-        'media': {'id': media, 'type': 'Photo', 'title': '$media.jpg'},
-      };
+      Map<String, dynamic> face(String id, String media, {bool? v, bool? r}) =>
+          {
+            'id': id,
+            'verified': ?v,
+            'needsReview': ?r,
+            'media': {'id': media, 'type': 'Photo', 'title': '$media.jpg'},
+          };
 
       final photos = personPhotosFrom({
         'imageFaces': [
@@ -466,9 +524,10 @@ void main() {
       });
 
       expect(result.checked, 4);
-      expect([
-        for (final d in result.destinations) (d.person.id, d.count),
-      ], [('9', 2), ('12', 1)]);
+      expect(
+        [for (final d in result.destinations) (d.person.id, d.count)],
+        [('9', 2), ('12', 1)],
+      );
     });
 
     test('the probe settles the capability either way', () {

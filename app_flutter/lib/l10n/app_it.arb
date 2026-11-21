@@ -291,5 +291,8 @@
   "reviewTitle": "Da controllare",
   "reviewOpen": "Controlla",
   "reviewHint": "Un'elaborazione automatica ha assegnato i volti in queste foto. Apri una foto, tocca un riquadro per assegnare quel volto a un'altra persona, oppure conferma con il segno di spunta quando tutti sono corretti.",
-  "reviewEmpty": "Niente da controllare."
+  "reviewEmpty": "Niente da controllare.",
+  "peopleRecognizeConfirm": "Confronta tutti i volti senza nome con le persone che hanno un nome. Un volto che somiglia a una di esse viene assegnato a quella persona e resta in attesa di revisione. Le persone con nome mantengono i loro volti. In una libreria grande richiede un po’ di tempo.",
+  "peopleRecognizeRun": "Confronta",
+  "reviewConfirm": "Mostra tutte le foto in cui un’elaborazione automatica ha assegnato volti che nessuno ha ancora controllato. Aprire l’elenco non cambia nulla."
 }

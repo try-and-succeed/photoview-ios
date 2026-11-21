@@ -291,5 +291,8 @@
   "reviewTitle": "Berrikusteko",
   "reviewOpen": "Berrikusi",
   "reviewHint": "Exekuzio automatiko batek aurpegiak esleitu ditu argazki hauetan. Ireki argazki bat, sakatu marko bat aurpegia beste norbaiti esleitzeko, edo berretsi markarekin denak zuzenak direnean.",
-  "reviewEmpty": "Ez dago ezer berrikusteko."
+  "reviewEmpty": "Ez dago ezer berrikusteko.",
+  "peopleRecognizeConfirm": "Izenik gabeko aurpegi guztiak izena duten pertsonekin alderatzen ditu. Haietako baten antza duen aurpegia pertsona horri esleitzen zaio, eta berrikusteko zain geratzen da. Izena duten pertsonek beren aurpegiak mantentzen dituzte. Liburutegi handi batean denbora behar du.",
+  "peopleRecognizeRun": "Alderatu",
+  "reviewConfirm": "Prozesu automatiko batek inork oraindik egiaztatu gabeko aurpegiak esleitu dituen argazki guztiak erakusten ditu. Zerrenda irekitzeak ez du ezer aldatzen."
 }

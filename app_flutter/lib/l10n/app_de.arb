@@ -291,5 +291,8 @@
   "reviewTitle": "Zu prüfen",
   "reviewOpen": "Prüfen",
   "reviewHint": "Auf diesen Fotos hat ein automatischer Lauf Gesichter zugeordnet. Foto öffnen, einen Rahmen antippen, um das Gesicht umzuhängen, oder mit dem Haken bestätigen, wenn alle Personen stimmen.",
-  "reviewEmpty": "Nichts zu prüfen."
+  "reviewEmpty": "Nichts zu prüfen.",
+  "peopleRecognizeConfirm": "Vergleicht alle unbenannten Gesichter mit den Personen, die einen Namen haben. Ein Gesicht, das einer von ihnen ähnelt, wird dieser Person zugeordnet und wartet danach auf Prüfung. Die Gesichter benannter Personen bleiben, wo sie sind. Bei einer großen Bibliothek dauert das eine Weile.",
+  "peopleRecognizeRun": "Abgleichen",
+  "reviewConfirm": "Zeigt alle Fotos, auf denen ein automatischer Lauf Gesichter zugeordnet hat, die noch niemand geprüft hat. Das Öffnen der Liste ändert nichts."
 }

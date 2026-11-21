@@ -291,5 +291,8 @@
   "reviewTitle": "Att granska",
   "reviewOpen": "Granska",
   "reviewHint": "En automatisk körning har placerat ansikten på de här fotona. Öppna ett foto, tryck på en ram för att flytta ansiktet, eller bekräfta med bocken när alla stämmer.",
-  "reviewEmpty": "Inget att granska."
+  "reviewEmpty": "Inget att granska.",
+  "peopleRecognizeConfirm": "Jämför alla namnlösa ansikten med de personer som har ett namn. Ett ansikte som liknar någon av dem placeras hos den personen och väntar sedan på granskning. Namngivna personer behåller sina ansikten. I ett stort bibliotek tar det en stund.",
+  "peopleRecognizeRun": "Jämför",
+  "reviewConfirm": "Visar alla foton där en automatisk körning har placerat ansikten som ingen har kontrollerat ännu. Att öppna listan ändrar ingenting."
 }

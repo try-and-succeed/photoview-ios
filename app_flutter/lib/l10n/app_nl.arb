@@ -291,5 +291,8 @@
   "reviewTitle": "Te controleren",
   "reviewOpen": "Controleren",
   "reviewHint": "Een automatische ronde heeft gezichten op deze foto's toegewezen. Open een foto, tik op een kader om dat gezicht elders onder te brengen, of bevestig met het vinkje als iedereen klopt.",
-  "reviewEmpty": "Niets te controleren."
+  "reviewEmpty": "Niets te controleren.",
+  "peopleRecognizeConfirm": "Vergelijkt alle naamloze gezichten met de personen die een naam hebben. Een gezicht dat op een van hen lijkt, wordt bij die persoon ingedeeld en wacht daarna op controle. Personen met een naam houden hun gezichten. Bij een grote bibliotheek duurt dit even.",
+  "peopleRecognizeRun": "Vergelijken",
+  "reviewConfirm": "Toont alle foto’s waarop een automatische ronde gezichten heeft ingedeeld die nog niemand heeft gecontroleerd. De lijst openen verandert niets."
 }

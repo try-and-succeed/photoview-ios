@@ -1591,5 +1591,17 @@
   "reviewEmpty": "Nothing to review.",
   "@reviewEmpty": {
     "description": "The review list is empty."
+  },
+  "peopleRecognizeConfirm": "Compares every unnamed face with the people who have a name. A face that looks like one of them is filed under that person and waits for review. Named people keep their faces. On a large library this takes a while.",
+  "@peopleRecognizeConfirm": {
+    "description": "Explanation asked before matching the unnamed faces on the People tab; the dialog's title is peopleRecognize."
+  },
+  "peopleRecognizeRun": "Match",
+  "@peopleRecognizeRun": {
+    "description": "Button in that dialog that starts the matching."
+  },
+  "reviewConfirm": "Shows every photo on which an automatic run placed faces that nobody has checked yet. Opening the list changes nothing.",
+  "@reviewConfirm": {
+    "description": "Explanation asked before opening the review list from the People tab; the title is reviewTitle, the button reviewOpen."
   }
 }
