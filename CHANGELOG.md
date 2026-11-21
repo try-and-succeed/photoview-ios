@@ -34,6 +34,14 @@ faces a person has confirmed. Against any other server nothing changes.
   review, newest first, across all people, so the faces a run sent elsewhere
   can be checked too. It is also offered right after re-identifying.
 
+### Fixed
+
+- Re-identifying a person with thousands of faces no longer gives up after a
+  minute without a word. The preview asked the server for each person's face
+  count, which it recounts for every single face: for 7,500 faces that took
+  four minutes instead of 3.5 seconds. The app no longer asks for it, and it
+  now waits up to five minutes for re-identifying.
+
 ## 1.1.1 (3) — 2026-11-21
 
 Fixes from a CodeRabbit review of pull requests #23 to #27.

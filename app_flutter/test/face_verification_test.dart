@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:photoview/api/capabilities.dart';
 import 'package:photoview/api/client.dart';
 import 'package:photoview/api/models.dart';
+import 'package:photoview/api/queries.dart';
 import 'package:photoview/api/session.dart';
 import 'package:photoview/screens/person_screen.dart';
 import 'package:photoview/state/auth.dart';
@@ -403,6 +404,13 @@ void main() {
   });
 
   group('reading the server', () {
+    test('re-identifying asks no face counts and may take minutes', () {
+      // The server recounts imageFaceCount per change, loading every album
+      // each time: four minutes instead of 3.5 s for 7,500 faces.
+      expect(reclassifyFaceGroupsMutation, isNot(contains('imageFaceCount')));
+      expect(reclassifyTimeout, greaterThanOrEqualTo(const Duration(minutes: 5)));
+    });
+
     test('a tile is confirmed only when all of its faces are, and up for '
         'review when any is', () {
       Map<String, dynamic> face(String id, String media, {bool? v, bool? r}) => {

@@ -212,6 +212,10 @@ mutation setImageFacesVerified($imageFaceIDs: [ID!]!, $verified: Boolean!) {
 /// Files the unconfirmed faces of the people again, comparing them with the
 /// confirmed faces of everybody. With `dryRun` nothing changes and the answer
 /// says what would.
+///
+/// Asks no `imageFaceCount`: the server recounts it per group and per change,
+/// loading all of the user's albums every time. For a person with 7,500 faces
+/// that turned a 3.5-second answer into four minutes.
 const reclassifyFaceGroupsMutation = r'''
 mutation reclassifyFaceGroups($faceGroupIDs: [ID!]!, $dryRun: Boolean!) {
   reclassifyFaceGroups(faceGroupIDs: $faceGroupIDs, dryRun: $dryRun) {
@@ -227,13 +231,10 @@ mutation reclassifyFaceGroups($faceGroupIDs: [ID!]!, $dryRun: Boolean!) {
       }
       from {
         id
-        label
-        imageFaceCount
       }
       to {
         id
         label
-        imageFaceCount
       }
     }
   }

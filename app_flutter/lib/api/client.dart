@@ -100,6 +100,12 @@ class CertificateNotTrustedException implements Exception {
 /// 200-item timeline page, or a cluster holding hundreds of media.
 const _requestTimeout = Duration(seconds: 60);
 
+/// Re-identifying a person with thousands of faces compares each of them and,
+/// for real, writes them one by one in a single transaction. That outlasts
+/// [_requestTimeout] on a small server, and a mutation that times out is never
+/// retried — the user would be told it failed while the server finishes it.
+const reclassifyTimeout = Duration(minutes: 5);
+
 class PhotoviewClient {
   final Session session;
   final GraphQLClient _client;
@@ -394,9 +400,14 @@ class PhotoviewClient {
   Future<Map<String, dynamic>> _mutate(
     String document, [
     Map<String, dynamic> variables = const {},
+    Duration? timeout,
   ]) async {
     final result = await _client.mutate(
-      MutationOptions(document: gql(document), variables: variables),
+      MutationOptions(
+        document: gql(document),
+        variables: variables,
+        queryRequestTimeout: timeout,
+      ),
     );
     return _unwrap(result);
   }
@@ -755,10 +766,11 @@ class PhotoviewClient {
     List<String> faceGroupIds, {
     required bool dryRun,
   }) async {
-    final data = await _mutate(reclassifyFaceGroupsMutation, {
-      'faceGroupIDs': faceGroupIds,
-      'dryRun': dryRun,
-    });
+    final data = await _mutate(
+      reclassifyFaceGroupsMutation,
+      {'faceGroupIDs': faceGroupIds, 'dryRun': dryRun},
+      reclassifyTimeout,
+    );
     final result = data['reclassifyFaceGroups'] as Map<String, dynamic>?;
     return result == null
         ? const ReclassifyResult()
