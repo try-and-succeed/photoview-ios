@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -77,8 +79,12 @@ class _FacesClient extends PhotoviewClient {
   @override
   Future<String?> detachImageFaces(List<String> imageFaceIds) async => '42';
 
+  /// Holds the naming open, so the gallery can be closed while it runs.
+  Completer<void>? holdRename;
+
   @override
   Future<String?> setFaceGroupLabel(String faceGroupId, String? label) async {
+    await holdRename?.future;
     renames.add((group: faceGroupId, label: label));
     final failure = failRenameWith;
     if (failure != null) throw failure;
@@ -596,6 +602,47 @@ void main() {
       (group: '42', label: 'Max'),
       (group: '42', label: 'Max'),
     ]);
+  });
+
+  testWidgets('the answer arrives when the gallery was closed meanwhile', (
+    tester,
+  ) async {
+    // The face went out, the naming failed after the gallery was left. That
+    // message is the only word on where the photo now is.
+    final client = _FacesClient([_regina, _stranger])
+      ..failRenameWith = Exception('offline')
+      ..holdRename = Completer<void>();
+    await _pump(tester, client);
+
+    await tester.tap(find.text('assign 101'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('New person…'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Max');
+    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Move'));
+    await tester.pump();
+
+    // The gallery goes; the app around it, and its messenger, stay.
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authProvider.overrideWith(_FixedAuth.new),
+          clientProvider.overrideWithValue(client),
+        ],
+        child: localizedApp(
+          home: const Scaffold(body: Center(child: Text('gone'))),
+        ),
+      ),
+    );
+    client.holdRename!.complete();
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('The photos are with a new, unnamed person'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('the person a face is filed under is not offered for it', (

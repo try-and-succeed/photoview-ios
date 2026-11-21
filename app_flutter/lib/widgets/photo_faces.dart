@@ -238,6 +238,15 @@ Future<void> assignPhotoFace(
   PhotoFace face,
 ) {
   final l10n = AppLocalizations.of(context);
+  // Taken now, while the gallery is open: the messenger sits above it and
+  // outlives it, so the answer still arrives when the gallery was closed
+  // while the request ran — after a move that went half through, it is the
+  // only word on where the photos are.
+  final messenger = ScaffoldMessenger.of(context);
+
+  void say(String text) => messenger
+    ..removeCurrentSnackBar()
+    ..showSnackBar(SnackBar(content: Text(text)));
 
   Future<void> run(
     Future<String> Function() action, {
@@ -246,13 +255,11 @@ Future<void> assignPhotoFace(
     bool retryAnyError = false,
   }) async {
     try {
-      final done = await action();
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context)
-        ..removeCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(done)));
+      say(await action());
     } catch (error) {
-      if (!context.mounted) return;
+      // Without the gallery, no certificate to review and nothing to retry
+      // from — but still the message.
+      if (!context.mounted) return say(failed(describeError(error, l10n)));
       await showActionFailure(
         context,
         ref,
