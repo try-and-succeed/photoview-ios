@@ -220,6 +220,20 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    // Ticks only what is still here. A move that went half through — the
+    // faces out, the naming failed — leaves the picking mode on, and the
+    // photos it held vanish with the next fetch: still counted, they kept
+    // "3 selected" on screen with nothing behind it, and Back only ended
+    // the picking.
+    ref.listen(personPhotosProvider(widget.faceGroup.id), (_, next) {
+      final present = {
+        for (final photo in next.valueOrNull ?? const <PersonPhoto>[])
+          photo.media.id,
+      };
+      if (next.hasValue && _selected.any((id) => !present.contains(id))) {
+        setState(() => _selected.retainAll(present));
+      }
+    });
     final photos = ref.watch(personPhotosProvider(widget.faceGroup.id));
     final loaded = photos.valueOrNull ?? const <PersonPhoto>[];
     final picking = _selected.isNotEmpty;

@@ -32,6 +32,9 @@ Fixes from a CodeRabbit review of pull requests #23 to #27.
 - A server that splits faces off without naming the new group no longer
   produces "Moved to …" for a name that was never given; the message says the
   photos were split off as a new person.
+- A person's page drops photos from the selection once they are no longer
+  there. After a move that went half through, it kept counting them as
+  selected, and Back only ended the picking.
 
 ## 1.1.0 (2) — 2026-11-21
 

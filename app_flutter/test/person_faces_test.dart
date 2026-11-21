@@ -736,6 +736,41 @@ void main() {
       );
     });
 
+    testWidgets('photos gone after a half-done move are no longer ticked', (
+      tester,
+    ) async {
+      // The faces went out, the naming failed: the picking mode stays on,
+      // but the photos it held are no longer this person's.
+      final client = _FacesClient(
+        photos: [
+          _photo('1', ['10']),
+          _photo('2', ['20']),
+        ],
+        people: [anna],
+      )..failRenameWith = Exception('offline');
+      client.whileDetaching = () => client.photos.removeAt(0);
+      await _open(tester, client);
+      await _pickFirst(tester);
+      expect(find.text('Selected: 1'), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.person_add_alt));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('New person…'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Max');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pumpAndSettle();
+      await _confirm(tester);
+
+      expect(find.text('Selected: 1'), findsNothing);
+      expect(find.byType(MediaThumbnail), findsOneWidget);
+      expect(
+        find.byIcon(Icons.person_add_alt),
+        findsNothing,
+        reason: 'out of the picking mode',
+      );
+    });
+
     testWidgets('a split that names no group is not reported as named', (
       tester,
     ) async {
