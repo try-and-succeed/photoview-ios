@@ -84,8 +84,11 @@ class _FacesClient extends PhotoviewClient {
     detaches.add(imageFaceIds);
     final failure = failWith;
     if (failure != null) throw failure;
-    return '42';
+    return createdGroup;
   }
+
+  /// The id of the group a split makes, or null for a server that names none.
+  String? createdGroup = '42';
 }
 
 PersonPhoto _photo(String mediaId, List<String> faceIds, {String? title}) =>
@@ -731,6 +734,32 @@ void main() {
         findsNothing,
         reason: 'bound to the first account, it could only fail again',
       );
+    });
+
+    testWidgets('a split that names no group is not reported as named', (
+      tester,
+    ) async {
+      final client = _FacesClient(
+        photos: [
+          _photo('1', ['10']),
+        ],
+        people: [anna],
+      )..createdGroup = null;
+      await _open(tester, client);
+      await _pickFirst(tester);
+
+      await tester.tap(find.byIcon(Icons.person_add_alt));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('New person…'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Max');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pumpAndSettle();
+      await _confirm(tester);
+
+      expect(client.renames, isEmpty);
+      expect(find.text('Moved to Max'), findsNothing);
+      expect(find.text('Split off as a new person'), findsOneWidget);
     });
 
     testWidgets('a move that fails before anything moved says so', (

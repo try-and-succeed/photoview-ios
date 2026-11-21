@@ -29,6 +29,9 @@ Fixes from a CodeRabbit review of pull requests #23 to #27.
   another server meanwhile could otherwise have moved, split or renamed
   whatever has the same numbers there. The message then offers no retry, as it
   could only fail again.
+- A server that splits faces off without naming the new group no longer
+  produces "Moved to …" for a name that was never given; the message says the
+  photos were split off as a new person.
 
 ## 1.1.0 (2) — 2026-11-21
 

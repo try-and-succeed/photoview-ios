@@ -201,7 +201,9 @@ class FaceMove {
           made = await actions.detachFaces(faceIds);
         }
         final group = made;
-        if (group == null) return l10n.personFacesMoved(name);
+        // Out, but the server named no group to give the name to: the faces
+        // are a new person without one, and the message says only that.
+        if (group == null) return l10n.personFacesDetached;
         _stillSignedIn(ref, owner);
         final stored = await actions.rename(group, name);
         return l10n.personFacesMoved(stored ?? name);
