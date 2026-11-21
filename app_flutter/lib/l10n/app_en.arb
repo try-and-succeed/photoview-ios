@@ -1373,5 +1373,223 @@
         "example": "Secure storage is unavailable"
       }
     }
+  },
+  "galleryFacesVerify": "Everyone on this photo is right",
+  "@galleryFacesVerify": {
+    "description": "Gallery button: confirms every face on the photo is filed under the right person."
+  },
+  "galleryFacesUnverify": "Take back the confirmation",
+  "@galleryFacesUnverify": {
+    "description": "Gallery button once every face on the photo is confirmed: takes the confirmation back."
+  },
+  "galleryFacesVerified": "Faces on this photo confirmed",
+  "@galleryFacesVerified": {
+    "description": "Message after confirming the faces on a photo."
+  },
+  "galleryFacesUnverified": "Confirmation taken back",
+  "@galleryFacesUnverified": {
+    "description": "Message after taking the confirmation of a photo back."
+  },
+  "galleryFacesVerifyFailed": "Could not change the confirmation: {error}",
+  "@galleryFacesVerifyFailed": {
+    "description": "Confirming, or taking it back, failed.",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Network unreachable"
+      }
+    }
+  },
+  "personFacesVerify": "Confirm",
+  "@personFacesVerify": {
+    "description": "Action on the ticked photos of a person: confirms that person's faces on them."
+  },
+  "personFacesUnverify": "Take back the confirmation",
+  "@personFacesUnverify": {
+    "description": "Action on the ticked photos when all are confirmed: takes the confirmation back."
+  },
+  "personFacesVerified": "Photos confirmed: {count}",
+  "@personFacesVerified": {
+    "description": "How many ticked photos were confirmed. The number is last so no language has to inflect around it.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "personFacesUnverified": "Confirmation taken back for photos: {count}",
+  "@personFacesUnverified": {
+    "description": "How many ticked photos had their confirmation taken back.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "personFacesVerifyFailed": "Could not change the confirmation: {error}",
+  "@personFacesVerifyFailed": {
+    "description": "Confirming the ticked photos, or taking it back, failed.",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Network unreachable"
+      }
+    }
+  },
+  "personFilterAll": "All",
+  "@personFilterAll": {
+    "description": "Filter on a person's page: every photo. Shown after a count, as \"12 · All\"."
+  },
+  "personFilterVerified": "Confirmed",
+  "@personFilterVerified": {
+    "description": "Filter on a person's page: photos whose faces are confirmed. Shown after a count."
+  },
+  "personFilterUnverified": "Unconfirmed",
+  "@personFilterUnverified": {
+    "description": "Filter on a person's page: photos with a face not confirmed yet. Shown after a count."
+  },
+  "personFilterReview": "To review",
+  "@personFilterReview": {
+    "description": "Filter on a person's page, and the review list's title elsewhere: faces an automatic run placed, waiting to be checked."
+  },
+  "personFilterEmpty": "No photos of this person in this view.",
+  "@personFilterEmpty": {
+    "description": "A filter on a person's page holds no photos."
+  },
+  "personReclassify": "Re-identify",
+  "@personReclassify": {
+    "description": "Button on a person's page: files the person's unconfirmed faces again against all confirmed faces."
+  },
+  "personReclassifyNothing": "Every face of this person is confirmed; there is nothing to re-identify.",
+  "@personReclassifyNothing": {
+    "description": "Re-identifying was asked for, but the person has no unconfirmed faces."
+  },
+  "personReclassifyTitle": "Re-identify?",
+  "@personReclassifyTitle": {
+    "description": "Title of the preview shown before re-identifying."
+  },
+  "personReclassifyChecked": "Unconfirmed faces of {name}: {count}",
+  "@personReclassifyChecked": {
+    "description": "Preview line: how many unconfirmed faces of the person are looked at.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Anna"
+      },
+      "count": {
+        "type": "int",
+        "example": "120"
+      }
+    }
+  },
+  "personReclassifySamples": "Compared with confirmed faces of all people: {count}",
+  "@personReclassifySamples": {
+    "description": "Preview line: how many confirmed faces they are compared with.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "40"
+      }
+    }
+  },
+  "personReclassifyKept": "Stay with {name}: {count}",
+  "@personReclassifyKept": {
+    "description": "Preview line: how many stay with the person.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Anna"
+      },
+      "count": {
+        "type": "int",
+        "example": "80"
+      }
+    }
+  },
+  "personReclassifyMoved": "Go to other people: {count}",
+  "@personReclassifyMoved": {
+    "description": "Preview line: how many go to other people; the people follow, one per line.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "30"
+      }
+    }
+  },
+  "personReclassifyOthers": "To further people: {count}",
+  "@personReclassifyOthers": {
+    "description": "Preview line under the people named one by one: faces going to the rest.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "4"
+      }
+    }
+  },
+  "personReclassifyUnmatched": "No match, each becomes a new person: {count}",
+  "@personReclassifyUnmatched": {
+    "description": "Preview line: faces close to no confirmed face; each becomes a new, unnamed person.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "10"
+      }
+    }
+  },
+  "personReclassifyConflicts": "Stay, as that person is on the photo already: {count}",
+  "@personReclassifyConflicts": {
+    "description": "Preview line: faces that would go to someone already on that photo, so they stay.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "personReclassifyReview": "Afterwards all of them wait for review, including those that stay.",
+  "@personReclassifyReview": {
+    "description": "Preview note: every face looked at is flagged for review afterwards."
+  },
+  "personReclassifyAction": "Re-identify",
+  "@personReclassifyAction": {
+    "description": "Confirms the preview and re-identifies."
+  },
+  "personReclassifyDone": "Re-identified. Faces to review: {count}",
+  "@personReclassifyDone": {
+    "description": "Message after re-identifying, with how many faces now wait for review.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "120"
+      }
+    }
+  },
+  "personReclassifyFailed": "Could not re-identify: {error}",
+  "@personReclassifyFailed": {
+    "description": "Re-identifying failed.",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "there are no confirmed faces to compare with yet"
+      }
+    }
+  },
+  "reviewTitle": "To review",
+  "@reviewTitle": {
+    "description": "Title of the list of photos waiting for review, and the button that opens it."
+  },
+  "reviewOpen": "Review",
+  "@reviewOpen": {
+    "description": "Action on the message after re-identifying: opens the review list."
+  },
+  "reviewHint": "An automatic run placed faces on these photos. Open a photo, tap a frame to file that face elsewhere, or confirm with the check mark when everyone is right.",
+  "@reviewHint": {
+    "description": "Explanation above the review list."
+  },
+  "reviewEmpty": "Nothing to review.",
+  "@reviewEmpty": {
+    "description": "The review list is empty."
   }
 }

@@ -151,20 +151,10 @@ class FaceMove {
     );
   }
 
-  /// The account signed in now — the one the face and group ids came from
-  /// when an action starts.
-  static String? _signedIn(WidgetRef ref) =>
-      ref.read(sessionProvider)?.serverId;
+  static String? _signedIn(WidgetRef ref) => signedInAccount(ref);
 
-  /// Throws unless [owner] is still the one signed in.
-  ///
-  /// Every request goes to whoever is signed in when it runs. The ids belong
-  /// to the account the action started on; sent to another — after a sign-in
-  /// elsewhere while a request or a retry was pending — they would move,
-  /// split or rename whatever has those ids there.
-  static void _stillSignedIn(WidgetRef ref, String? owner) {
-    if (_signedIn(ref) != owner) throw const AccountChangedException();
-  }
+  static void _stillSignedIn(WidgetRef ref, String? owner) =>
+      ensureStillSignedIn(ref, owner);
 
   /// Lifts the faces out into a group of their own and names it.
   ///
@@ -244,6 +234,20 @@ class FaceMove {
       retry: () => _sendDetach(ref, l10n, faceIds, account: owner),
     );
   }
+}
+
+/// The account signed in now — the one the face and group ids came from
+/// when an action starts.
+String? signedInAccount(WidgetRef ref) => ref.read(sessionProvider)?.serverId;
+
+/// Throws unless [owner] is still the one signed in.
+///
+/// Every request goes to whoever is signed in when it runs. The ids belong
+/// to the account the action started on; sent to another — after a sign-in
+/// elsewhere while a request or a retry was pending — they would move,
+/// split, rename or confirm whatever has those ids there.
+void ensureStillSignedIn(WidgetRef ref, String? owner) {
+  if (signedInAccount(ref) != owner) throw const AccountChangedException();
 }
 
 /// Asks before faces move. True only for an explicit yes.

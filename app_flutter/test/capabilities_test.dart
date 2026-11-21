@@ -207,6 +207,10 @@ void main() {
       'Cannot query field "albumTreeChildren" on type "Query".',
       'Cannot query field "scannerQueueStatus" on type "Query".',
       'Unknown argument "countDirection" on field "Query.myFaceGroups".',
+      // Added later, when the stock instance was gone: the wording is the
+      // server's for any field FaceGroup lacks, taken from :8081 with a field
+      // that does not exist there.
+      'Cannot query field "verifiedFaceCount" on type "FaceGroup".',
     ];
 
     test('one round trip settles every capability', () {
@@ -384,6 +388,7 @@ void main() {
             Capability.albumTree => 'albumTreeChildren',
             Capability.scanner => 'scannerQueueStatus',
             Capability.faceGroupCountDirection => 'countDirection',
+            Capability.faceVerification => 'verifiedFaceCount',
           };
 
           expect(

@@ -222,9 +222,24 @@ final faceGroupsProvider =
       FaceGroupsNotifier.new,
     );
 
-final personPhotosProvider = FutureProvider.family<List<PersonPhoto>, String>(
-  (ref, faceGroupId) => ref.guarded((c) => c.personPhotos(faceGroupId)),
+/// Whether faces carry their confirmation and review flags on this server.
+///
+/// Watched by the face providers, so they fetch with the flags once the
+/// capability is known — the first answer, while it is still being asked,
+/// comes without.
+final _faceStatusProvider = Provider<bool>(
+  (ref) => ref.watch(hasCapabilityProvider(Capability.faceVerification)),
 );
+
+final personPhotosProvider = FutureProvider.family<List<PersonPhoto>, String>((
+  ref,
+  faceGroupId,
+) {
+  final withStatus = ref.watch(_faceStatusProvider);
+  return ref.guarded(
+    (c) => c.personPhotos(faceGroupId, withStatus: withStatus),
+  );
+});
 
 final placesMarkersProvider = FutureProvider<List<PlacesMarker>>(
   (ref) => ref.guarded((c) => c.mediaGeoJson()),
@@ -245,8 +260,97 @@ final mediaDetailsProvider = FutureProvider.family<MediaDetails, String>(
 /// Who is on a photo. Auto-disposed: asked for only while the gallery shows
 /// the faces, and stale the moment any face moves.
 final mediaFacesProvider = FutureProvider.autoDispose
-    .family<List<PhotoFace>, String>(
-      (ref, mediaId) => ref.guarded((c) => c.mediaFaces(mediaId)),
+    .family<List<PhotoFace>, String>((ref, mediaId) {
+      final withStatus = ref.watch(_faceStatusProvider);
+      return ref.guarded(
+        (c) => c.mediaFaces(mediaId, withStatus: withStatus),
+      );
+    });
+
+const _reviewPageSize = 100;
+
+class ReviewMediaData {
+  final List<MediaItem> media;
+  final bool hasMore;
+  final bool loadingMore;
+
+  const ReviewMediaData({
+    this.media = const [],
+    this.hasMore = true,
+    this.loadingMore = false,
+  });
+
+  ReviewMediaData copyWith({
+    List<MediaItem>? media,
+    bool? hasMore,
+    bool? loadingMore,
+  }) => ReviewMediaData(
+    media: media ?? this.media,
+    hasMore: hasMore ?? this.hasMore,
+    loadingMore: loadingMore ?? this.loadingMore,
+  );
+}
+
+/// The photos with a face an automatic run placed and nobody has looked at
+/// yet, newest first and paged.
+///
+/// Fetched from the start again after every face action: confirming a photo
+/// takes it off the list, so an offset counted before would skip photos.
+class ReviewMediaNotifier extends AsyncNotifier<ReviewMediaData>
+    with StaleResponseGuard {
+  @override
+  Future<ReviewMediaData> build() async {
+    beginGeneration(ref);
+    final page = await ref.guarded(
+      (c) => c.mediaNeedingReview(limit: _reviewPageSize, offset: 0),
+    );
+    return ReviewMediaData(
+      media: page,
+      hasMore: page.length >= _reviewPageSize,
+    );
+  }
+
+  Future<void> loadMore() async {
+    if (state.isLoading) return;
+    final current = state.valueOrNull;
+    if (current == null || !current.hasMore || current.loadingMore) return;
+
+    final generation = this.generation;
+    state = AsyncData(current.copyWith(loadingMore: true));
+
+    try {
+      final page = await ref.guardedRead(
+        (c) => c.mediaNeedingReview(
+          limit: _reviewPageSize,
+          offset: current.media.length,
+        ),
+      );
+
+      if (movedOn(generation)) return;
+      // A photo can come twice when one before it left the list meanwhile
+      // and the pages shifted; it is shown once.
+      final known = {for (final item in current.media) item.id};
+      state = AsyncData(
+        current.copyWith(
+          media: [
+            ...current.media,
+            for (final item in page)
+              if (!known.contains(item.id)) item,
+          ],
+          hasMore: page.length >= _reviewPageSize,
+          loadingMore: false,
+        ),
+      );
+    } catch (error, stack) {
+      if (movedOn(generation)) return;
+      state = AsyncError(error, stack);
+    }
+  }
+}
+
+final reviewMediaProvider =
+    AsyncNotifierProvider<ReviewMediaNotifier, ReviewMediaData>(
+      ReviewMediaNotifier.new,
     );
 
 /// Auto-disposed so the results of every intermediate keystroke are not kept.
@@ -409,6 +513,62 @@ class FaceActions {
     return stored;
   }
 
+  /// Confirms every face on [mediaIds] — "everyone on here is right" — or
+  /// takes the confirmation back. Returns how many faces changed.
+  ///
+  /// Nothing moves, so the people list stays; what changes is how the faces
+  /// are drawn, which photos a person's filters hold, and the review list.
+  Future<int> verifyMedia(List<String> mediaIds, {required bool verified}) async {
+    if (mediaIds.isEmpty) return 0;
+    final changed = await _ref.requireClient.setMediaFacesVerified(
+      mediaIds,
+      verified: verified,
+    );
+    _statusChanged();
+    return changed;
+  }
+
+  /// Confirms [imageFaceIds], or takes the confirmation back — one person's
+  /// faces on the ticked photos, not the other people on them.
+  Future<int> verifyFaces(
+    List<String> imageFaceIds, {
+    required bool verified,
+  }) async {
+    if (imageFaceIds.isEmpty) return 0;
+    final changed = await _ref.requireClient.setImageFacesVerified(
+      imageFaceIds,
+      verified: verified,
+    );
+    _statusChanged();
+    return changed;
+  }
+
+  void _statusChanged() {
+    _ref.invalidate(mediaFacesProvider);
+    _ref.invalidate(personPhotosProvider);
+    _ref.invalidate(reviewMediaProvider);
+  }
+
+  /// Files the unconfirmed faces of [faceGroupId] again, comparing them with
+  /// the confirmed faces of everybody — or, as a [dryRun], says what that
+  /// would do without changing anything.
+  Future<ReclassifyResult> reclassify(
+    String faceGroupId, {
+    required bool dryRun,
+  }) async {
+    final result = await _ref.requireClient.reclassifyFaceGroups([
+      faceGroupId,
+    ], dryRun: dryRun);
+
+    if (!dryRun) {
+      // Faces left this person for others and for new people, and every one
+      // that was looked at now waits for review: all of it is out of date.
+      _ref.invalidate(faceGroupsProvider);
+      _statusChanged();
+    }
+    return result;
+  }
+
   /// Files [sources] under [destination], which is how two tiles of the same
   /// person become one.
   ///
@@ -445,8 +605,9 @@ class FaceActions {
     );
 
     _ref.invalidate(faceGroupsProvider);
-    _ref.invalidate(mediaFacesProvider);
-    _ref.invalidate(personPhotosProvider);
+    // A face moved by hand counts as confirmed on a server that knows about
+    // confirming, and leaves the review list with that.
+    _statusChanged();
     return label;
   }
 
@@ -465,8 +626,7 @@ class FaceActions {
     final created = await _ref.requireClient.detachImageFaces(imageFaceIds);
 
     _ref.invalidate(faceGroupsProvider);
-    _ref.invalidate(mediaFacesProvider);
-    _ref.invalidate(personPhotosProvider);
+    _statusChanged();
     return created;
   }
 
@@ -483,7 +643,9 @@ class FaceActions {
     // unlike a merge, nothing here says which. A person's photo list does not
     // rebuild with the people list; it would otherwise keep showing what it
     // read before the match, however long the screen stays open.
-    _ref.invalidate(personPhotosProvider);
+    // The review list too: a server that knows about review flags every
+    // face the match filed.
+    _statusChanged();
     return filed;
   }
 }

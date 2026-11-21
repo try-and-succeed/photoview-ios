@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../api/capabilities.dart';
 import '../l10n/app_localizations.dart';
+import '../state/capabilities.dart';
 import '../state/library.dart';
 import '../state/people_order.dart';
 import '../widgets/action_failure.dart';
@@ -9,6 +11,7 @@ import '../widgets/scrollable_view.dart';
 import '../widgets/async_states.dart';
 import '../widgets/load_more.dart';
 import '../widgets/face_grid.dart';
+import 'review_screen.dart';
 
 class PeopleScreen extends ConsumerStatefulWidget {
   const PeopleScreen({super.key});
@@ -92,6 +95,18 @@ class _PeopleScreenState extends ConsumerState<PeopleScreen> {
                     icon: const Icon(Icons.person_search_outlined),
                     tooltip: AppLocalizations.of(context).peopleRecognize,
                     onPressed: _recognize,
+                  ),
+                if (ref.watch(
+                  hasCapabilityProvider(Capability.faceVerification),
+                ))
+                  IconButton(
+                    icon: const Icon(Icons.rate_review_outlined),
+                    tooltip: AppLocalizations.of(context).reviewTitle,
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const ReviewScreen(),
+                      ),
+                    ),
                   ),
               ],
             ),

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../api/capabilities.dart';
 import '../api/models.dart';
 import '../l10n/app_localizations.dart';
 import '../l10n/error_messages.dart';
+import '../state/capabilities.dart';
 import '../state/library.dart';
 import '../state/people_order.dart' show faceGroupIsNamed;
 import 'action_failure.dart';
@@ -83,7 +85,14 @@ class PhotoFacesOverlay extends ConsumerWidget {
           face.rectangle.height * size.height,
         ),
     ];
-    final names = [for (final face in found) describePerson(face.group, l10n)];
+    // A confirmed face says so in its name as well as in its colour, so the
+    // difference does not rest on telling green from white.
+    final names = [
+      for (final face in found)
+        face.verified
+            ? '✓ ${describePerson(face.group, l10n)}'
+            : describePerson(face.group, l10n),
+    ];
     // On top of the style the text inherits — font, spacing — which the
     // measuring below has to see as well: measured without it, the names came
     // out narrower than they are drawn and were cut short on the device.
@@ -92,7 +101,7 @@ class PhotoFacesOverlay extends ConsumerWidget {
       for (final face in found)
         inherited.merge(
           TextStyle(
-            color: Colors.white,
+            color: faceStatusColor(face),
             fontSize: unit * 3.5,
             fontStyle: faceGroupIsNamed(face.group) ? null : FontStyle.italic,
           ),
@@ -127,12 +136,15 @@ class PhotoFacesOverlay extends ConsumerWidget {
 
     return Stack(
       children: [
-        for (final frame in frames)
+        for (var i = 0; i < found.length; i++)
           Positioned.fromRect(
-            rect: frame,
+            rect: frames[i],
             child: DecoratedBox(
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.white, width: unit * 0.5),
+                border: Border.all(
+                  color: faceStatusColor(found[i]),
+                  width: unit * 0.5,
+                ),
                 borderRadius: BorderRadius.circular(unit),
                 boxShadow: [BoxShadow(color: Colors.black54, blurRadius: unit)],
               ),
@@ -157,6 +169,107 @@ class PhotoFacesOverlay extends ConsumerWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// The colour of a face's frame and name: green once a person confirmed it,
+/// amber while an automatic run's choice waits for review, white otherwise —
+/// which is every face on a server that does not know about confirming.
+Color faceStatusColor(PhotoFace face) {
+  if (face.verified) return Colors.lightGreenAccent;
+  if (face.needsReview) return Colors.amberAccent;
+  return Colors.white;
+}
+
+/// "Everyone on this photo is right": confirms every face on it, or takes
+/// the confirmation back once they all are.
+///
+/// Only there while the faces are shown, on a server that knows about
+/// confirming, and on a photo with faces — confirming what is not seen, or
+/// nobody, would mean nothing.
+class VerifyPhotoFacesButton extends ConsumerStatefulWidget {
+  final String mediaId;
+
+  const VerifyPhotoFacesButton({super.key, required this.mediaId});
+
+  @override
+  ConsumerState<VerifyPhotoFacesButton> createState() =>
+      _VerifyPhotoFacesButtonState();
+}
+
+class _VerifyPhotoFacesButtonState
+    extends ConsumerState<VerifyPhotoFacesButton> {
+  bool _busy = false;
+
+  /// Sends one decision. Separate from the button so a retry repeats the
+  /// sending alone, for the photo and account it was meant for.
+  Future<void> _send(String mediaId, bool verified, String? owner) async {
+    final l10n = AppLocalizations.of(context);
+    // Taken now: the messenger outlives the gallery, so the answer still
+    // arrives when it was closed while the request ran.
+    final messenger = ScaffoldMessenger.of(context);
+    void say(String text) => messenger
+      ..removeCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(text)));
+
+    setState(() => _busy = true);
+    try {
+      ensureStillSignedIn(ref, owner);
+      await ref
+          .read(faceActionsProvider)
+          .verifyMedia([mediaId], verified: verified);
+      say(verified ? l10n.galleryFacesVerified : l10n.galleryFacesUnverified);
+    } catch (error) {
+      if (!mounted) {
+        say(l10n.galleryFacesVerifyFailed(describeError(error, l10n)));
+      } else {
+        await showActionFailure(
+          context,
+          ref,
+          error: error,
+          message: l10n.galleryFacesVerifyFailed,
+          retry: () => _send(mediaId, verified, owner),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!ref.watch(hasCapabilityProvider(Capability.faceVerification))) {
+      return const SizedBox.shrink();
+    }
+    final faces = ref.watch(mediaFacesProvider(widget.mediaId)).valueOrNull;
+    if (faces == null || faces.isEmpty) return const SizedBox.shrink();
+
+    if (_busy) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 12),
+        child: Center(
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      );
+    }
+
+    final l10n = AppLocalizations.of(context);
+    final allVerified = faces.every((face) => face.verified);
+
+    return IconButton(
+      icon: Icon(allVerified ? Icons.verified : Icons.verified_outlined),
+      tooltip: allVerified ? l10n.galleryFacesUnverify : l10n.galleryFacesVerify,
+      isSelected: allVerified,
+      onPressed: () =>
+          _send(widget.mediaId, !allVerified, signedInAccount(ref)),
     );
   }
 }

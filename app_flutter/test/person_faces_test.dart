@@ -55,7 +55,10 @@ class _FacesClient extends PhotoviewClient {
   }
 
   @override
-  Future<List<PersonPhoto>> personPhotos(String faceGroupId) async => photos;
+  Future<List<PersonPhoto>> personPhotos(
+    String faceGroupId, {
+    bool withStatus = false,
+  }) async => photos;
 
   /// The offsets of the pages of people asked for, in order.
   final pageOffsets = <int>[];

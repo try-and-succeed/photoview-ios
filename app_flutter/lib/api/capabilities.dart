@@ -23,6 +23,13 @@ enum Capability {
   /// The `countDirection` argument of `myFaceGroups`, which pages the people
   /// fewest photos first. Without it the unnamed can only come most first.
   faceGroupCountDirection,
+
+  /// Faces a person has confirmed, the review flag, and re-identification
+  /// against confirmed faces: `ImageFace.verified`/`needsReview`,
+  /// `setMediaFacesVerified`, `setImageFacesVerified`, `myMediaNeedingReview`
+  /// and `reclassifyFaceGroups`. They arrived on the server together, so one
+  /// capability stands for all of them.
+  faceVerification,
 }
 
 /// What is known about one capability.
@@ -72,6 +79,17 @@ const _identifyingFields = <Capability, Set<String>>{
     'cancelAllScanJobs',
   },
   Capability.faceGroupCountDirection: {'countDirection'},
+  Capability.faceVerification: {
+    'verifiedFaceCount',
+    'reviewFaceCount',
+    'verified',
+    'needsReview',
+    'assignedBy',
+    'setMediaFacesVerified',
+    'setImageFacesVerified',
+    'myMediaNeedingReview',
+    'reclassifyFaceGroups',
+  },
 };
 
 /// Capabilities that a rejection of [field] rules out.
@@ -95,6 +113,12 @@ const _evidence = <Capability, ({String topLevelField, String? withinField})>{
   Capability.scanner: (topLevelField: 'scannerQueueStatus', withinField: null),
   Capability.faceGroupCountDirection: (
     topLevelField: 'myFaceGroups',
+    withinField: null,
+  ),
+  // Under an alias of its own: `myFaceGroups` already answers for the count
+  // direction, and the key is what counts as evidence.
+  Capability.faceVerification: (
+    topLevelField: 'faceVerification',
     withinField: null,
   ),
 };
@@ -126,6 +150,9 @@ query photoviewCapabilities {
   myFaceGroups(countDirection: ASC, paginate: {limit: 0}) {
     id
   }
+  faceVerification: myFaceGroups(paginate: {limit: 0}) {
+    verifiedFaceCount
+  }
 }
 ''';
 
@@ -147,6 +174,9 @@ String singleCapabilityProbeDocument(
   Capability.faceGroupCountDirection =>
     'query photoviewCapability '
         '{ myFaceGroups(countDirection: ASC, paginate: {limit: 0}) { id } }',
+  Capability.faceVerification =>
+    'query photoviewCapability { faceVerification: '
+        'myFaceGroups(paginate: {limit: 0}) { verifiedFaceCount } }',
 };
 
 /// What the server said about every capability.

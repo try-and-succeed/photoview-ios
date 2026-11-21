@@ -29,11 +29,37 @@ class MediaSelection {
   bool contains(MediaItem item) => selected.contains(item.id);
 }
 
+/// A small mark in a tile's top left corner, saying something about the
+/// photo that the picture cannot — that its faces are confirmed, say.
+class MediaTileBadge {
+  final IconData icon;
+  final Color color;
+  final String label;
+
+  const MediaTileBadge({
+    required this.icon,
+    required this.color,
+    required this.label,
+  });
+}
+
 class MediaSliverGrid extends StatelessWidget {
   final List<MediaItem> media;
   final MediaSelection? selection;
 
-  const MediaSliverGrid({super.key, required this.media, this.selection});
+  /// The mark for each tile, if any.
+  final MediaTileBadge? Function(MediaItem item)? badgeFor;
+
+  /// Whether the gallery opened from a tile frames the faces from the start.
+  final bool showFacesInGallery;
+
+  const MediaSliverGrid({
+    super.key,
+    required this.media,
+    this.selection,
+    this.badgeFor,
+    this.showFacesInGallery = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +67,13 @@ class MediaSliverGrid extends StatelessWidget {
       gridDelegate: _gridDelegate,
       itemCount: media.length,
       itemBuilder: (context, index) {
-        return MediaThumbnail(media: media, index: index, selection: selection);
+        return MediaThumbnail(
+          media: media,
+          index: index,
+          selection: selection,
+          badge: badgeFor?.call(media[index]),
+          showFacesInGallery: showFacesInGallery,
+        );
       },
     );
   }
@@ -71,12 +103,16 @@ class MediaThumbnail extends StatelessWidget {
   final List<MediaItem> media;
   final int index;
   final MediaSelection? selection;
+  final MediaTileBadge? badge;
+  final bool showFacesInGallery;
 
   const MediaThumbnail({
     super.key,
     required this.media,
     required this.index,
     this.selection,
+    this.badge,
+    this.showFacesInGallery = false,
   });
 
   @override
@@ -94,7 +130,12 @@ class MediaThumbnail extends StatelessWidget {
       // would be the surprise.
       onTap: () => picking
           ? selection!.onToggle(item)
-          : showFullscreenGallery(context, media: media, initialIndex: index),
+          : showFullscreenGallery(
+              context,
+              media: media,
+              initialIndex: index,
+              showFaces: showFacesInGallery,
+            ),
       onLongPress: selection == null ? null : () => selection.onToggle(item),
       child: Stack(
         fit: StackFit.expand,
@@ -114,6 +155,18 @@ class MediaThumbnail extends StatelessWidget {
                 size: 32,
                 color: Colors.white,
                 shadows: [Shadow(blurRadius: 8, color: Colors.black54)],
+              ),
+            ),
+          if (badge case final badge?)
+            Positioned(
+              top: 4,
+              left: 4,
+              child: Icon(
+                badge.icon,
+                size: 18,
+                color: badge.color,
+                semanticLabel: badge.label,
+                shadows: const [Shadow(blurRadius: 6, color: Colors.black87)],
               ),
             ),
           if (item.favorite)

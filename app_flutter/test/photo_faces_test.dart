@@ -45,7 +45,10 @@ class _FacesClient extends PhotoviewClient {
   var asked = 0;
 
   @override
-  Future<List<PhotoFace>> mediaFaces(String mediaId) async {
+  Future<List<PhotoFace>> mediaFaces(
+    String mediaId, {
+    bool withStatus = false,
+  }) async {
     asked++;
     return faces;
   }

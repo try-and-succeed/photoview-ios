@@ -73,7 +73,10 @@ class _MergingClient extends PhotoviewClient {
   }
 
   @override
-  Future<List<PersonPhoto>> personPhotos(String faceGroupId) async => const [];
+  Future<List<PersonPhoto>> personPhotos(
+    String faceGroupId, {
+    bool withStatus = false,
+  }) async => const [];
 }
 
 Future<void> _openPerson(

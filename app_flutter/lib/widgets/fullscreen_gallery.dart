@@ -24,6 +24,7 @@ void showFullscreenGallery(
   required List<MediaItem> media,
   required int initialIndex,
   void Function(int index)? onIndexChanged,
+  bool showFaces = false,
 }) {
   Navigator.of(context).push(
     MaterialPageRoute<void>(
@@ -32,6 +33,7 @@ void showFullscreenGallery(
         media: media,
         initialIndex: initialIndex,
         onIndexChanged: onIndexChanged,
+        showFaces: showFaces,
       ),
     ),
   );
@@ -42,11 +44,16 @@ class FullscreenGallery extends ConsumerStatefulWidget {
   final int initialIndex;
   final void Function(int index)? onIndexChanged;
 
+  /// Whether the faces are framed from the start — for photos opened to be
+  /// checked, where the frames are the point.
+  final bool showFaces;
+
   const FullscreenGallery({
     super.key,
     required this.media,
     required this.initialIndex,
     this.onIndexChanged,
+    this.showFaces = false,
   });
 
   @override
@@ -91,7 +98,7 @@ class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
   /// Whether the faces found on the photos are framed and named. Kept while
   /// paging, so someone going through a set of photos to sort people out
   /// does not have to switch it on again on each one.
-  bool _showFaces = false;
+  late bool _showFaces = widget.showFaces;
 
   /// Read afresh in `build`, so a change made in the settings takes hold on
   /// the next picture instead of only on the next slideshow.
@@ -335,6 +342,8 @@ class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
                     isSelected: _showFaces,
                     onPressed: () => setState(() => _showFaces = !_showFaces),
                   ),
+                if (_showFaces && widget.media[_index].type != MediaType.video)
+                  VerifyPhotoFacesButton(mediaId: widget.media[_index].id),
                 IconButton(
                   icon: const Icon(Icons.info_outline),
                   tooltip: AppLocalizations.of(context).galleryInfo,

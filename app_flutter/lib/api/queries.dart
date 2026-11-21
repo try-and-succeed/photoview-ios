@@ -165,6 +165,92 @@ query singlePerson(\$faceGroupID: ID!) {
 $_mediaItemFragment
 ''';
 
+/// [singlePersonQuery] with whether each face is confirmed and waiting for
+/// review. A document of its own: a server without those fields rejects the
+/// whole request for naming them, so this one is only sent where
+/// `Capability.faceVerification` says the server has them.
+const singlePersonWithStatusQuery =
+    '''
+query singlePersonWithStatus(\$faceGroupID: ID!) {
+  faceGroup(id: \$faceGroupID) {
+    id
+    label
+    imageFaces {
+      id
+      verified
+      needsReview
+      media {
+        date
+        ...MediaItem
+      }
+    }
+  }
+}
+$_mediaItemFragment
+''';
+
+/// Confirms every face on the photos — "everyone on here is right" — or takes
+/// the confirmation back. Confirming also clears the review flag.
+const setMediaFacesVerifiedMutation = r'''
+mutation setMediaFacesVerified($mediaIDs: [ID!]!, $verified: Boolean!) {
+  setMediaFacesVerified(mediaIDs: $mediaIDs, verified: $verified) {
+    id
+  }
+}
+''';
+
+/// Confirms single faces, or takes the confirmation back — for the faces of
+/// one person on the ticked photos, leaving the other people on them alone.
+const setImageFacesVerifiedMutation = r'''
+mutation setImageFacesVerified($imageFaceIDs: [ID!]!, $verified: Boolean!) {
+  setImageFacesVerified(imageFaceIDs: $imageFaceIDs, verified: $verified) {
+    id
+  }
+}
+''';
+
+/// Files the unconfirmed faces of the people again, comparing them with the
+/// confirmed faces of everybody. With `dryRun` nothing changes and the answer
+/// says what would.
+const reclassifyFaceGroupsMutation = r'''
+mutation reclassifyFaceGroups($faceGroupIDs: [ID!]!, $dryRun: Boolean!) {
+  reclassifyFaceGroups(faceGroupIDs: $faceGroupIDs, dryRun: $dryRun) {
+    checked
+    kept
+    moved
+    unmatched
+    conflicts
+    verifiedSamples
+    changes {
+      imageFace {
+        id
+      }
+      from {
+        id
+        label
+        imageFaceCount
+      }
+      to {
+        id
+        label
+        imageFaceCount
+      }
+    }
+  }
+}
+''';
+
+/// Photos with a face waiting for review, newest first.
+const mediaNeedingReviewQuery =
+    '''
+query mediaNeedingReview(\$limit: Int!, \$offset: Int!) {
+  myMediaNeedingReview(paginate: {limit: \$limit, offset: \$offset}) {
+    ...MediaItem
+  }
+}
+$_mediaItemFragment
+''';
+
 /// Naming a person. A null label removes the name — the server's own way of
 /// saying "no name", not an omission.
 const setFaceGroupLabelMutation = r'''
@@ -260,6 +346,33 @@ query mediaFaces($mediaID: ID!) {
     id
     faces {
       id
+      rectangle {
+        minX
+        maxX
+        minY
+        maxY
+      }
+      faceGroup {
+        id
+        label
+        imageFaceCount
+      }
+    }
+  }
+}
+''';
+
+/// [mediaFacesQuery] with whether each face is confirmed and waiting for
+/// review — only for a server that has those fields, as with
+/// [singlePersonWithStatusQuery].
+const mediaFacesWithStatusQuery = r'''
+query mediaFacesWithStatus($mediaID: ID!) {
+  media(id: $mediaID) {
+    id
+    faces {
+      id
+      verified
+      needsReview
       rectangle {
         minX
         maxX

@@ -7,6 +7,33 @@ Every change raises `version:` in [`app_flutter/pubspec.yaml`](./app_flutter/pub
 — the name and the build number after the `+` — and gets an entry here. The app
 shows the running version under Settings › Info.
 
+## 1.2.0 (4) — 2026-11-21
+
+Confirming faces and re-identifying people, for a server that knows which
+faces a person has confirmed. Against any other server nothing changes.
+
+### Added
+
+- **Confirming faces.** With the faces shown on a photo, a new button says
+  "everyone on this photo is right" and confirms every face on it; pressed
+  again once all are confirmed, it takes that back. Confirmed faces are framed
+  green and their names carry a ✓, faces an automatic run placed and nobody has
+  checked are framed amber. A face filed under someone else by hand counts as
+  confirmed by itself.
+- **Filters on a person's page:** all, confirmed, unconfirmed and to review,
+  each with its count, and a mark on each tile that is confirmed or waits for
+  review. Photos opened from the unconfirmed or review filter show their faces
+  at once. Ticked photos can be confirmed together, which confirms only this
+  person's faces on them.
+- **Re-identifying a person.** Their unconfirmed faces are compared with the
+  confirmed faces of everybody. The server first says what it would do — how
+  many stay, who the others go to, how many match nobody and become people of
+  their own — and only a yes to that changes anything. Every face it looked at
+  then waits for review.
+- **A review list** (People › To review): every photo with a face waiting for
+  review, newest first, across all people, so the faces a run sent elsewhere
+  can be checked too. It is also offered right after re-identifying.
+
 ## 1.1.1 (3) — 2026-11-21
 
 Fixes from a CodeRabbit review of pull requests #23 to #27.
