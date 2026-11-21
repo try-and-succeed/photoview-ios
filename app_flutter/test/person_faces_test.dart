@@ -726,13 +726,11 @@ void main() {
         findsOneWidget,
       );
 
-      // Not on retry either: it stays bound to the first account.
-      final retry = find.text('Retry');
-      if (retry.evaluate().isNotEmpty) {
-        await tester.tap(retry);
-        await tester.pumpAndSettle();
-      }
-      expect(client.renames, isEmpty);
+      expect(
+        find.text('Retry'),
+        findsNothing,
+        reason: 'bound to the first account, it could only fail again',
+      );
     });
 
     testWidgets('a move that fails before anything moved says so', (

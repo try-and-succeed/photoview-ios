@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/client.dart';
+import '../api/session.dart';
 import '../l10n/app_localizations.dart';
 import '../l10n/error_messages.dart';
 import 'certificate_review.dart';
@@ -45,7 +46,10 @@ Future<void> showActionFailure(
   messenger.removeCurrentSnackBar();
 
   if (error is! CertificateNotTrustedException) {
-    final offerRetry = retryAnyError && retry != null;
+    // Not after a sign-in elsewhere: the retry is bound to the first account
+    // and would only fail the same way again.
+    final offerRetry =
+        retryAnyError && retry != null && error is! AccountChangedException;
     messenger.showSnackBar(
       SnackBar(
         content: Text(message(describeError(error, l10n))),

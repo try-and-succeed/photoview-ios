@@ -27,7 +27,8 @@ Fixes from a CodeRabbit review of pull requests #23 to #27.
 - Moving, splitting and naming send nothing to an account signed in to after
   the action started — neither right away nor when tried again. Signing in to
   another server meanwhile could otherwise have moved, split or renamed
-  whatever has the same numbers there.
+  whatever has the same numbers there. The message then offers no retry, as it
+  could only fail again.
 
 ## 1.1.0 (2) — 2026-11-21
 
