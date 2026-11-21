@@ -102,6 +102,10 @@ class FaceGroupsNotifier extends AsyncNotifier<FaceGroupsData>
       if (serverId != null) {
         await ref.read(capabilityDowngradeProvider)(serverId, failure);
       }
+      // Not once a newer fetch has taken over: the order is shared with it,
+      // and switching it here mixed two orders into its list. The downgrade
+      // above still stands — the server did refuse.
+      if (movedOn(generation)) rethrow;
       _fewestFirst = false;
       first = await _page(0);
     }
