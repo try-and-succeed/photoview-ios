@@ -20,6 +20,9 @@ typedef FaceActionRunner = Future<void> Function(
   // where the message says they belong.
   required String Function(String error) failed,
   required Future<void> Function() retry,
+  // Whether [retry] is offered for any failure, not only for a certificate
+  // that can be accepted — see `showActionFailure`.
+  bool retryAnyError,
 });
 
 /// Moving faces from one person to another, the way every screen does it:
@@ -146,6 +149,12 @@ class FaceMove {
   /// group the first one made, instead of lifting the faces out a second time
   /// — they are no longer where they were, and a second split would leave an
   /// unnamed group behind with nothing to tell it apart.
+  ///
+  /// The retry is offered for any failure, not only for a certificate: once
+  /// the faces are out, the photos that were ticked are gone from this person
+  /// and cannot be sent again, so the retry is the only way left to give the
+  /// new person the name the user confirmed. The message then says where the
+  /// photos are.
   Future<void> _sendMoveToNew(
     WidgetRef ref,
     AppLocalizations l10n,
@@ -163,8 +172,13 @@ class FaceMove {
         final stored = group == null ? null : await actions.rename(group, name);
         return l10n.personFacesMoved(stored ?? name);
       },
-      failed: l10n.personFacesMoveFailed,
+      // Read when it fails, by which time it is known whether the faces are
+      // out already.
+      failed: (error) => made == null
+          ? l10n.personFacesMoveFailed(error)
+          : l10n.personFacesNameFailed(error),
       retry: () => _sendMoveToNew(ref, l10n, faceIds, name, created: made),
+      retryAnyError: true,
     );
   }
 

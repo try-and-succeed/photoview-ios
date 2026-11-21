@@ -190,6 +190,7 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
     Future<String> Function() action, {
     required String Function(String error) failed,
     required Future<void> Function() retry,
+    bool retryAnyError = false,
   }) async {
     setState(() => _busy = true);
     try {
@@ -208,6 +209,7 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
           error: error,
           message: failed,
           retry: retry,
+          retryAnyError: retryAnyError,
         );
       }
     } finally {

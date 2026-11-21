@@ -97,6 +97,7 @@
   "personFacesMovePick": "Wybierz osobę, do której przenieść",
   "personFacesMoved": "Przeniesiono do: {name}",
   "personFacesMoveFailed": "Nie udało się przenieść zdjęć: {error}",
+  "personFacesNameFailed": "Zdjęcia są przy nowej osobie bez imienia, ale nie udało się jej nazwać: {error}",
   "personFacesDetach": "Wydziel jako nową osobę",
   "personFacesDetached": "Wydzielono jako nową osobę",
   "personFacesDetachFailed": "Nie udało się wydzielić: {error}",

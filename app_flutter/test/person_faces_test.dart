@@ -559,6 +559,73 @@ void main() {
       ]);
     });
 
+    testWidgets('a naming that fails for any reason can still be retried', (
+      tester,
+    ) async {
+      // Not a certificate: the server is simply unreachable for a moment.
+      // The photos are out of this person already and cannot be ticked again,
+      // so the retry is the only way left to give the new person its name.
+      final client = _FacesClient(
+        photos: [
+          _photo('1', ['10']),
+        ],
+        people: [anna],
+      )..failRenameWith = Exception('offline');
+      await _open(tester, client);
+      await _pickFirst(tester);
+
+      await tester.tap(find.byIcon(Icons.person_add_alt));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('New person…'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Max');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pumpAndSettle();
+      await _confirm(tester);
+
+      expect(
+        find.textContaining('The photos are with a new, unnamed person'),
+        findsOneWidget,
+        reason: 'says where the photos are',
+      );
+
+      client.failRenameWith = null;
+      await tester.tap(find.text('Retry'));
+      await tester.pumpAndSettle();
+
+      expect(client.detaches, hasLength(1), reason: 'split once');
+      expect(client.renames, [
+        (group: '42', label: 'Max'),
+        (group: '42', label: 'Max'),
+      ]);
+      expect(find.text('Moved to Max'), findsOneWidget);
+    });
+
+    testWidgets('a move that fails before anything moved says so', (
+      tester,
+    ) async {
+      final client = _FacesClient(
+        photos: [
+          _photo('1', ['10']),
+        ],
+        people: [anna],
+      )..failWith = Exception('offline');
+      await _open(tester, client);
+      await _pickFirst(tester);
+
+      await tester.tap(find.byIcon(Icons.person_add_alt));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('New person…'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Max');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pumpAndSettle();
+      await _confirm(tester);
+
+      expect(find.textContaining('Could not move the photos'), findsOneWidget);
+      expect(client.renames, isEmpty);
+    });
+
     testWidgets('offers the unnamed, which splits the photos off', (
       tester,
     ) async {

@@ -97,6 +97,7 @@
   "personFacesMovePick": "Kies de persoon om ze naartoe te verplaatsen",
   "personFacesMoved": "Verplaatst naar {name}",
   "personFacesMoveFailed": "De foto’s konden niet worden verplaatst: {error}",
+  "personFacesNameFailed": "De foto’s staan bij een nieuwe persoon zonder naam, maar die kon geen naam krijgen: {error}",
   "personFacesDetach": "Afsplitsen als nieuwe persoon",
   "personFacesDetached": "Afgesplitst als nieuwe persoon",
   "personFacesDetachFailed": "Het afsplitsen is mislukt: {error}",

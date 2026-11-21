@@ -97,6 +97,7 @@
   "personFacesMovePick": "移動先の人物を選択",
   "personFacesMoved": "{name} に移動しました",
   "personFacesMoveFailed": "写真を移動できませんでした: {error}",
+  "personFacesNameFailed": "写真は名前のない新しい人物に移りましたが、名前を付けられませんでした: {error}",
   "personFacesDetach": "新しい人物として切り離す",
   "personFacesDetached": "新しい人物として切り離しました",
   "personFacesDetachFailed": "切り離せませんでした: {error}",

@@ -68,6 +68,22 @@ class _FacesClient extends PhotoviewClient {
     moves.add((faces: imageFaceIds, destination: destinationFaceGroupId));
     return 'Anna';
   }
+
+  final renames = <({String group, String? label})>[];
+
+  /// A failure for naming alone, after the split before it went through.
+  Object? failRenameWith;
+
+  @override
+  Future<String?> detachImageFaces(List<String> imageFaceIds) async => '42';
+
+  @override
+  Future<String?> setFaceGroupLabel(String faceGroupId, String? label) async {
+    renames.add((group: faceGroupId, label: label));
+    final failure = failRenameWith;
+    if (failure != null) throw failure;
+    return label;
+  }
 }
 
 const _photo = Size(400, 300);
@@ -552,6 +568,34 @@ void main() {
     expect(client.moves.single.faces, ['101']);
     expect(client.moves.single.destination, '9');
     expect(find.text('Moved to Anna'), findsOneWidget);
+  });
+
+  testWidgets('a face filed under a new person whose naming fails can be '
+      'named on retry', (tester) async {
+    // As on a person's page: the face is out already, and the retry is the
+    // only way left to give the new person its name.
+    final client = _FacesClient([_regina, _stranger])
+      ..failRenameWith = Exception('offline');
+    await _pump(tester, client);
+
+    await tester.tap(find.text('assign 101'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('New person…'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Max');
+    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Move'));
+    await tester.pumpAndSettle();
+
+    client.failRenameWith = null;
+    await tester.tap(find.text('Retry'));
+    await tester.pumpAndSettle();
+
+    expect(client.renames, [
+      (group: '42', label: 'Max'),
+      (group: '42', label: 'Max'),
+    ]);
   });
 
   testWidgets('the person a face is filed under is not offered for it', (

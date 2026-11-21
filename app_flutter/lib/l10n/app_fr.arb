@@ -97,6 +97,7 @@
   "personFacesMovePick": "Choisissez la personne vers laquelle les déplacer",
   "personFacesMoved": "Déplacé vers {name}",
   "personFacesMoveFailed": "Les photos n'ont pas pu être déplacées : {error}",
+  "personFacesNameFailed": "Les photos sont dans une nouvelle personne sans nom, mais elle n’a pas pu être nommée : {error}",
   "personFacesDetach": "Séparer en une nouvelle personne",
   "personFacesDetached": "Séparé en une nouvelle personne",
   "personFacesDetachFailed": "La séparation a échoué : {error}",

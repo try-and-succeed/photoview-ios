@@ -97,6 +97,7 @@
   "personFacesMovePick": "Välj personen de ska flyttas till",
   "personFacesMoved": "Flyttad till {name}",
   "personFacesMoveFailed": "Bilderna kunde inte flyttas: {error}",
+  "personFacesNameFailed": "Bilderna ligger hos en ny person utan namn, men personen kunde inte namnges: {error}",
   "personFacesDetach": "Bryt ut som ny person",
   "personFacesDetached": "Utbruten som ny person",
   "personFacesDetachFailed": "Utbrytningen misslyckades: {error}",

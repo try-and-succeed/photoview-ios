@@ -519,6 +519,16 @@
       }
     }
   },
+  "personFacesNameFailed": "The photos are with a new, unnamed person, but it could not be named: {error}",
+  "@personFacesNameFailed": {
+    "description": "Moving photos to a new person went half through: they were taken out into a new person, but naming it failed. Shown with a Retry button that only names it.",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "connection timed out"
+      }
+    }
+  },
   "personFacesDetach": "Split off as a new person",
   "@personFacesDetach": {
     "description": "Tooltip of the action that lifts the ticked photos out into a person of their own."

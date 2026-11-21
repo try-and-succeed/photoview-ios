@@ -19,6 +19,11 @@ Fixes from a CodeRabbit review of pull requests #23 to #27.
 - The people list no longer keeps loading pages for a fetch that a newer one
   has already replaced — after two moves in quick succession, a long list sent
   dozens of needless requests.
+- Moving photos to a new person: when they were taken out but naming the new
+  person failed for any reason, not only an untrusted certificate, the message
+  now says where the photos are and offers to try naming it again. Before, the
+  new person stayed unnamed with no way back, as the photos were no longer
+  there to be picked again.
 
 ## 1.1.0 (2) — 2026-11-21
 

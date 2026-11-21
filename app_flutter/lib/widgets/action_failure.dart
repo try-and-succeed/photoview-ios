@@ -24,12 +24,18 @@ import 'certificate_review.dart';
 /// Any message already on screen is replaced rather than queued: tapping a
 /// button twice otherwise plays the first answer, then the second, and a
 /// failure can sit behind a stale success for as long as the queue is.
+///
+/// Other failures get no way out by default: an action the user can simply
+/// start again from where they are needs none. [retryAnyError] offers [retry]
+/// for them too, for an action that cannot be started again — one that went
+/// half through, and whose starting point is gone.
 Future<void> showActionFailure(
   BuildContext context,
   WidgetRef ref, {
   required Object error,
   required String Function(String description) message,
   FutureOr<void> Function()? retry,
+  bool retryAnyError = false,
   CertificateProbe probe = probeCertificate,
   CertificateConfirm confirm = showCertificateDialog,
 }) async {
@@ -39,8 +45,22 @@ Future<void> showActionFailure(
   messenger.removeCurrentSnackBar();
 
   if (error is! CertificateNotTrustedException) {
+    final offerRetry = retryAnyError && retry != null;
     messenger.showSnackBar(
-      SnackBar(content: Text(message(describeError(error, l10n)))),
+      SnackBar(
+        content: Text(message(describeError(error, l10n))),
+        duration: offerRetry
+            ? const Duration(seconds: 10)
+            : const Duration(milliseconds: 4000),
+        action: offerRetry
+            ? SnackBarAction(
+                label: l10n.actionRetry,
+                onPressed: () {
+                  if (context.mounted) retry();
+                },
+              )
+            : null,
+      ),
     );
     return;
   }

@@ -97,6 +97,7 @@
   "personFacesMovePick": "Aukeratu nora eraman",
   "personFacesMoved": "{name} pertsonara eraman da",
   "personFacesMoveFailed": "Ezin izan dira argazkiak eraman: {error}",
+  "personFacesNameFailed": "Argazkiak izenik gabeko pertsona berri batean daude, baina ezin izan da izendatu: {error}",
   "personFacesDetach": "Bereizi pertsona berri gisa",
   "personFacesDetached": "Pertsona berri gisa bereizi da",
   "personFacesDetachFailed": "Ezin izan dira bereizi: {error}",

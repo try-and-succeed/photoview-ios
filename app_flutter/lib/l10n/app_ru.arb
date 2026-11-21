@@ -97,6 +97,7 @@
   "personFacesMovePick": "Выберите человека, к которому перенести",
   "personFacesMoved": "Перенесено к {name}",
   "personFacesMoveFailed": "Не удалось перенести фотографии: {error}",
+  "personFacesNameFailed": "Фото перенесены к новому человеку без имени, но назвать его не удалось: {error}",
   "personFacesDetach": "Выделить в нового человека",
   "personFacesDetached": "Выделено в нового человека",
   "personFacesDetachFailed": "Не удалось выделить: {error}",

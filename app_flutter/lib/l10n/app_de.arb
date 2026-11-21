@@ -97,6 +97,7 @@
   "personFacesMovePick": "Person zum Verschieben wählen",
   "personFacesMoved": "Zu {name} verschoben",
   "personFacesMoveFailed": "Die Bilder konnten nicht verschoben werden: {error}",
+  "personFacesNameFailed": "Die Fotos sind bei einer neuen, unbenannten Person, sie konnte aber nicht benannt werden: {error}",
   "personFacesDetach": "Als neue Person herauslösen",
   "personFacesDetached": "Als neue Person herausgelöst",
   "personFacesDetachFailed": "Das Herauslösen ist fehlgeschlagen: {error}",

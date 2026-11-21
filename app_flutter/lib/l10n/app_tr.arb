@@ -97,6 +97,7 @@
   "personFacesMovePick": "Taşınacağı kişiyi seçin",
   "personFacesMoved": "{name} kişisine taşındı",
   "personFacesMoveFailed": "Fotoğraflar taşınamadı: {error}",
+  "personFacesNameFailed": "Fotoğraflar adsız yeni bir kişide, ancak kişiye ad verilemedi: {error}",
   "personFacesDetach": "Yeni kişi olarak ayır",
   "personFacesDetached": "Yeni kişi olarak ayrıldı",
   "personFacesDetachFailed": "Ayrılamadı: {error}",

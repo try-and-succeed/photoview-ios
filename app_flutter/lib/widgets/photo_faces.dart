@@ -239,27 +239,35 @@ Future<void> assignPhotoFace(
 ) {
   final l10n = AppLocalizations.of(context);
 
+  Future<void> run(
+    Future<String> Function() action, {
+    required String Function(String error) failed,
+    required Future<void> Function() retry,
+    bool retryAnyError = false,
+  }) async {
+    try {
+      final done = await action();
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+        ..removeCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(done)));
+    } catch (error) {
+      if (!context.mounted) return;
+      await showActionFailure(
+        context,
+        ref,
+        error: error,
+        message: failed,
+        retry: retry,
+        retryAnyError: retryAnyError,
+      );
+    }
+  }
+
   return FaceMove(
     from: describePerson(face.group, l10n),
     exclude: face.group.id,
-    run: (action, {required failed, required retry}) async {
-      try {
-        final done = await action();
-        if (!context.mounted) return;
-        ScaffoldMessenger.of(context)
-          ..removeCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text(done)));
-      } catch (error) {
-        if (!context.mounted) return;
-        await showActionFailure(
-          context,
-          ref,
-          error: error,
-          message: failed,
-          retry: retry,
-        );
-      }
-    },
+    run: run,
   ).pickAndMove(
     context,
     ref,
