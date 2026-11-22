@@ -374,7 +374,7 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
   /// The three are the same either way, and the picking mode has to end on
   /// success — the photos it was holding are no longer this person's.
   Future<void> _run(
-    Future<String> Function() action, {
+    Future<String?> Function() action, {
     required String Function(String error) failed,
     required Future<void> Function() retry,
     bool retryAnyError = false,
@@ -392,6 +392,8 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
     setState(() => _busy = true);
     try {
       final done = await action();
+      // Called off halfway: nothing moved, so the picking stays as it was.
+      if (done == null) return;
 
       if (mounted) _clearSelection();
       say(done);

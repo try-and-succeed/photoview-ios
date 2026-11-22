@@ -362,13 +362,14 @@ Future<void> assignPhotoFace(
     ..showSnackBar(SnackBar(content: Text(text)));
 
   Future<void> run(
-    Future<String> Function() action, {
+    Future<String?> Function() action, {
     required String Function(String error) failed,
     required Future<void> Function() retry,
     bool retryAnyError = false,
   }) async {
     try {
-      say(await action());
+      final done = await action();
+      if (done != null) say(done);
     } catch (error) {
       // Without the gallery, no certificate to review and nothing to retry
       // from — but still the message.

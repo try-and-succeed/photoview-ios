@@ -295,5 +295,8 @@
   "peopleRecognizeConfirm": "Adsız tüm yüzleri adı olan kişilerle karşılaştırır. Bunlardan birine benzeyen yüz o kişiye atanır ve ardından incelenmeyi bekler. Adı olan kişilerin yüzleri yerinde kalır. Büyük bir kitaplıkta bu biraz zaman alır.",
   "peopleRecognizeRun": "Karşılaştır",
   "reviewConfirm": "Otomatik bir işlemin, henüz kimsenin kontrol etmediği yüzleri atadığı tüm fotoğrafları gösterir. Listeyi açmak hiçbir şeyi değiştirmez.",
-  "personFilterTwice": "Bir fotoğrafta birden çok kez"
+  "personFilterTwice": "Bir fotoğrafta birden çok kez",
+  "personMoveDuplicateTitle": "Bu fotoğrafta zaten var",
+  "personMoveDuplicateMessage": "{name} bu fotoğrafta zaten var. Genellikle yüzlerden biri başka biridir; vesikalık fotoğraf sayfasında, aynada veya fotoğrafı çekilmiş bir albüm sayfasında doğrudur. {name} fotoğrafta birden çok kez olacak şekilde yine de taşınsın mı?",
+  "personMoveDuplicateAction": "Yine de taşı"
 }

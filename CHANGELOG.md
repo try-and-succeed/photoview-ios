@@ -41,6 +41,12 @@ faces a person has confirmed. Against any other server nothing changes.
   is someone else; on a sheet of passport photos or in a mirror, it is right.
   Their faces are shown when such a photo is opened. The filter appears only
   for people who have such photos.
+- **Moving a face onto a photo the person is on already.** The server refuses
+  such a move. The app now says why and asks; with a yes it sends the move
+  again with the server's check turned off (`allowDuplicates`), for a sheet of
+  passport photos, a mirror or a photographed album page. A no leaves
+  everything as it was. Needs a server that has the switch; an older one says
+  that it does not.
 
 ### Changed
 

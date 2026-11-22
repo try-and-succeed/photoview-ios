@@ -76,8 +76,9 @@ class _FacesClient extends PhotoviewClient {
   @override
   Future<String?> moveImageFaces(
     List<String> imageFaceIds,
-    String destinationFaceGroupId,
-  ) async {
+    String destinationFaceGroupId, {
+    bool allowDuplicates = false,
+  }) async {
     moves.add((faces: imageFaceIds, destination: destinationFaceGroupId));
     final failure = failWith;
     if (failure != null) throw failure;

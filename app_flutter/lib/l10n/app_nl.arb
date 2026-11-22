@@ -295,5 +295,8 @@
   "peopleRecognizeConfirm": "Vergelijkt alle naamloze gezichten met de personen die een naam hebben. Een gezicht dat op een van hen lijkt, wordt bij die persoon ingedeeld en wacht daarna op controle. Personen met een naam houden hun gezichten. Bij een grote bibliotheek duurt dit even.",
   "peopleRecognizeRun": "Vergelijken",
   "reviewConfirm": "Toont alle foto’s waarop een automatische ronde gezichten heeft ingedeeld die nog niemand heeft gecontroleerd. De lijst openen verandert niets.",
-  "personFilterTwice": "Meermaals op één foto"
+  "personFilterTwice": "Meermaals op één foto",
+  "personMoveDuplicateTitle": "Al op deze foto",
+  "personMoveDuplicateMessage": "{name} staat al op deze foto. Meestal is een van de gezichten dan iemand anders; op een vel pasfoto's, in een spiegel of op een gefotografeerde albumpagina klopt het. Toch verplaatsen, zodat {name} meermaals op de foto staat?",
+  "personMoveDuplicateAction": "Toch verplaatsen"
 }

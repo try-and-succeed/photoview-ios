@@ -295,5 +295,8 @@
   "peopleRecognizeConfirm": "Compara todos os rostos sem nome com as pessoas que têm nome. Um rosto parecido com uma delas é atribuído a essa pessoa e fica a aguardar revisão. As pessoas com nome mantêm os seus rostos. Numa biblioteca grande, demora algum tempo.",
   "peopleRecognizeRun": "Comparar",
   "reviewConfirm": "Mostra todas as fotos em que um processo automático atribuiu rostos que ainda ninguém verificou. Abrir a lista não altera nada.",
-  "personFilterTwice": "Várias vezes numa foto"
+  "personFilterTwice": "Várias vezes numa foto",
+  "personMoveDuplicateTitle": "Já está nesta foto",
+  "personMoveDuplicateMessage": "{name} já está nesta foto. Normalmente, um dos rostos é então outra pessoa; numa folha de fotos tipo passe, num espelho ou numa página de álbum fotografada, está certo. Mover mesmo assim, para que {name} apareça várias vezes na foto?",
+  "personMoveDuplicateAction": "Mover mesmo assim"
 }

@@ -295,5 +295,8 @@
   "peopleRecognizeConfirm": "Confronta tutti i volti senza nome con le persone che hanno un nome. Un volto che somiglia a una di esse viene assegnato a quella persona e resta in attesa di revisione. Le persone con nome mantengono i loro volti. In una libreria grande richiede un po’ di tempo.",
   "peopleRecognizeRun": "Confronta",
   "reviewConfirm": "Mostra tutte le foto in cui un’elaborazione automatica ha assegnato volti che nessuno ha ancora controllato. Aprire l’elenco non cambia nulla.",
-  "personFilterTwice": "Più volte in una foto"
+  "personFilterTwice": "Più volte in una foto",
+  "personMoveDuplicateTitle": "Già in questa foto",
+  "personMoveDuplicateMessage": "{name} è già in questa foto. Di solito uno dei volti è allora qualcun altro; su un foglio di fototessere, in uno specchio o su una pagina d'album fotografata è corretto. Spostare comunque, così che {name} sia nella foto più volte?",
+  "personMoveDuplicateAction": "Sposta comunque"
 }

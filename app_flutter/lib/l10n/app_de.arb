@@ -295,5 +295,8 @@
   "peopleRecognizeConfirm": "Vergleicht alle unbenannten Gesichter mit den Personen, die einen Namen haben. Ein Gesicht, das einer von ihnen ähnelt, wird dieser Person zugeordnet und wartet danach auf Prüfung. Die Gesichter benannter Personen bleiben, wo sie sind. Bei einer großen Bibliothek dauert das eine Weile.",
   "peopleRecognizeRun": "Abgleichen",
   "reviewConfirm": "Zeigt alle Fotos, auf denen ein automatischer Lauf Gesichter zugeordnet hat, die noch niemand geprüft hat. Das Öffnen der Liste ändert nichts.",
-  "personFilterTwice": "Mehrfach auf einem Foto"
+  "personFilterTwice": "Mehrfach auf einem Foto",
+  "personMoveDuplicateTitle": "Schon auf diesem Foto",
+  "personMoveDuplicateMessage": "{name} ist auf diesem Foto schon. Meist ist dann eines der Gesichter jemand anderes; bei einem Passbilderbogen, in einem Spiegel oder auf einer abfotografierten Albumseite stimmt es aber. Trotzdem verschieben, sodass {name} mehrfach auf dem Foto ist?",
+  "personMoveDuplicateAction": "Trotzdem verschieben"
 }

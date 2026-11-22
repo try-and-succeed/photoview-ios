@@ -1607,5 +1607,23 @@
   "personFilterTwice": "More than once on a photo",
   "@personFilterTwice": {
     "description": "Filter on a person's page: photos on which more than one face is filed under this person - often a mistake, but right on a sheet of passport photos. Shown after a count, as \"12 · …\"."
+  },
+  "personMoveDuplicateTitle": "Already on this photo",
+  "@personMoveDuplicateTitle": {
+    "description": "Title of the question shown when the server refused a move because the destination person is already on that photo."
+  },
+  "personMoveDuplicateMessage": "{name} is already on this photo. Usually that means one of the faces is someone else; on a sheet of passport photos, in a mirror or on a photographed album page, it is right. Move anyway, so that {name} is on the photo more than once?",
+  "@personMoveDuplicateMessage": {
+    "description": "Body of that question. {name} is the person the faces were to go to. Explains that this is usually a mistake but right for a sheet of passport photos or a mirror, and asks whether to move anyway.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Anna"
+      }
+    }
+  },
+  "personMoveDuplicateAction": "Move anyway",
+  "@personMoveDuplicateAction": {
+    "description": "Button of that question that sends the move again with the duplicate check turned off."
   }
 }

@@ -293,6 +293,26 @@ mutation moveImageFaces($imageFaceIDs: [ID!]!, $destinationFaceGroupID: ID!) {
 }
 ''';
 
+/// The same move with the server's duplicate check turned off: the person may
+/// then be on a photo more than once, as on a sheet of passport photos.
+///
+/// A document of its own rather than an argument always sent: older servers
+/// do not know `allowDuplicates` and would refuse every move over it. Sent
+/// only after the user said yes to a refused move.
+const moveImageFacesAllowingDuplicatesMutation = r'''
+mutation moveImageFacesAllowingDuplicates($imageFaceIDs: [ID!]!, $destinationFaceGroupID: ID!) {
+  moveImageFaces(
+    imageFaceIDs: $imageFaceIDs
+    destinationFaceGroupID: $destinationFaceGroupID
+    allowDuplicates: true
+  ) {
+    id
+    label
+    imageFaceCount
+  }
+}
+''';
+
 /// Lifts single faces out into a face group of their own.
 ///
 /// **Not to be sent with an empty list**: the server takes that as a request

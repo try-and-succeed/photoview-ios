@@ -295,5 +295,8 @@
   "peopleRecognizeConfirm": "Porównuje wszystkie twarze bez nazwy z osobami, które mają nazwę. Twarz podobna do jednej z nich zostaje przypisana tej osobie i czeka na sprawdzenie. Osoby z nazwą zachowują swoje twarze. W dużej bibliotece trwa to chwilę.",
   "peopleRecognizeRun": "Porównaj",
   "reviewConfirm": "Pokazuje wszystkie zdjęcia, na których automatyczny proces przypisał twarze, których nikt jeszcze nie sprawdził. Otwarcie listy niczego nie zmienia.",
-  "personFilterTwice": "Kilka razy na jednym zdjęciu"
+  "personFilterTwice": "Kilka razy na jednym zdjęciu",
+  "personMoveDuplicateTitle": "Już na tym zdjęciu",
+  "personMoveDuplicateMessage": "{name} jest już na tym zdjęciu. Zwykle jedna z twarzy to wtedy ktoś inny; na arkuszu zdjęć paszportowych, w lustrze lub na sfotografowanej stronie albumu to prawidłowe. Przenieść mimo to, aby {name} był(a) na zdjęciu kilka razy?",
+  "personMoveDuplicateAction": "Przenieś mimo to"
 }

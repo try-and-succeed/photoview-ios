@@ -295,5 +295,8 @@
   "peopleRecognizeConfirm": "Jämför alla namnlösa ansikten med de personer som har ett namn. Ett ansikte som liknar någon av dem placeras hos den personen och väntar sedan på granskning. Namngivna personer behåller sina ansikten. I ett stort bibliotek tar det en stund.",
   "peopleRecognizeRun": "Jämför",
   "reviewConfirm": "Visar alla foton där en automatisk körning har placerat ansikten som ingen har kontrollerat ännu. Att öppna listan ändrar ingenting.",
-  "personFilterTwice": "Flera gånger på ett foto"
+  "personFilterTwice": "Flera gånger på ett foto",
+  "personMoveDuplicateTitle": "Redan på det här fotot",
+  "personMoveDuplicateMessage": "{name} finns redan på det här fotot. Oftast är då ett av ansiktena någon annan; på ett ark med passfoton, i en spegel eller på en fotograferad albumsida stämmer det. Flytta ändå, så att {name} finns på fotot flera gånger?",
+  "personMoveDuplicateAction": "Flytta ändå"
 }

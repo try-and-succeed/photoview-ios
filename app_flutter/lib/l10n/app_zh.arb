@@ -295,5 +295,8 @@
   "peopleRecognizeConfirm": "将所有未命名的人脸与已有名字的人物进行比对。与其中某人相似的人脸会归到该人物名下，并等待检查。已命名人物的人脸保持不变。图库较大时需要一些时间。",
   "peopleRecognizeRun": "比对",
   "reviewConfirm": "显示自动处理分配了人脸、但尚无人检查的所有照片。打开列表不会更改任何内容。",
-  "personFilterTwice": "在同一张照片上出现多次"
+  "personFilterTwice": "在同一张照片上出现多次",
+  "personMoveDuplicateTitle": "已在这张照片上",
+  "personMoveDuplicateMessage": "{name}已在这张照片上。通常这意味着其中一张脸是别人；但在证件照排版、镜子里或翻拍的相册页上则是正确的。仍要移动，让{name}在照片上出现多次吗？",
+  "personMoveDuplicateAction": "仍然移动"
 }
