@@ -51,9 +51,8 @@ class _CountingClient extends PhotoviewClient {
   @override
   Future<String?> moveImageFaces(
     List<String> imageFaceIds,
-    String destinationFaceGroupId, {
-    bool allowDuplicates = false,
-  }) async {
+    String destinationFaceGroupId,
+  ) async {
     moved.add(imageFaceIds);
     return 'Anna';
   }

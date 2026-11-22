@@ -296,8 +296,5 @@
   "peopleRecognizeRun": "Sammenlign",
   "reviewConfirm": "Viser alle billeder, hvor en automatisk kørsel har placeret ansigter, som ingen har kontrolleret endnu. At åbne listen ændrer intet.",
   "personFilterTwice": "Flere gange på et billede",
-  "personMoveDuplicateTitle": "Allerede på dette billede",
-  "personMoveDuplicateMessage": "{name} er allerede på dette billede. Som regel er et af ansigterne så en anden; på et ark med pasfotos, i et spejl eller på en affotograferet albumside er det rigtigt. Flyt alligevel, så {name} er på billedet flere gange?",
-  "personMoveDuplicateAction": "Flyt alligevel",
   "errorPersonNotFound": "Denne person findes ikke længere – måske er den i mellemtiden slået sammen med en anden."
 }

@@ -296,8 +296,5 @@
   "peopleRecognizeRun": "Comparar",
   "reviewConfirm": "Mostra todas as fotos em que um processo automático atribuiu rostos que ainda ninguém verificou. Abrir a lista não altera nada.",
   "personFilterTwice": "Várias vezes numa foto",
-  "personMoveDuplicateTitle": "Já está nesta foto",
-  "personMoveDuplicateMessage": "{name} já está nesta foto. Normalmente, um dos rostos é então outra pessoa; numa folha de fotos tipo passe, num espelho ou numa página de álbum fotografada, está certo. Mover mesmo assim, para que {name} apareça várias vezes na foto?",
-  "personMoveDuplicateAction": "Mover mesmo assim",
   "errorPersonNotFound": "Esta pessoa já não existe — talvez tenha sido entretanto unida a outra."
 }

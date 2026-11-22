@@ -41,12 +41,11 @@ faces a person has confirmed. Against any other server nothing changes.
   is someone else; on a sheet of passport photos or in a mirror, it is right.
   Their faces are shown when such a photo is opened. The filter appears only
   for people who have such photos.
-- **Moving a face onto a photo the person is on already.** The server refuses
-  such a move. The app now says why and asks; with a yes it sends the move
-  again with the server's check turned off (`allowDuplicates`), for a sheet of
-  passport photos, a mirror or a photographed album page. A no leaves
-  everything as it was. Needs a server that has the switch; an older one says
-  that it does not.
+- **Moving a face onto a photo the person is on already.** A move by hand is
+  the user's decision, so the app sends it with the server's duplicate check
+  turned off (`allowDuplicates`): a sheet of passport photos, a mirror or a
+  photographed album page can hold one person more than once. A server
+  without that switch gets the plain move, under its own check.
 - **A person that is gone** — merged into someone else elsewhere while the app
   still listed them — is now reported as such, in the app's language, when it
   is opened, moved to, merged into or named. Servers since 7a4ece2 refuse it

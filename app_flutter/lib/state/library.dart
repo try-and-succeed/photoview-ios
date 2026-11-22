@@ -594,19 +594,17 @@ class FaceActions {
   /// Returns the destination's name afterwards. Two people change, so both
   /// their photo lists go, and the counts on the people list with them.
   ///
-  /// Throws [DuplicateFacesException] when the destination is on one of the
-  /// photos already, unless [allowDuplicates] says that is meant.
+  /// Also onto a photo the destination is on already: see
+  /// [PhotoviewClient.moveImageFaces].
   Future<String?> moveFaces(
     List<String> imageFaceIds,
-    String destination, {
-    bool allowDuplicates = false,
-  }) async {
+    String destination,
+  ) async {
     if (imageFaceIds.isEmpty) return null;
 
     final label = await _ref.requireClient.moveImageFaces(
       imageFaceIds,
       destination,
-      allowDuplicates: allowDuplicates,
     );
 
     _ref.invalidate(faceGroupsProvider);

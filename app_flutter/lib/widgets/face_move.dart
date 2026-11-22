@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../api/client.dart' show DuplicateFacesException;
 import '../api/models.dart';
 import '../api/session.dart';
 import '../l10n/app_localizations.dart';
@@ -16,10 +15,9 @@ import 'load_more.dart';
 ///
 /// Supplied by the screen, which knows what goes with an action there — a
 /// spinner and a selection to end on the person screen, nothing of the kind in
-/// the gallery. [action] returns the sentence to show when it worked, or null
-/// when the user called it off halfway: then nothing is said and nothing ends.
+/// the gallery. [action] returns the sentence to show when it worked.
 typedef FaceActionRunner = Future<void> Function(
-  Future<String?> Function() action, {
+  Future<String> Function() action, {
   // The same shape `showActionFailure` wants: the server's own words go in
   // where the message says they belong.
   required String Function(String error) failed,
@@ -83,8 +81,7 @@ class FaceMove {
         )) {
           return;
         }
-        if (!context.mounted) return;
-        await _sendMove(context, ref, l10n, faceIds, person);
+        await _sendMove(ref, l10n, faceIds, person);
 
       case MoveToNewPerson(name: final typed):
         final name = (await showDialog<String>(
@@ -134,51 +131,23 @@ class FaceMove {
   /// asked about a certificate they did not expect. Sending them back to the
   /// dialog would throw that away — and the ids are the ones from the moment
   /// of the decision, not from a selection that may have changed since.
-  ///
-  /// When the server refuses because [person] is on one of the photos
-  /// already, the user is asked whether that is right — a sheet of passport
-  /// photos, a mirror — and on a yes the move goes again with the check off.
-  /// A no leaves everything where it was, and says nothing more.
   Future<void> _sendMove(
-    BuildContext context,
     WidgetRef ref,
     AppLocalizations l10n,
     List<String> faceIds,
     FaceGroup person, {
     String? account,
-    bool allowDuplicates = false,
   }) {
     final owner = account ?? _signedIn(ref);
-    final to = describePerson(person, l10n);
-    var allow = allowDuplicates;
 
     return run(
       () async {
-        final actions = ref.read(faceActionsProvider);
-        try {
-          _stillSignedIn(ref, owner);
-          await actions.moveFaces(faceIds, person.id, allowDuplicates: allow);
-        } on DuplicateFacesException {
-          if (allow || !context.mounted) rethrow;
-          if (!await confirmDuplicateFaces(context, to)) return null;
-          // Kept for a retry after a certificate question: the user has
-          // answered this one already.
-          allow = true;
-          _stillSignedIn(ref, owner);
-          await actions.moveFaces(faceIds, person.id, allowDuplicates: true);
-        }
-        return l10n.personFacesMoved(to);
+        _stillSignedIn(ref, owner);
+        await ref.read(faceActionsProvider).moveFaces(faceIds, person.id);
+        return l10n.personFacesMoved(describePerson(person, l10n));
       },
       failed: l10n.personFacesMoveFailed,
-      retry: () => _sendMove(
-        context,
-        ref,
-        l10n,
-        faceIds,
-        person,
-        account: owner,
-        allowDuplicates: allow,
-      ),
+      retry: () => _sendMove(ref, l10n, faceIds, person, account: owner),
     );
   }
 
@@ -298,32 +267,6 @@ Future<bool> confirmFaceMove(BuildContext context, String question) async {
         FilledButton(
           onPressed: () => Navigator.of(context).pop(true),
           child: Text(l10n.personMoveConfirmAction),
-        ),
-      ],
-    ),
-  );
-
-  return yes == true && context.mounted;
-}
-
-/// Asks whether [person] may be on a photo more than once, after the server
-/// refused a move for that reason. True only for an explicit yes.
-Future<bool> confirmDuplicateFaces(BuildContext context, String person) async {
-  final l10n = AppLocalizations.of(context);
-
-  final yes = await showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text(l10n.personMoveDuplicateTitle),
-      content: Text(l10n.personMoveDuplicateMessage(person)),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          child: Text(l10n.actionCancel),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(true),
-          child: Text(l10n.personMoveDuplicateAction),
         ),
       ],
     ),

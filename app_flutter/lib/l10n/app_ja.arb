@@ -296,8 +296,5 @@
   "peopleRecognizeRun": "照合",
   "reviewConfirm": "自動処理が顔を割り当て、まだ誰も確認していない写真をすべて表示します。一覧を開いても何も変更されません。",
   "personFilterTwice": "1枚の写真に複数回",
-  "personMoveDuplicateTitle": "この写真にすでにいます",
-  "personMoveDuplicateMessage": "{name}はこの写真にすでにいます。通常はどちらかの顔が別の人ですが、証明写真のシート、鏡、撮影したアルバムのページでは正しい場合があります。{name}が写真に複数回いるように、それでも移動しますか？",
-  "personMoveDuplicateAction": "それでも移動",
   "errorPersonNotFound": "この人物はもう存在しません。その間に別の人物と統合された可能性があります。"
 }

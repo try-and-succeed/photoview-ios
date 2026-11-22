@@ -296,8 +296,5 @@
   "peopleRecognizeRun": "Jämför",
   "reviewConfirm": "Visar alla foton där en automatisk körning har placerat ansikten som ingen har kontrollerat ännu. Att öppna listan ändrar ingenting.",
   "personFilterTwice": "Flera gånger på ett foto",
-  "personMoveDuplicateTitle": "Redan på det här fotot",
-  "personMoveDuplicateMessage": "{name} finns redan på det här fotot. Oftast är då ett av ansiktena någon annan; på ett ark med passfoton, i en spegel eller på en fotograferad albumsida stämmer det. Flytta ändå, så att {name} finns på fotot flera gånger?",
-  "personMoveDuplicateAction": "Flytta ändå",
   "errorPersonNotFound": "Den här personen finns inte längre – kanske har den slagits ihop med någon annan under tiden."
 }

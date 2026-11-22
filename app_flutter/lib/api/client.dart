@@ -56,25 +56,6 @@ class ApiException implements Exception {
   String toString() => message;
 }
 
-/// The server refused to move faces because the destination would then be on
-/// one of their photos twice.
-///
-/// Not always a mistake — a sheet of passport photos, a mirror, a photographed
-/// album page — so the app asks and can send the move again with the check
-/// turned off. Still an [ApiException], with the server's words, wherever it is
-/// not handled.
-class DuplicateFacesException extends ApiException {
-  const DuplicateFacesException(super.message);
-}
-
-/// Whether [message] is the server's refusal of a move over duplicate photos.
-///
-/// The wording of the Photoview server, unchanged by the fork that added the
-/// switch to override it:
-///   cannot move faces because the destination would contain duplicate images
-bool isDuplicateFacesRefusal(String message) =>
-    message.contains('destination would contain duplicate images');
-
 /// The server refused this particular request for this user.
 ///
 /// The sign-in is still good — an album someone else owns, a scan they may not
@@ -829,30 +810,26 @@ class PhotoviewClient {
   ///
   /// Returns the destination's name afterwards, as merging does.
   ///
-  /// The server refuses a move that would put the destination on one of the
-  /// moved faces' photos twice, with [DuplicateFacesException].
-  /// [allowDuplicates] turns that check off, on a server that has the switch.
+  /// Sent with the server's duplicate check turned off: a move by hand is the
+  /// user's decision, made looking at the photo, and the same person really
+  /// can be on one photo more than once — a sheet of passport photos, a
+  /// mirror, a photographed album page. A server without that switch refuses
+  /// the argument; the move then goes again without it, under that server's
+  /// own check.
   Future<String?> moveImageFaces(
     List<String> imageFaceIds,
-    String destinationFaceGroupId, {
-    bool allowDuplicates = false,
-  }) async {
-    final Map<String, dynamic> data;
+    String destinationFaceGroupId,
+  ) async {
+    final variables = {
+      'imageFaceIDs': imageFaceIds,
+      'destinationFaceGroupID': destinationFaceGroupId,
+    };
+    Map<String, dynamic> data;
     try {
-      data = await _mutate(
-        allowDuplicates
-            ? moveImageFacesAllowingDuplicatesMutation
-            : moveImageFacesMutation,
-        {
-          'imageFaceIDs': imageFaceIds,
-          'destinationFaceGroupID': destinationFaceGroupId,
-        },
-      );
-    } on ApiException catch (error) {
-      if (!allowDuplicates && isDuplicateFacesRefusal(error.message)) {
-        throw DuplicateFacesException(error.message);
-      }
-      rethrow;
+      data = await _mutate(moveImageFacesAllowingDuplicatesMutation, variables);
+    } on UnsupportedFieldException catch (error) {
+      if (error.field != 'allowDuplicates') rethrow;
+      data = await _mutate(moveImageFacesMutation, variables);
     }
 
     final group = data['moveImageFaces'] as Map<String, dynamic>?;

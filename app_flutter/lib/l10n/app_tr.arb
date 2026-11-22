@@ -296,8 +296,5 @@
   "peopleRecognizeRun": "Karşılaştır",
   "reviewConfirm": "Otomatik bir işlemin, henüz kimsenin kontrol etmediği yüzleri atadığı tüm fotoğrafları gösterir. Listeyi açmak hiçbir şeyi değiştirmez.",
   "personFilterTwice": "Bir fotoğrafta birden çok kez",
-  "personMoveDuplicateTitle": "Bu fotoğrafta zaten var",
-  "personMoveDuplicateMessage": "{name} bu fotoğrafta zaten var. Genellikle yüzlerden biri başka biridir; vesikalık fotoğraf sayfasında, aynada veya fotoğrafı çekilmiş bir albüm sayfasında doğrudur. {name} fotoğrafta birden çok kez olacak şekilde yine de taşınsın mı?",
-  "personMoveDuplicateAction": "Yine de taşı",
   "errorPersonNotFound": "Bu kişi artık yok — belki bu arada başka biriyle birleştirildi."
 }

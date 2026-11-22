@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:photoview/api/client.dart';
 import 'package:photoview/api/models.dart';
-import 'package:photoview/api/queries.dart';
 import 'package:photoview/api/session.dart';
 import 'package:photoview/state/auth.dart';
 import 'package:photoview/widgets/photo_faces.dart';
@@ -66,26 +65,11 @@ class _FacesClient extends PhotoviewClient {
           FaceGroup(id: '9', label: 'Anna', imageFaceCount: 5),
         ];
 
-  /// Whether the server refuses a move without `allowDuplicates`, as it does
-  /// when the destination is on the photo already.
-  var refuseDuplicates = false;
-
-  /// The `allowDuplicates` of every move sent, refused ones included.
-  final allowed = <bool>[];
-
   @override
   Future<String?> moveImageFaces(
     List<String> imageFaceIds,
-    String destinationFaceGroupId, {
-    bool allowDuplicates = false,
-  }) async {
-    allowed.add(allowDuplicates);
-    if (refuseDuplicates && !allowDuplicates) {
-      throw const DuplicateFacesException(
-        'cannot move faces because the destination would contain duplicate '
-        'images',
-      );
-    }
+    String destinationFaceGroupId,
+  ) async {
     moves.add((faces: imageFaceIds, destination: destinationFaceGroupId));
     return 'Anna';
   }
@@ -186,27 +170,6 @@ Rect _frameOf(WidgetTester tester, String name) {
 }
 
 void main() {
-  group('duplicate refusal', () {
-    test('is told apart from other failures by the server\'s words', () {
-      expect(
-        isDuplicateFacesRefusal(
-          'cannot move faces because the destination would contain duplicate '
-          'images',
-        ),
-        isTrue,
-      );
-      expect(isDuplicateFacesRefusal('unauthorized'), isFalse);
-    });
-
-    test('the plain move does not send the switch older servers lack', () {
-      expect(moveImageFacesMutation, isNot(contains('allowDuplicates')));
-      expect(
-        moveImageFacesAllowingDuplicatesMutation,
-        contains('allowDuplicates: true'),
-      );
-    });
-  });
-
   group('PhotoFace.fromJson', () {
     test('reads the face and the person it is filed under', () {
       final face = PhotoFace.fromJson({
@@ -614,61 +577,6 @@ void main() {
     expect(client.moves.single.faces, ['101']);
     expect(client.moves.single.destination, '9');
     expect(find.text('Moved to Anna'), findsOneWidget);
-  });
-
-  Future<void> moveToAnna(WidgetTester tester) async {
-    await tester.tap(find.text('assign 101'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Anna'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Move'));
-    await tester.pumpAndSettle();
-  }
-
-  testWidgets('refused because the person is on the photo already, the move '
-      'goes again with a yes', (tester) async {
-    // A sheet of passport photos: the same person really is on it twice.
-    final client = _FacesClient([_regina, _stranger])..refuseDuplicates = true;
-    await _pump(tester, client);
-
-    await moveToAnna(tester);
-
-    expect(find.text('Already on this photo'), findsOneWidget);
-    expect(find.textContaining('Anna is already on this photo'), findsOneWidget);
-    expect(client.moves, isEmpty, reason: 'not before the answer');
-
-    await tester.tap(find.widgetWithText(FilledButton, 'Move anyway'));
-    await tester.pumpAndSettle();
-
-    expect(client.allowed, [false, true]);
-    expect(client.moves.single.faces, ['101']);
-    expect(find.text('Moved to Anna'), findsOneWidget);
-  });
-
-  testWidgets('refused over a duplicate, a no leaves the face where it is', (
-    tester,
-  ) async {
-    final client = _FacesClient([_regina, _stranger])..refuseDuplicates = true;
-    await _pump(tester, client);
-
-    await moveToAnna(tester);
-    await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
-    await tester.pumpAndSettle();
-
-    expect(client.allowed, [false], reason: 'sent once, not again');
-    expect(client.moves, isEmpty);
-    // Nothing more to say: the user called it off, it did not fail.
-    expect(find.byType(SnackBar), findsNothing);
-  });
-
-  testWidgets('a move the server accepts asks nothing more', (tester) async {
-    final client = _FacesClient([_regina, _stranger]);
-    await _pump(tester, client);
-
-    await moveToAnna(tester);
-
-    expect(find.text('Already on this photo'), findsNothing);
-    expect(client.allowed, [false], reason: 'the check stays on by default');
   });
 
   testWidgets('a face filed under a new person whose naming fails can be '

@@ -296,8 +296,5 @@
   "peopleRecognizeRun": "比對",
   "reviewConfirm": "顯示自動處理指派了人臉、但尚未有人檢查的所有照片。開啟清單不會變更任何內容。",
   "personFilterTwice": "在同一張照片上出現多次",
-  "personMoveDuplicateTitle": "已在這張照片上",
-  "personMoveDuplicateMessage": "{name}已在這張照片上。通常這表示其中一張臉是別人；但在證件照排版、鏡子裡或翻拍的相簿頁上則是正確的。仍要移動，讓{name}在照片上出現多次嗎？",
-  "personMoveDuplicateAction": "仍然移動",
   "errorPersonNotFound": "此人物已不存在——可能已在此期間與其他人合併。"
 }
