@@ -296,5 +296,9 @@
   "peopleRecognizeRun": "Karşılaştır",
   "reviewConfirm": "Otomatik bir işlemin, henüz kimsenin kontrol etmediği yüzleri atadığı tüm fotoğrafları gösterir. Listeyi açmak hiçbir şeyi değiştirmez.",
   "personFilterTwice": "Bir fotoğrafta birden çok kez",
-  "errorPersonNotFound": "Bu kişi artık yok — belki bu arada başka biriyle birleştirildi."
+  "errorPersonNotFound": "Bu kişi artık yok — belki bu arada başka biriyle birleştirildi.",
+  "peopleAllVerified": "Tüm yüzler onaylandı",
+  "peopleOnlyUnverified": "Yalnızca onaylanmamış yüzü olan kişiler",
+  "peopleShowAll": "Herkesi göster",
+  "peopleAllNamedVerified": "Adı olan herkesin tüm yüzleri onaylandı."
 }

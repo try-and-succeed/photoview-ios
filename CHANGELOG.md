@@ -41,6 +41,10 @@ faces a person has confirmed. Against any other server nothing changes.
   is someone else; on a sheet of passport photos or in a mirror, it is right.
   Their faces are shown when such a photo is opened. The filter appears only
   for people who have such photos.
+- **A green tick on the People tab** for every person whose faces are all
+  confirmed, and a button beside the review list that keeps only the named
+  people without it — those with a face still to check. Confirming faces
+  updates the ticks.
 - **Moving a face onto a photo the person is on already.** A move by hand is
   the user's decision, so the app sends it with the server's duplicate check
   turned off (`allowDuplicates`): a sheet of passport photos, a mirror or a

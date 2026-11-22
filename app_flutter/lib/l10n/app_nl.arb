@@ -296,5 +296,9 @@
   "peopleRecognizeRun": "Vergelijken",
   "reviewConfirm": "Toont alle foto’s waarop een automatische ronde gezichten heeft ingedeeld die nog niemand heeft gecontroleerd. De lijst openen verandert niets.",
   "personFilterTwice": "Meermaals op één foto",
-  "errorPersonNotFound": "Deze persoon bestaat niet meer – misschien intussen samengevoegd met iemand anders."
+  "errorPersonNotFound": "Deze persoon bestaat niet meer – misschien intussen samengevoegd met iemand anders.",
+  "peopleAllVerified": "Alle gezichten bevestigd",
+  "peopleOnlyUnverified": "Alleen personen met onbevestigde gezichten",
+  "peopleShowAll": "Iedereen tonen",
+  "peopleAllNamedVerified": "Bij alle benoemde personen zijn alle gezichten bevestigd."
 }

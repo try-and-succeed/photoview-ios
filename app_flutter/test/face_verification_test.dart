@@ -102,6 +102,7 @@ class _VerifyClient extends PhotoviewClient {
     required int limit,
     required int offset,
     bool fewestFirst = false,
+    bool withStatus = false,
   }) async => offset == 0 ? const [_henrik] : const [];
 }
 

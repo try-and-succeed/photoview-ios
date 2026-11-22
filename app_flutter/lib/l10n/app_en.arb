@@ -1611,5 +1611,21 @@
   "errorPersonNotFound": "This person no longer exists — perhaps merged into someone else meanwhile.",
   "@errorPersonNotFound": {
     "description": "Error when a person (face group) no longer exists on the server, usually because it was merged into another person elsewhere meanwhile."
+  },
+  "peopleAllVerified": "All faces confirmed",
+  "@peopleAllVerified": {
+    "description": "Screen-reader label of the green tick on a person tile: every face of this person has been confirmed."
+  },
+  "peopleOnlyUnverified": "Only people with unconfirmed faces",
+  "@peopleOnlyUnverified": {
+    "description": "Tooltip of the People tab button that keeps only the named people with faces still to confirm (no green tick)."
+  },
+  "peopleShowAll": "Show everybody",
+  "@peopleShowAll": {
+    "description": "Tooltip of the same People tab button while the filter is on: shows everybody again."
+  },
+  "peopleAllNamedVerified": "Every named person has all their faces confirmed.",
+  "@peopleAllNamedVerified": {
+    "description": "Shown on the People tab when the unconfirmed filter is on and every named person has all faces confirmed."
   }
 }

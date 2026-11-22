@@ -120,6 +120,49 @@ query myFacesThumbnailsFewestFirst($limit: Int!, $offset: Int!) {
 ''' +
     _faceGroupThumbnailFragment;
 
+/// [myFacesThumbnailsQuery] with whether each person still has a face nobody
+/// has confirmed. A document of its own: a server without the face filter
+/// rejects the whole request for naming it, so this one is only sent where
+/// `Capability.faceVerification` says the server has it.
+const myFacesThumbnailsWithStatusQuery =
+    r'''
+query myFacesThumbnailsWithStatus($limit: Int!, $offset: Int!) {
+  myFaceGroups(paginate: {limit: $limit, offset: $offset}) {
+    ...faceGroupThumbnail
+    ...faceGroupStatus
+  }
+}
+''' +
+    _faceGroupThumbnailFragment +
+    _faceGroupStatusFragment;
+
+/// [myFacesThumbnailsFewestFirstQuery] with the status of
+/// [myFacesThumbnailsWithStatusQuery].
+const myFacesThumbnailsFewestFirstWithStatusQuery =
+    r'''
+query myFacesThumbnailsFewestFirstWithStatus($limit: Int!, $offset: Int!) {
+  myFaceGroups(countDirection: ASC, paginate: {limit: $limit, offset: $offset}) {
+    ...faceGroupThumbnail
+    ...faceGroupStatus
+  }
+}
+''' +
+    _faceGroupThumbnailFragment +
+    _faceGroupStatusFragment;
+
+/// One unconfirmed face, if there is any — whether there is one is all the
+/// list needs. Not `verifiedFaceCount` against `imageFaceCount`: the first
+/// counts faces and the second photos, so a person twice on one photo would
+/// come out confirmed with a face still unchecked. This costs the server what
+/// the thumbnail's own one-face page costs.
+const _faceGroupStatusFragment = r'''
+fragment faceGroupStatus on FaceGroup {
+  unverifiedFaces: imageFaces(paginate: {limit: 1}, filter: {verified: false}) {
+    id
+  }
+}
+''';
+
 const _faceGroupThumbnailFragment = r'''
 fragment faceGroupThumbnail on FaceGroup {
   id

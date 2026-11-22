@@ -675,16 +675,22 @@ class PhotoviewClient {
 
   /// The people, named before unnamed, then most photos first — or fewest
   /// first with [fewestFirst], which only a server with
-  /// [Capability.faceGroupCountDirection] understands.
+  /// [Capability.faceGroupCountDirection] understands. [withStatus] also asks
+  /// whether every face of each person is confirmed, which only a server with
+  /// [Capability.faceVerification] understands.
   Future<List<FaceGroup>> faceGroups({
     required int limit,
     required int offset,
     bool fewestFirst = false,
+    bool withStatus = false,
   }) async {
-    final data = await _query(
-      fewestFirst ? myFacesThumbnailsFewestFirstQuery : myFacesThumbnailsQuery,
-      {'limit': limit, 'offset': offset},
-    );
+    final document = switch ((fewestFirst, withStatus)) {
+      (false, false) => myFacesThumbnailsQuery,
+      (true, false) => myFacesThumbnailsFewestFirstQuery,
+      (false, true) => myFacesThumbnailsWithStatusQuery,
+      (true, true) => myFacesThumbnailsFewestFirstWithStatusQuery,
+    };
+    final data = await _query(document, {'limit': limit, 'offset': offset});
     return (data['myFaceGroups'] as List<dynamic>? ?? const [])
         .map((e) => FaceGroup.fromJson(e as Map<String, dynamic>))
         .toList();

@@ -37,6 +37,7 @@ class _CountingClient extends PhotoviewClient {
     required int limit,
     required int offset,
     bool fewestFirst = false,
+    bool withStatus = false,
   }) async => const [];
 
   final detached = <List<String>>[];

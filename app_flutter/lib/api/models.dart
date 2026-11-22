@@ -165,12 +165,18 @@ class FaceGroup {
   final FaceRectangle? rectangle;
   final Thumbnail? thumbnail;
 
+  /// Every face of this person has been confirmed by someone. Null where the
+  /// list was not asked — a server that does not know about confirming, or a
+  /// group that came from anywhere but the people list.
+  final bool? allVerified;
+
   const FaceGroup({
     required this.id,
     this.label,
     this.imageFaceCount = 0,
     this.rectangle,
     this.thumbnail,
+    this.allVerified,
   });
 
   factory FaceGroup.fromJson(Map<String, dynamic> json) {
@@ -179,6 +185,7 @@ class FaceGroup {
     final rect = first?['rectangle'] as Map<String, dynamic>?;
     final media = first?['media'] as Map<String, dynamic>?;
     final thumb = media?['thumbnail'] as Map<String, dynamic>?;
+    final unverified = json['unverifiedFaces'] as List<dynamic>?;
 
     return FaceGroup(
       id: json['id'].toString(),
@@ -186,6 +193,10 @@ class FaceGroup {
       imageFaceCount: _asInt(json['imageFaceCount']),
       rectangle: rect == null ? null : FaceRectangle.fromJson(rect),
       thumbnail: thumb == null ? null : Thumbnail.fromJson(thumb),
+      // A group with no faces at all has nothing confirmed either.
+      allVerified: unverified == null
+          ? null
+          : unverified.isEmpty && faces.isNotEmpty,
     );
   }
 }

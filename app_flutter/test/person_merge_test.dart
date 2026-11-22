@@ -43,6 +43,7 @@ class _MergingClient extends PhotoviewClient {
     required int limit,
     required int offset,
     bool fewestFirst = false,
+    bool withStatus = false,
   }) async => _people.skip(offset).take(limit).toList();
 
   @override

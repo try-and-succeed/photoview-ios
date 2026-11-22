@@ -296,5 +296,9 @@
   "peopleRecognizeRun": "Comparer",
   "reviewConfirm": "Affiche toutes les photos sur lesquelles un traitement automatique a attribué des visages que personne n’a encore vérifiés. Ouvrir la liste ne modifie rien.",
   "personFilterTwice": "Plusieurs fois sur une photo",
-  "errorPersonNotFound": "Cette personne n'existe plus — peut-être a-t-elle été fusionnée avec une autre entre-temps."
+  "errorPersonNotFound": "Cette personne n'existe plus — peut-être a-t-elle été fusionnée avec une autre entre-temps.",
+  "peopleAllVerified": "Tous les visages confirmés",
+  "peopleOnlyUnverified": "Seulement les personnes aux visages non confirmés",
+  "peopleShowAll": "Afficher tout le monde",
+  "peopleAllNamedVerified": "Toutes les personnes nommées ont tous leurs visages confirmés."
 }

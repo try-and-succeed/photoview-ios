@@ -296,5 +296,9 @@
   "peopleRecognizeRun": "Jämför",
   "reviewConfirm": "Visar alla foton där en automatisk körning har placerat ansikten som ingen har kontrollerat ännu. Att öppna listan ändrar ingenting.",
   "personFilterTwice": "Flera gånger på ett foto",
-  "errorPersonNotFound": "Den här personen finns inte längre – kanske har den slagits ihop med någon annan under tiden."
+  "errorPersonNotFound": "Den här personen finns inte längre – kanske har den slagits ihop med någon annan under tiden.",
+  "peopleAllVerified": "Alla ansikten bekräftade",
+  "peopleOnlyUnverified": "Bara personer med obekräftade ansikten",
+  "peopleShowAll": "Visa alla",
+  "peopleAllNamedVerified": "Alla namngivna personer har alla ansikten bekräftade."
 }

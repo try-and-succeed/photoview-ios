@@ -296,5 +296,9 @@
   "peopleRecognizeRun": "Abgleichen",
   "reviewConfirm": "Zeigt alle Fotos, auf denen ein automatischer Lauf Gesichter zugeordnet hat, die noch niemand geprüft hat. Das Öffnen der Liste ändert nichts.",
   "personFilterTwice": "Mehrfach auf einem Foto",
-  "errorPersonNotFound": "Diese Person gibt es nicht mehr – vielleicht wurde sie inzwischen mit jemand anderem zusammengeführt."
+  "errorPersonNotFound": "Diese Person gibt es nicht mehr – vielleicht wurde sie inzwischen mit jemand anderem zusammengeführt.",
+  "peopleAllVerified": "Alle Gesichter bestätigt",
+  "peopleOnlyUnverified": "Nur Personen mit unbestätigten Gesichtern",
+  "peopleShowAll": "Alle Personen zeigen",
+  "peopleAllNamedVerified": "Bei allen benannten Personen sind alle Gesichter bestätigt."
 }

@@ -296,5 +296,9 @@
   "peopleRecognizeRun": "Sammenlign",
   "reviewConfirm": "Viser alle billeder, hvor en automatisk kørsel har placeret ansigter, som ingen har kontrolleret endnu. At åbne listen ændrer intet.",
   "personFilterTwice": "Flere gange på et billede",
-  "errorPersonNotFound": "Denne person findes ikke længere – måske er den i mellemtiden slået sammen med en anden."
+  "errorPersonNotFound": "Denne person findes ikke længere – måske er den i mellemtiden slået sammen med en anden.",
+  "peopleAllVerified": "Alle ansigter bekræftet",
+  "peopleOnlyUnverified": "Kun personer med ubekræftede ansigter",
+  "peopleShowAll": "Vis alle",
+  "peopleAllNamedVerified": "Alle navngivne personer har fået alle ansigter bekræftet."
 }

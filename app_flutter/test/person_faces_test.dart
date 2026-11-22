@@ -68,6 +68,7 @@ class _FacesClient extends PhotoviewClient {
     required int limit,
     required int offset,
     bool fewestFirst = false,
+    bool withStatus = false,
   }) async {
     pageOffsets.add(offset);
     return people.skip(offset).take(limit).toList();

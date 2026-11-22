@@ -296,5 +296,9 @@
   "peopleRecognizeRun": "Confronta",
   "reviewConfirm": "Mostra tutte le foto in cui un’elaborazione automatica ha assegnato volti che nessuno ha ancora controllato. Aprire l’elenco non cambia nulla.",
   "personFilterTwice": "Più volte in una foto",
-  "errorPersonNotFound": "Questa persona non esiste più: forse nel frattempo è stata unita a un'altra."
+  "errorPersonNotFound": "Questa persona non esiste più: forse nel frattempo è stata unita a un'altra.",
+  "peopleAllVerified": "Tutti i volti confermati",
+  "peopleOnlyUnverified": "Solo persone con volti non confermati",
+  "peopleShowAll": "Mostra tutti",
+  "peopleAllNamedVerified": "Tutte le persone con nome hanno tutti i volti confermati."
 }

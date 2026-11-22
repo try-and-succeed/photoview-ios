@@ -296,5 +296,9 @@
   "peopleRecognizeRun": "Alderatu",
   "reviewConfirm": "Prozesu automatiko batek inork oraindik egiaztatu gabeko aurpegiak esleitu dituen argazki guztiak erakusten ditu. Zerrenda irekitzeak ez du ezer aldatzen.",
   "personFilterTwice": "Argazki batean behin baino gehiagotan",
-  "errorPersonNotFound": "Pertsona hau ez dago jada; agian beste batekin bateratu da bitartean."
+  "errorPersonNotFound": "Pertsona hau ez dago jada; agian beste batekin bateratu da bitartean.",
+  "peopleAllVerified": "Aurpegi guztiak berretsita",
+  "peopleOnlyUnverified": "Berretsi gabeko aurpegiak dituzten pertsonak soilik",
+  "peopleShowAll": "Erakutsi denak",
+  "peopleAllNamedVerified": "Izena duten pertsona guztien aurpegi guztiak berretsita daude."
 }

@@ -33,6 +33,7 @@ class _PeopleClient extends PhotoviewClient {
     required int limit,
     required int offset,
     bool fewestFirst = false,
+    bool withStatus = false,
   }) async {
     offsets.add(offset);
     return [

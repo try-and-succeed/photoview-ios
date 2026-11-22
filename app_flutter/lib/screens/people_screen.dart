@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/capabilities.dart';
+import '../api/models.dart';
 import '../l10n/app_localizations.dart';
 import '../state/capabilities.dart';
 import '../state/library.dart';
@@ -21,12 +22,25 @@ class PeopleScreen extends ConsumerStatefulWidget {
   ConsumerState<PeopleScreen> createState() => _PeopleScreenState();
 }
 
+/// A named person with a face nobody has confirmed yet.
+///
+/// Only the named: they all come with the first pages, so the list is
+/// complete for them, while the unnamed run to thousands of small groups
+/// further down that are not all fetched. A person whose status is unknown
+/// counts as still to confirm — better shown once too often than hidden.
+bool _stillToConfirm(FaceGroup person) =>
+    faceGroupIsNamed(person) && person.allVerified != true;
+
 class _PeopleScreenState extends ConsumerState<PeopleScreen> {
   bool _recognizing = false;
 
   /// Whether the name field is open in place of the title.
   bool _searching = false;
   final _query = TextEditingController();
+
+  /// Whether the list keeps only the named people with a face still to
+  /// confirm — those without the green tick.
+  bool _onlyUnverified = false;
 
   @override
   void dispose() {
@@ -134,6 +148,12 @@ class _PeopleScreenState extends ConsumerState<PeopleScreen> {
     final l10n = AppLocalizations.of(context);
     final faces = ref.watch(faceGroupsProvider);
     final query = _query.text.trim();
+    final canVerify = ref.watch(
+      hasCapabilityProvider(Capability.faceVerification),
+    );
+    // Not left on after the server turned out not to know confirming: the
+    // button to switch it off would be gone with it.
+    final onlyUnverified = _onlyUnverified && canVerify;
 
     // Back closes the name field before it leaves the tab.
     return PopScope(
@@ -147,10 +167,14 @@ class _PeopleScreenState extends ConsumerState<PeopleScreen> {
           // before the new answer is in.
           onRefresh: () => ref.refresh(faceGroupsProvider.future),
           child: LoadMoreOnScroll(
-            // Not while a name is typed: every named person comes with the
-            // first pages (see _throughTheNamed), and the unnamed further down
-            // have no name to match.
-            hasMore: query.isEmpty && (faces.valueOrNull?.hasMore ?? false),
+            // Not while a name is typed or only the unconfirmed are shown:
+            // every named person comes with the first pages (see
+            // _throughTheNamed), and the unnamed further down have no name to
+            // match and are left out of the unconfirmed.
+            hasMore:
+                query.isEmpty &&
+                !onlyUnverified &&
+                (faces.valueOrNull?.hasMore ?? false),
             onLoadMore: () => ref.read(faceGroupsProvider.notifier).loadMore(),
             child: ScrollableView(
               // See the note in timeline_screen.dart: a short list would otherwise
@@ -207,14 +231,23 @@ class _PeopleScreenState extends ConsumerState<PeopleScreen> {
                           tooltip: l10n.peopleRecognize,
                           onPressed: _askRecognize,
                         ),
-                      if (ref.watch(
-                        hasCapabilityProvider(Capability.faceVerification),
-                      ))
+                      if (canVerify) ...[
                         IconButton(
                           icon: const Icon(Icons.rate_review_outlined),
                           tooltip: l10n.reviewTitle,
                           onPressed: _askReview,
                         ),
+                        IconButton(
+                          icon: const Icon(Icons.unpublished_outlined),
+                          selectedIcon: const Icon(Icons.unpublished),
+                          isSelected: onlyUnverified,
+                          tooltip: onlyUnverified
+                              ? l10n.peopleShowAll
+                              : l10n.peopleOnlyUnverified,
+                          onPressed: () =>
+                              setState(() => _onlyUnverified = !onlyUnverified),
+                        ),
+                      ],
                     ],
                   ],
                 ),
@@ -237,7 +270,9 @@ class _PeopleScreenState extends ConsumerState<PeopleScreen> {
                   data: (data) {
                     final shown = [
                       for (final g in data.groups)
-                        if (personMatches(g, query)) g,
+                        if (personMatches(g, query) &&
+                            (!onlyUnverified || _stillToConfirm(g)))
+                          g,
                     ];
                     return [
                       if (data.groups.isEmpty)
@@ -246,6 +281,14 @@ class _PeopleScreenState extends ConsumerState<PeopleScreen> {
                           child: EmptyMessage(
                             message: l10n.peopleEmpty,
                             icon: Icons.person_outline,
+                          ),
+                        )
+                      else if (shown.isEmpty && onlyUnverified && query.isEmpty)
+                        SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: EmptyMessage(
+                            message: l10n.peopleAllNamedVerified,
+                            icon: Icons.verified_outlined,
                           ),
                         )
                       else if (shown.isEmpty)
@@ -268,7 +311,7 @@ class _PeopleScreenState extends ConsumerState<PeopleScreen> {
                             ),
                           ),
                         ),
-                      if (data.loadingMore && query.isEmpty)
+                      if (data.loadingMore && query.isEmpty && !onlyUnverified)
                         const SliverToBoxAdapter(
                           child: Padding(
                             padding: EdgeInsets.all(24),

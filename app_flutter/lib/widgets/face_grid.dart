@@ -86,6 +86,12 @@ class _FaceTile extends StatelessWidget {
             clipBehavior: Clip.none,
             children: [
               FaceThumbnail(face: face),
+              if (face.allVerified == true)
+                const PositionedDirectional(
+                  end: 0,
+                  top: 0,
+                  child: VerifiedPersonBadge(),
+                ),
               if (face.imageFaceCount > 0)
                 PositionedDirectional(
                   end: 0,
@@ -153,6 +159,34 @@ class PhotoCountBadge extends StatelessWidget {
           color: scheme.onSecondaryContainer,
           fontWeight: FontWeight.w600,
         ),
+      ),
+    );
+  }
+}
+
+/// A green tick on the corner of a person's thumbnail: every face filed under
+/// them has been confirmed by someone, so nothing about them is left to check.
+///
+/// The opposite corner from [PhotoCountBadge], with the same ring in the page
+/// colour. The same green as a confirmed face's frame on a photo, a shade
+/// darker so a white tick reads on it.
+class VerifiedPersonBadge extends StatelessWidget {
+  const VerifiedPersonBadge({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Semantics(
+      label: AppLocalizations.of(context).peopleAllVerified,
+      child: Container(
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          color: Colors.green.shade600,
+          shape: BoxShape.circle,
+          border: Border.all(color: scheme.surface, width: 2),
+        ),
+        child: const Icon(Icons.check, size: 16, color: Colors.white),
       ),
     );
   }

@@ -65,6 +65,7 @@ class _PagingClient extends PhotoviewClient {
     required int limit,
     required int offset,
     bool fewestFirst = false,
+    bool withStatus = false,
   }) async {
     await gate?.call(offset, fewestFirst);
     if (fewestFirst && !knowsCountDirection) {

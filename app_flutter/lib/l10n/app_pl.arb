@@ -296,5 +296,9 @@
   "peopleRecognizeRun": "Porównaj",
   "reviewConfirm": "Pokazuje wszystkie zdjęcia, na których automatyczny proces przypisał twarze, których nikt jeszcze nie sprawdził. Otwarcie listy niczego nie zmienia.",
   "personFilterTwice": "Kilka razy na jednym zdjęciu",
-  "errorPersonNotFound": "Ta osoba już nie istnieje — być może w międzyczasie została połączona z inną."
+  "errorPersonNotFound": "Ta osoba już nie istnieje — być może w międzyczasie została połączona z inną.",
+  "peopleAllVerified": "Wszystkie twarze potwierdzone",
+  "peopleOnlyUnverified": "Tylko osoby z niepotwierdzonymi twarzami",
+  "peopleShowAll": "Pokaż wszystkich",
+  "peopleAllNamedVerified": "Wszystkie nazwane osoby mają potwierdzone wszystkie twarze."
 }

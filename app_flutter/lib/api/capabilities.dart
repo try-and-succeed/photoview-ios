@@ -89,6 +89,9 @@ const _identifyingFields = <Capability, Set<String>>{
     'setImageFacesVerified',
     'myMediaNeedingReview',
     'reclassifyFaceGroups',
+    // The argument on `imageFaces` that the people list's status asks with —
+    // no other request of the app names an argument of that name.
+    'filter',
   },
 };
 

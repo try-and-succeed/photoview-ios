@@ -296,5 +296,9 @@
   "peopleRecognizeRun": "比对",
   "reviewConfirm": "显示自动处理分配了人脸、但尚无人检查的所有照片。打开列表不会更改任何内容。",
   "personFilterTwice": "在同一张照片上出现多次",
-  "errorPersonNotFound": "此人物已不存在——可能已在此期间与其他人合并。"
+  "errorPersonNotFound": "此人物已不存在——可能已在此期间与其他人合并。",
+  "peopleAllVerified": "所有面孔均已确认",
+  "peopleOnlyUnverified": "仅显示有未确认面孔的人物",
+  "peopleShowAll": "显示所有人",
+  "peopleAllNamedVerified": "所有已命名人物的面孔均已确认。"
 }

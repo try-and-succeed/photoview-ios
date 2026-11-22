@@ -296,5 +296,9 @@
   "peopleRecognizeRun": "照合",
   "reviewConfirm": "自動処理が顔を割り当て、まだ誰も確認していない写真をすべて表示します。一覧を開いても何も変更されません。",
   "personFilterTwice": "1枚の写真に複数回",
-  "errorPersonNotFound": "この人物はもう存在しません。その間に別の人物と統合された可能性があります。"
+  "errorPersonNotFound": "この人物はもう存在しません。その間に別の人物と統合された可能性があります。",
+  "peopleAllVerified": "すべての顔を確認済み",
+  "peopleOnlyUnverified": "未確認の顔がある人物のみ",
+  "peopleShowAll": "すべての人物を表示",
+  "peopleAllNamedVerified": "名前のあるすべての人物の顔が確認済みです。"
 }

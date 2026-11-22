@@ -57,6 +57,9 @@ class FaceGroupsNotifier extends AsyncNotifier<FaceGroupsData>
     with StaleResponseGuard {
   var _fewestFirst = false;
 
+  /// Whether each person comes with whether all their faces are confirmed.
+  var _withStatus = false;
+
   @override
   Future<FaceGroupsData> build() async {
     beginGeneration(ref);
@@ -65,6 +68,7 @@ class FaceGroupsNotifier extends AsyncNotifier<FaceGroupsData>
     // A plain bool, so switching between orders that page the same way — A to
     // Z and Z to A — re-sorts what is there instead of fetching it again.
     _fewestFirst = ref.watch(unnamedFewestFirstProvider);
+    _withStatus = ref.watch(_faceStatusProvider);
     // Watched, not read: the people are labelled with the account they came
     // from, and a label taken before the sign-in had settled would be wrong
     // for good — every later fetch would take them for another account's, and
@@ -91,14 +95,21 @@ class FaceGroupsNotifier extends AsyncNotifier<FaceGroupsData>
           limit: _faceGroupPageSize,
           offset: 0,
           fewestFirst: _fewestFirst,
+          withStatus: _withStatus,
         ),
       );
     } on UnsupportedFieldException catch (failure) {
-      if (!_fewestFirst) rethrow;
+      final ruledOut = failure.ruledOut;
+      final noOrder =
+          _fewestFirst && ruledOut.contains(Capability.faceGroupCountDirection);
+      final noStatus =
+          _withStatus && ruledOut.contains(Capability.faceVerification);
+      if (!noOrder && !noStatus) rethrow;
 
-      // The cache said this server can page fewest first and it cannot — a
-      // server rolled back, most likely. Recorded so the setting stops asking,
-      // and answered most first meanwhile rather than with an error.
+      // The cache said this server can page fewest first, or tell confirmed
+      // people apart, and it cannot — a server rolled back, most likely.
+      // Recorded so the list stops asking, and answered without meanwhile
+      // rather than with an error.
       if (serverId != null) {
         await ref.read(capabilityDowngradeProvider)(serverId, failure);
       }
@@ -106,7 +117,8 @@ class FaceGroupsNotifier extends AsyncNotifier<FaceGroupsData>
       // and switching it here mixed two orders into its list. The downgrade
       // above still stands — the server did refuse.
       if (movedOn(generation)) rethrow;
-      _fewestFirst = false;
+      if (noOrder) _fewestFirst = false;
+      if (noStatus) _withStatus = false;
       first = await _page(0);
     }
 
@@ -129,6 +141,7 @@ class FaceGroupsNotifier extends AsyncNotifier<FaceGroupsData>
 
   Future<List<FaceGroup>> _page(int offset) {
     final fewestFirst = _fewestFirst;
+    final withStatus = _withStatus;
 
     // `guardedRead`, not `guarded`: this runs after an await, where watching
     // the client would attach to a build that has already finished.
@@ -137,6 +150,7 @@ class FaceGroupsNotifier extends AsyncNotifier<FaceGroupsData>
         limit: _faceGroupPageSize,
         offset: offset,
         fewestFirst: fewestFirst,
+        withStatus: withStatus,
       ),
     );
   }
@@ -516,9 +530,13 @@ class FaceActions {
   /// Confirms every face on [mediaIds] — "everyone on here is right" — or
   /// takes the confirmation back. Returns how many faces changed.
   ///
-  /// Nothing moves, so the people list stays; what changes is how the faces
-  /// are drawn, which photos a person's filters hold, and the review list.
-  Future<int> verifyMedia(List<String> mediaIds, {required bool verified}) async {
+  /// Nothing moves; what changes is how the faces are drawn, which photos a
+  /// person's filters hold, the review list, and which people carry the mark
+  /// of being confirmed throughout.
+  Future<int> verifyMedia(
+    List<String> mediaIds, {
+    required bool verified,
+  }) async {
     if (mediaIds.isEmpty) return 0;
     final changed = await _ref.requireClient.setMediaFacesVerified(
       mediaIds,
@@ -544,6 +562,11 @@ class FaceActions {
   }
 
   void _statusChanged() {
+    // The people list marks who is confirmed throughout. Fetched again as
+    // long as it was (see FaceGroupsNotifier.build), so the place in it
+    // stays; invalidating twice, as a move does with its own call, still
+    // fetches once.
+    _ref.invalidate(faceGroupsProvider);
     _ref.invalidate(mediaFacesProvider);
     _ref.invalidate(personPhotosProvider);
     _ref.invalidate(reviewMediaProvider);
