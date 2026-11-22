@@ -47,6 +47,10 @@ faces a person has confirmed. Against any other server nothing changes.
   passport photos, a mirror or a photographed album page. A no leaves
   everything as it was. Needs a server that has the switch; an older one says
   that it does not.
+- **A person that is gone** — merged into someone else elsewhere while the app
+  still listed them — is now reported as such, in the app's language, when it
+  is opened, moved to, merged into or named. Servers since 7a4ece2 refuse it
+  by name; before, they answered with an empty person.
 
 ### Changed
 

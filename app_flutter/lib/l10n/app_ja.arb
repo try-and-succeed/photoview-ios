@@ -298,5 +298,6 @@
   "personFilterTwice": "1枚の写真に複数回",
   "personMoveDuplicateTitle": "この写真にすでにいます",
   "personMoveDuplicateMessage": "{name}はこの写真にすでにいます。通常はどちらかの顔が別の人ですが、証明写真のシート、鏡、撮影したアルバムのページでは正しい場合があります。{name}が写真に複数回いるように、それでも移動しますか？",
-  "personMoveDuplicateAction": "それでも移動"
+  "personMoveDuplicateAction": "それでも移動",
+  "errorPersonNotFound": "この人物はもう存在しません。その間に別の人物と統合された可能性があります。"
 }

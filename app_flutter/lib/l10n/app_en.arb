@@ -1625,5 +1625,9 @@
   "personMoveDuplicateAction": "Move anyway",
   "@personMoveDuplicateAction": {
     "description": "Button of that question that sends the move again with the duplicate check turned off."
+  },
+  "errorPersonNotFound": "This person no longer exists — perhaps merged into someone else meanwhile.",
+  "@errorPersonNotFound": {
+    "description": "Error when a person (face group) no longer exists on the server, usually because it was merged into another person elsewhere meanwhile."
   }
 }

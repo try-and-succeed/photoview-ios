@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/widgets.dart' show Locale;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:graphql/client.dart';
 import 'package:http/http.dart' as http;
 import 'package:photoview/api/client.dart';
+import 'package:photoview/l10n/app_localizations.dart';
+import 'package:photoview/l10n/error_messages.dart';
 
 OperationException _serverException({
   int? statusCode,
@@ -31,6 +34,28 @@ OperationException _transport(Object cause) =>
 GraphQLError _error(String message) => GraphQLError(message: message);
 
 void main() {
+  group('PhotoviewClient.fromServerMessage', () {
+    test('a person that is gone is named as such', () {
+      // The wording of server 7a4ece2 for a face group that no longer exists.
+      final error = PhotoviewClient.fromServerMessage(
+        'face group does not exist or is not owned by the user',
+      );
+
+      expect(error.problem, ApiProblem.personNotFound);
+      expect(
+        describeError(error, lookupAppLocalizations(const Locale('de'))),
+        startsWith('Diese Person gibt es nicht mehr'),
+      );
+    });
+
+    test('any other message stays the server\'s own words', () {
+      final error = PhotoviewClient.fromServerMessage('unauthorized');
+
+      expect(error.problem, isNull);
+      expect(error.message, 'unauthorized');
+    });
+  });
+
   group('PhotoviewClient.isUnauthorized', () {
     test('401 means the sign-in was rejected', () {
       // Measured: an invalid or expired token is turned away by the HTTP

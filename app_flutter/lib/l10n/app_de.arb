@@ -298,5 +298,6 @@
   "personFilterTwice": "Mehrfach auf einem Foto",
   "personMoveDuplicateTitle": "Schon auf diesem Foto",
   "personMoveDuplicateMessage": "{name} ist auf diesem Foto schon. Meist ist dann eines der Gesichter jemand anderes; bei einem Passbilderbogen, in einem Spiegel oder auf einer abfotografierten Albumseite stimmt es aber. Trotzdem verschieben, sodass {name} mehrfach auf dem Foto ist?",
-  "personMoveDuplicateAction": "Trotzdem verschieben"
+  "personMoveDuplicateAction": "Trotzdem verschieben",
+  "errorPersonNotFound": "Diese Person gibt es nicht mehr – vielleicht wurde sie inzwischen mit jemand anderem zusammengeführt."
 }

@@ -298,5 +298,6 @@
   "personFilterTwice": "在同一張相片上出現多次",
   "personMoveDuplicateTitle": "已在這張相片上",
   "personMoveDuplicateMessage": "{name}已在這張相片上。通常這表示其中一張臉是別人；但在證件相排版、鏡子裡或翻拍的相簿頁上則是正確的。仍要移動，讓{name}在相片上出現多次嗎？",
-  "personMoveDuplicateAction": "仍然移動"
+  "personMoveDuplicateAction": "仍然移動",
+  "errorPersonNotFound": "此人物已不存在——可能已在此期間與其他人合併。"
 }

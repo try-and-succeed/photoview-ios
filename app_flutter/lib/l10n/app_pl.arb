@@ -298,5 +298,6 @@
   "personFilterTwice": "Kilka razy na jednym zdjęciu",
   "personMoveDuplicateTitle": "Już na tym zdjęciu",
   "personMoveDuplicateMessage": "{name} jest już na tym zdjęciu. Zwykle jedna z twarzy to wtedy ktoś inny; na arkuszu zdjęć paszportowych, w lustrze lub na sfotografowanej stronie albumu to prawidłowe. Przenieść mimo to, aby {name} był(a) na zdjęciu kilka razy?",
-  "personMoveDuplicateAction": "Przenieś mimo to"
+  "personMoveDuplicateAction": "Przenieś mimo to",
+  "errorPersonNotFound": "Ta osoba już nie istnieje — być może w międzyczasie została połączona z inną."
 }

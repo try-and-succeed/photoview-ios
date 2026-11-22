@@ -298,5 +298,6 @@
   "personFilterTwice": "Argazki batean behin baino gehiagotan",
   "personMoveDuplicateTitle": "Dagoeneko argazki honetan dago",
   "personMoveDuplicateMessage": "{name} dagoeneko argazki honetan dago. Normalean aurpegietako bat beste norbait da; nortasun-argazkien orri batean, ispilu batean edo argazkitutako album-orri batean, zuzena da. Hala ere mugitu, {name} argazkian behin baino gehiagotan egon dadin?",
-  "personMoveDuplicateAction": "Mugitu hala ere"
+  "personMoveDuplicateAction": "Mugitu hala ere",
+  "errorPersonNotFound": "Pertsona hau ez dago jada; agian beste batekin bateratu da bitartean."
 }

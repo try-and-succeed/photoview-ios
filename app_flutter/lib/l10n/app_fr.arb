@@ -298,5 +298,6 @@
   "personFilterTwice": "Plusieurs fois sur une photo",
   "personMoveDuplicateTitle": "Déjà sur cette photo",
   "personMoveDuplicateMessage": "{name} est déjà sur cette photo. En général, l'un des visages est alors quelqu'un d'autre ; sur une planche de photos d'identité, dans un miroir ou sur une page d'album photographiée, c'est juste. Déplacer quand même, pour que {name} figure plusieurs fois sur la photo ?",
-  "personMoveDuplicateAction": "Déplacer quand même"
+  "personMoveDuplicateAction": "Déplacer quand même",
+  "errorPersonNotFound": "Cette personne n'existe plus — peut-être a-t-elle été fusionnée avec une autre entre-temps."
 }

@@ -298,5 +298,6 @@
   "personFilterTwice": "Varias veces en una foto",
   "personMoveDuplicateTitle": "Ya está en esta foto",
   "personMoveDuplicateMessage": "{name} ya está en esta foto. Normalmente eso significa que una de las caras es otra persona; en una hoja de fotos de carné, en un espejo o en una página de álbum fotografiada, es correcto. ¿Mover de todos modos, para que {name} aparezca varias veces en la foto?",
-  "personMoveDuplicateAction": "Mover igualmente"
+  "personMoveDuplicateAction": "Mover igualmente",
+  "errorPersonNotFound": "Esta persona ya no existe; quizá se haya fusionado con otra mientras tanto."
 }

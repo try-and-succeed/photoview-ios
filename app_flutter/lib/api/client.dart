@@ -35,6 +35,7 @@ enum ApiProblem {
   unknown,
   albumNotFound,
   mediaNotFound,
+  personNotFound,
   invalidMapJson,
   invalidMapShape,
   scanRefused,
@@ -318,7 +319,7 @@ class PhotoviewClient {
       // GraphQL body would otherwise be reported as an HTTP status.
       final errors = graphqlErrorsOf(error);
       if (errors.isNotEmpty) {
-        return ApiException(errors.map((e) => e.message).join(', '));
+        return fromServerMessage(errors.map((e) => e.message).join(', '));
       }
 
       final link = error.linkException;
@@ -328,11 +329,24 @@ class PhotoviewClient {
     return _describeCause(error);
   }
 
+  /// The server's own words, named where the app knows what they mean.
+  ///
+  /// A person that is gone — merged into someone else on another device while
+  /// this one still lists them — is refused, since server 7a4ece2, with
+  /// "face group does not exist or is not owned by the user", for opening the
+  /// person and for moving, merging into or naming them. Before, the server
+  /// answered with an empty person of id 0.
+  @visibleForTesting
+  static ApiException fromServerMessage(String message) =>
+      message.contains('face group does not exist')
+      ? ApiException(message, problem: ApiProblem.personNotFound)
+      : ApiException(message);
+
   static ApiException _describeLink(LinkException link) {
     if (link is ServerException) {
       final errors = link.parsedResponse?.errors;
       if (errors != null && errors.isNotEmpty) {
-        return ApiException(errors.map((e) => e.message).join(', '));
+        return fromServerMessage(errors.map((e) => e.message).join(', '));
       }
 
       // No body at all — the connection may never have produced one. Falling

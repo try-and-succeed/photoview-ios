@@ -298,5 +298,6 @@
   "personFilterTwice": "Più volte in una foto",
   "personMoveDuplicateTitle": "Già in questa foto",
   "personMoveDuplicateMessage": "{name} è già in questa foto. Di solito uno dei volti è allora qualcun altro; su un foglio di fototessere, in uno specchio o su una pagina d'album fotografata è corretto. Spostare comunque, così che {name} sia nella foto più volte?",
-  "personMoveDuplicateAction": "Sposta comunque"
+  "personMoveDuplicateAction": "Sposta comunque",
+  "errorPersonNotFound": "Questa persona non esiste più: forse nel frattempo è stata unita a un'altra."
 }
