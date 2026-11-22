@@ -584,6 +584,20 @@ mutation scanAlbum($albumId: ID!) {
 }
 ''';
 
+/// [scanAlbumMutation] taking in only what is new: the album's own media and
+/// the direct sub-directories that are not albums yet, each with everything
+/// below it. Existing sub-albums are neither scanned nor removed. A document
+/// of its own, sent only where `Capability.scanAlbumNewSubAlbums` says the
+/// server knows the argument.
+const scanAlbumNewSubAlbumsMutation = r'''
+mutation scanAlbumNewSubAlbums($albumId: ID!) {
+  scanAlbum(albumId: $albumId, onlyNewSubAlbums: true) {
+    success
+    message
+  }
+}
+''';
+
 /// Cancels one album's job. False means there was no job for that album.
 const cancelScanJobMutation = r'''
 mutation cancelScanJob($albumId: ID!) {

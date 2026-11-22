@@ -300,5 +300,10 @@
   "peopleAllVerified": "所有面孔均已確認",
   "peopleOnlyUnverified": "僅顯示有未確認面孔的人物",
   "peopleShowAll": "顯示所有人",
-  "peopleAllNamedVerified": "所有已命名人物的面孔均已確認。"
+  "peopleAllNamedVerified": "所有已命名人物的面孔均已確認。",
+  "albumScanNew": "僅新內容",
+  "albumScanNewHint": "此相簿中的相片以及尚未成為相簿的資料夾。現有子相簿保持不變。",
+  "albumScanAll": "全部",
+  "albumScanAllHint": "此相簿及其所有子相簿，包括現有的。",
+  "albumScanNewStarted": "正在掃描此相簿及其新資料夾。"
 }

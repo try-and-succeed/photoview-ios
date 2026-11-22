@@ -568,7 +568,10 @@ class PhotoviewClient {
     // Whatever the batch could not settle is asked again on its own, so one
     // suppressed or truncated error cannot leave a whole group unknown.
     for (final capability in ServerCapabilities(found).unresolved) {
-      final single = await _probe(singleCapabilityProbeDocument(capability));
+      final single = await _probe(
+        singleCapabilityProbeDocument(capability),
+        mutation: probedByMutation(capability),
+      );
       if (!single.answered) break;
 
       found = {
@@ -585,14 +588,24 @@ class PhotoviewClient {
   /// [answered] distinguishes "the server said something" — data, GraphQL
   /// errors, or both — from "nothing came back", which is what a timeout or an
   /// unreachable host looks like.
+  ///
+  /// [mutation] for a probe written as one — see [probeSentinel], which keeps
+  /// it from ever running.
   Future<({Map<String, dynamic>? data, List<String> messages, bool answered})>
-  _probe(String document) async {
-    final result = await _client.query(
-      QueryOptions(
-        document: gql(document),
-        fetchPolicy: FetchPolicy.networkOnly,
-      ),
-    );
+  _probe(String document, {bool mutation = false}) async {
+    final result = mutation
+        ? await _client.mutate(
+            MutationOptions(
+              document: gql(document),
+              fetchPolicy: FetchPolicy.networkOnly,
+            ),
+          )
+        : await _client.query(
+            QueryOptions(
+              document: gql(document),
+              fetchPolicy: FetchPolicy.networkOnly,
+            ),
+          );
 
     final exception = result.exception;
     final messages = exception == null
@@ -1010,8 +1023,18 @@ class PhotoviewClient {
   /// deduplicates queued albums, but a repeated request still runs to
   /// completion, and a timeout says nothing about whether the first one was
   /// accepted.
-  Future<String?> scanAlbum(String albumId) async {
-    final data = await _mutate(scanAlbumMutation, {'albumId': albumId});
+  ///
+  /// [onlyNewSubAlbums] scans the album's own media and takes in only the
+  /// direct sub-directories that are not albums yet; only a server with
+  /// [Capability.scanAlbumNewSubAlbums] understands it.
+  Future<String?> scanAlbum(
+    String albumId, {
+    bool onlyNewSubAlbums = false,
+  }) async {
+    final data = await _mutate(
+      onlyNewSubAlbums ? scanAlbumNewSubAlbumsMutation : scanAlbumMutation,
+      {'albumId': albumId},
+    );
     final result = data['scanAlbum'] as Map<String, dynamic>?;
 
     if (result?['success'] != true) {

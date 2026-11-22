@@ -300,5 +300,10 @@
   "peopleAllVerified": "すべての顔を確認済み",
   "peopleOnlyUnverified": "未確認の顔がある人物のみ",
   "peopleShowAll": "すべての人物を表示",
-  "peopleAllNamedVerified": "名前のあるすべての人物の顔が確認済みです。"
+  "peopleAllNamedVerified": "名前のあるすべての人物の顔が確認済みです。",
+  "albumScanNew": "新しいものだけ",
+  "albumScanNewHint": "このアルバムの写真と、まだアルバムになっていないフォルダー。既存のサブアルバムはそのままです。",
+  "albumScanAll": "すべて",
+  "albumScanAllHint": "このアルバムと、既存のものを含むすべてのサブアルバム。",
+  "albumScanNewStarted": "このアルバムと新しいフォルダーをスキャンしています。"
 }

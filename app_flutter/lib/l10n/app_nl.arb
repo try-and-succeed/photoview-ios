@@ -300,5 +300,10 @@
   "peopleAllVerified": "Alle gezichten bevestigd",
   "peopleOnlyUnverified": "Alleen personen met onbevestigde gezichten",
   "peopleShowAll": "Iedereen tonen",
-  "peopleAllNamedVerified": "Bij alle benoemde personen zijn alle gezichten bevestigd."
+  "peopleAllNamedVerified": "Bij alle benoemde personen zijn alle gezichten bevestigd.",
+  "albumScanNew": "Alleen het nieuwe",
+  "albumScanNewHint": "De foto's in dit album en mappen die nog geen album zijn. Bestaande subalbums blijven zoals ze zijn.",
+  "albumScanAll": "Alles",
+  "albumScanAllHint": "Dit album met alle subalbums, ook de bestaande.",
+  "albumScanNewStarted": "Dit album en de nieuwe mappen worden gescand."
 }

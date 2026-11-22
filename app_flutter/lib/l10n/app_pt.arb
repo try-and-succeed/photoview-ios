@@ -300,5 +300,10 @@
   "peopleAllVerified": "Todos os rostos confirmados",
   "peopleOnlyUnverified": "Só pessoas com rostos por confirmar",
   "peopleShowAll": "Mostrar todos",
-  "peopleAllNamedVerified": "Todas as pessoas com nome têm todos os rostos confirmados."
+  "peopleAllNamedVerified": "Todas as pessoas com nome têm todos os rostos confirmados.",
+  "albumScanNew": "Só o que é novo",
+  "albumScanNewHint": "As fotos deste álbum e as pastas que ainda não são álbuns. Os subálbuns existentes ficam como estão.",
+  "albumScanAll": "Tudo",
+  "albumScanAllHint": "Este álbum com todos os subálbuns, também os existentes.",
+  "albumScanNewStarted": "A analisar este álbum e as suas pastas novas."
 }

@@ -1627,5 +1627,25 @@
   "peopleAllNamedVerified": "Every named person has all their faces confirmed.",
   "@peopleAllNamedVerified": {
     "description": "Shown on the People tab when the unconfirmed filter is on and every named person has all faces confirmed."
+  },
+  "albumScanNew": "Only what is new",
+  "@albumScanNew": {
+    "description": "Scan choice: only the album's own media and its new direct sub-folders."
+  },
+  "albumScanNewHint": "The photos in this album and folders that are not albums yet. Existing sub-albums stay as they are.",
+  "@albumScanNewHint": {
+    "description": "Explanation under the \"only what is new\" scan choice."
+  },
+  "albumScanAll": "Everything",
+  "@albumScanAll": {
+    "description": "Scan choice: the album with all its sub-albums, recursively."
+  },
+  "albumScanAllHint": "This album with all its sub-albums, the existing ones too.",
+  "@albumScanAllHint": {
+    "description": "Explanation under the \"everything\" scan choice."
+  },
+  "albumScanNewStarted": "Scanning this album and its new folders.",
+  "@albumScanNewStarted": {
+    "description": "Confirmation after starting the \"only what is new\" scan of an album."
   }
 }

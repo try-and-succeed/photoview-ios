@@ -300,5 +300,10 @@
   "peopleAllVerified": "Alle Gesichter bestätigt",
   "peopleOnlyUnverified": "Nur Personen mit unbestätigten Gesichtern",
   "peopleShowAll": "Alle Personen zeigen",
-  "peopleAllNamedVerified": "Bei allen benannten Personen sind alle Gesichter bestätigt."
+  "peopleAllNamedVerified": "Bei allen benannten Personen sind alle Gesichter bestätigt.",
+  "albumScanNew": "Nur Neues",
+  "albumScanNewHint": "Die Bilder in diesem Album und Ordner, die noch kein Album sind. Vorhandene Unteralben bleiben, wie sie sind.",
+  "albumScanAll": "Alles",
+  "albumScanAllHint": "Dieses Album mit allen Unteralben, auch den vorhandenen.",
+  "albumScanNewStarted": "Dieses Album und seine neuen Ordner werden gescannt."
 }

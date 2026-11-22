@@ -300,5 +300,10 @@
   "peopleAllVerified": "Aurpegi guztiak berretsita",
   "peopleOnlyUnverified": "Berretsi gabeko aurpegiak dituzten pertsonak soilik",
   "peopleShowAll": "Erakutsi denak",
-  "peopleAllNamedVerified": "Izena duten pertsona guztien aurpegi guztiak berretsita daude."
+  "peopleAllNamedVerified": "Izena duten pertsona guztien aurpegi guztiak berretsita daude.",
+  "albumScanNew": "Berria bakarrik",
+  "albumScanNewHint": "Album honetako argazkiak eta oraindik album ez diren karpetak. Dauden azpialbumak dauden bezala geratzen dira.",
+  "albumScanAll": "Dena",
+  "albumScanAllHint": "Album hau bere azpialbum guztiekin, daudenak barne.",
+  "albumScanNewStarted": "Album hau eta bere karpeta berriak eskaneatzen."
 }

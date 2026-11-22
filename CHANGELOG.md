@@ -45,6 +45,14 @@ faces a person has confirmed. Against any other server nothing changes.
   confirmed, and a button beside the review list that keeps only the named
   people without it — those with a face still to check. Confirming faces
   updates the ticks.
+- **Scanning only what is new in an album.** On a server that knows
+  `onlyNewSubAlbums`, the scan button asks: "only what is new" reads the
+  album's own photos and takes in folders that are not albums yet — a new
+  month in a year album — without going through the sub-albums that are
+  there; "everything" scans the album with all its sub-albums, as before.
+  Against any other server the button scans everything at once, as it did.
+  The app finds out with a request the server refuses before running it, so
+  asking never starts a scan.
 - **Moving a face onto a photo the person is on already.** A move by hand is
   the user's decision, so the app sends it with the server's duplicate check
   turned off (`allowDuplicates`): a sheet of passport photos, a mirror or a

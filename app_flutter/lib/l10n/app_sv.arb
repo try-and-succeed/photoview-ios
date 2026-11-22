@@ -300,5 +300,10 @@
   "peopleAllVerified": "Alla ansikten bekräftade",
   "peopleOnlyUnverified": "Bara personer med obekräftade ansikten",
   "peopleShowAll": "Visa alla",
-  "peopleAllNamedVerified": "Alla namngivna personer har alla ansikten bekräftade."
+  "peopleAllNamedVerified": "Alla namngivna personer har alla ansikten bekräftade.",
+  "albumScanNew": "Bara det nya",
+  "albumScanNewHint": "Bilderna i det här albumet och mappar som ännu inte är album. Befintliga underalbum förblir som de är.",
+  "albumScanAll": "Allt",
+  "albumScanAllHint": "Det här albumet med alla underalbum, även de befintliga.",
+  "albumScanNewStarted": "Det här albumet och dess nya mappar skannas."
 }

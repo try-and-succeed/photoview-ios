@@ -30,6 +30,11 @@ enum Capability {
   /// and `reclassifyFaceGroups`. They arrived on the server together, so one
   /// capability stands for all of them.
   faceVerification,
+
+  /// The `onlyNewSubAlbums` argument of `scanAlbum`: the album's own media,
+  /// plus those of its direct sub-directories that are not albums yet, each
+  /// with everything below it. Existing sub-albums are left alone.
+  scanAlbumNewSubAlbums,
 }
 
 /// What is known about one capability.
@@ -93,7 +98,35 @@ const _identifyingFields = <Capability, Set<String>>{
     // no other request of the app names an argument of that name.
     'filter',
   },
+  // With the scanner's own fields: the choice sits on the scan button, which a
+  // server without the scanner does not get, and the batched probe — a query,
+  // which cannot ask about a mutation — still settles this for such a server
+  // in its one round trip.
+  Capability.scanAlbumNewSubAlbums: {
+    'scannerQueueStatus',
+    'scanAlbum',
+    'onlyNewSubAlbums',
+  },
 };
+
+/// An argument no server has, named in a probe that must never run.
+///
+/// GraphQL validates the whole document before executing any of it and
+/// reports every unknown argument at once — checked against a live instance.
+/// A probe naming this one is therefore refused at validation whatever else
+/// it asks, so it can ask about a mutation's argument without performing the
+/// mutation; and the refusal naming this argument is the proof that the
+/// server did validate the field it sits on.
+const probeSentinel = 'photoviewProbeSentinel';
+
+/// Capabilities probed with a mutation, made safe by [probeSentinel]: their
+/// evidence is a refusal that names the sentinel and nothing of theirs, since
+/// such a probe never returns data.
+const _probedByMutation = {Capability.scanAlbumNewSubAlbums};
+
+/// Whether [capability] is probed with a mutation rather than a query.
+bool probedByMutation(Capability capability) =>
+    _probedByMutation.contains(capability);
 
 /// Capabilities that a rejection of [field] rules out.
 Set<Capability> capabilitiesNamedBy(String field) => {
@@ -180,6 +213,12 @@ String singleCapabilityProbeDocument(
   Capability.faceVerification =>
     'query photoviewCapability { faceVerification: '
         'myFaceGroups(paginate: {limit: 0}) { verifiedFaceCount } }',
+  // Never runs: the sentinel fails validation, see [probeSentinel]. Album 0
+  // does not exist either, so even a server that skipped validation would
+  // only answer "not found".
+  Capability.scanAlbumNewSubAlbums =>
+    'mutation photoviewCapability { scanAlbum(albumId: "0", '
+        'onlyNewSubAlbums: true, $probeSentinel: true) { success } }',
 };
 
 /// What the server said about every capability.
@@ -225,13 +264,26 @@ Map<Capability, CapabilityState> readProbe({
   List<String> errorMessages = const [],
 }) {
   final result = <Capability, CapabilityState>{};
+  var sentinelRefused = false;
 
   for (final message in errorMessages) {
     final field = unsupportedFieldIn(message);
     if (field == null) continue;
+    if (field == probeSentinel) {
+      sentinelRefused = true;
+      continue;
+    }
 
     for (final capability in capabilitiesNamedBy(field)) {
       result[capability] = CapabilityState.unsupported;
+    }
+  }
+
+  // The sentinel refused means its field was validated, and every argument
+  // the server lacks would have been refused alongside it.
+  if (sentinelRefused) {
+    for (final capability in _probedByMutation) {
+      result.putIfAbsent(capability, () => CapabilityState.supported);
     }
   }
 
