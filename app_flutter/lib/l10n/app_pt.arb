@@ -294,5 +294,6 @@
   "reviewEmpty": "Nada para rever.",
   "peopleRecognizeConfirm": "Compara todos os rostos sem nome com as pessoas que têm nome. Um rosto parecido com uma delas é atribuído a essa pessoa e fica a aguardar revisão. As pessoas com nome mantêm os seus rostos. Numa biblioteca grande, demora algum tempo.",
   "peopleRecognizeRun": "Comparar",
-  "reviewConfirm": "Mostra todas as fotos em que um processo automático atribuiu rostos que ainda ninguém verificou. Abrir a lista não altera nada."
+  "reviewConfirm": "Mostra todas as fotos em que um processo automático atribuiu rostos que ainda ninguém verificou. Abrir a lista não altera nada.",
+  "personFilterTwice": "Várias vezes numa foto"
 }

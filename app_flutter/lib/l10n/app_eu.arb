@@ -294,5 +294,6 @@
   "reviewEmpty": "Ez dago ezer berrikusteko.",
   "peopleRecognizeConfirm": "Izenik gabeko aurpegi guztiak izena duten pertsonekin alderatzen ditu. Haietako baten antza duen aurpegia pertsona horri esleitzen zaio, eta berrikusteko zain geratzen da. Izena duten pertsonek beren aurpegiak mantentzen dituzte. Liburutegi handi batean denbora behar du.",
   "peopleRecognizeRun": "Alderatu",
-  "reviewConfirm": "Prozesu automatiko batek inork oraindik egiaztatu gabeko aurpegiak esleitu dituen argazki guztiak erakusten ditu. Zerrenda irekitzeak ez du ezer aldatzen."
+  "reviewConfirm": "Prozesu automatiko batek inork oraindik egiaztatu gabeko aurpegiak esleitu dituen argazki guztiak erakusten ditu. Zerrenda irekitzeak ez du ezer aldatzen.",
+  "personFilterTwice": "Argazki batean behin baino gehiagotan"
 }

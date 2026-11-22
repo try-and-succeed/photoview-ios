@@ -294,5 +294,6 @@
   "reviewEmpty": "Rien à vérifier.",
   "peopleRecognizeConfirm": "Compare tous les visages sans nom aux personnes qui ont un nom. Un visage qui ressemble à l’une d’elles lui est attribué et attend ensuite une vérification. Les personnes nommées gardent leurs visages. Sur une grande bibliothèque, cela prend un moment.",
   "peopleRecognizeRun": "Comparer",
-  "reviewConfirm": "Affiche toutes les photos sur lesquelles un traitement automatique a attribué des visages que personne n’a encore vérifiés. Ouvrir la liste ne modifie rien."
+  "reviewConfirm": "Affiche toutes les photos sur lesquelles un traitement automatique a attribué des visages que personne n’a encore vérifiés. Ouvrir la liste ne modifie rien.",
+  "personFilterTwice": "Plusieurs fois sur une photo"
 }

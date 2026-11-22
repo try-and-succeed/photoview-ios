@@ -294,5 +294,6 @@
   "reviewEmpty": "Nada que revisar.",
   "peopleRecognizeConfirm": "Compara todas las caras sin nombre con las personas que tienen nombre. Una cara que se parezca a una de ellas se asigna a esa persona y queda pendiente de revisión. Las personas con nombre conservan sus caras. En una biblioteca grande tarda un rato.",
   "peopleRecognizeRun": "Comparar",
-  "reviewConfirm": "Muestra todas las fotos en las que un proceso automático asignó caras que nadie ha revisado todavía. Abrir la lista no cambia nada."
+  "reviewConfirm": "Muestra todas las fotos en las que un proceso automático asignó caras que nadie ha revisado todavía. Abrir la lista no cambia nada.",
+  "personFilterTwice": "Varias veces en una foto"
 }

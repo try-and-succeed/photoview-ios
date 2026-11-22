@@ -294,5 +294,6 @@
   "reviewEmpty": "Intet at gennemse.",
   "peopleRecognizeConfirm": "Sammenligner alle unavngivne ansigter med de personer, der har et navn. Et ansigt, der ligner en af dem, placeres hos den person og venter derefter på gennemsyn. Navngivne personer beholder deres ansigter. I et stort bibliotek tager det et stykke tid.",
   "peopleRecognizeRun": "Sammenlign",
-  "reviewConfirm": "Viser alle billeder, hvor en automatisk kørsel har placeret ansigter, som ingen har kontrolleret endnu. At åbne listen ændrer intet."
+  "reviewConfirm": "Viser alle billeder, hvor en automatisk kørsel har placeret ansigter, som ingen har kontrolleret endnu. At åbne listen ændrer intet.",
+  "personFilterTwice": "Flere gange på et billede"
 }

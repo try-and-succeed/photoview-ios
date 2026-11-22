@@ -294,5 +294,6 @@
   "reviewEmpty": "Niente da controllare.",
   "peopleRecognizeConfirm": "Confronta tutti i volti senza nome con le persone che hanno un nome. Un volto che somiglia a una di esse viene assegnato a quella persona e resta in attesa di revisione. Le persone con nome mantengono i loro volti. In una libreria grande richiede un po’ di tempo.",
   "peopleRecognizeRun": "Confronta",
-  "reviewConfirm": "Mostra tutte le foto in cui un’elaborazione automatica ha assegnato volti che nessuno ha ancora controllato. Aprire l’elenco non cambia nulla."
+  "reviewConfirm": "Mostra tutte le foto in cui un’elaborazione automatica ha assegnato volti che nessuno ha ancora controllato. Aprire l’elenco non cambia nulla.",
+  "personFilterTwice": "Più volte in una foto"
 }

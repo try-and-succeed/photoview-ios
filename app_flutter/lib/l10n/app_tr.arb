@@ -294,5 +294,6 @@
   "reviewEmpty": "İncelenecek bir şey yok.",
   "peopleRecognizeConfirm": "Adsız tüm yüzleri adı olan kişilerle karşılaştırır. Bunlardan birine benzeyen yüz o kişiye atanır ve ardından incelenmeyi bekler. Adı olan kişilerin yüzleri yerinde kalır. Büyük bir kitaplıkta bu biraz zaman alır.",
   "peopleRecognizeRun": "Karşılaştır",
-  "reviewConfirm": "Otomatik bir işlemin, henüz kimsenin kontrol etmediği yüzleri atadığı tüm fotoğrafları gösterir. Listeyi açmak hiçbir şeyi değiştirmez."
+  "reviewConfirm": "Otomatik bir işlemin, henüz kimsenin kontrol etmediği yüzleri atadığı tüm fotoğrafları gösterir. Listeyi açmak hiçbir şeyi değiştirmez.",
+  "personFilterTwice": "Bir fotoğrafta birden çok kez"
 }

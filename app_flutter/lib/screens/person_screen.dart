@@ -27,13 +27,19 @@ enum PersonPhotoFilter {
   unverified,
 
   /// At least one of them waits for review after an automatic run.
-  review;
+  review,
+
+  /// More than one face on the photo is filed under this person, so at
+  /// least one of them is someone else. The server also refuses to move any
+  /// face into a person who has such a photo, so these are worth clearing up.
+  twice;
 
   bool keeps(PersonPhoto photo) => switch (this) {
     all => true,
     verified => photo.verified,
     unverified => !photo.verified,
     review => photo.needsReview,
+    twice => photo.faceIds.length > 1,
   };
 }
 
@@ -272,15 +278,14 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
     if (preview.checked == 0) {
       ScaffoldMessenger.of(context)
         ..removeCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(content: Text(l10n.personReclassifyNothing)),
-        );
+        ..showSnackBar(SnackBar(content: Text(l10n.personReclassifyNothing)));
       return;
     }
 
     final yes = await showDialog<bool>(
       context: context,
-      builder: (context) => ReclassifyPreviewDialog(result: preview, name: name),
+      builder: (context) =>
+          ReclassifyPreviewDialog(result: preview, name: name),
     );
     if (yes != true || !mounted) return;
 
@@ -580,7 +585,8 @@ extension on _PersonScreenState {
       selection: MediaSelection(selected: _selected, onToggle: _toggle),
       showFacesInGallery:
           filter == PersonPhotoFilter.unverified ||
-          filter == PersonPhotoFilter.review,
+          filter == PersonPhotoFilter.review ||
+          filter == PersonPhotoFilter.twice,
       badgeFor: withStatus
           ? (item) {
               final photo = byId[item.id];
@@ -626,6 +632,7 @@ class _FilterBar extends StatelessWidget {
       PersonPhotoFilter.verified => l10n.personFilterVerified,
       PersonPhotoFilter.unverified => l10n.personFilterUnverified,
       PersonPhotoFilter.review => l10n.personFilterReview,
+      PersonPhotoFilter.twice => l10n.personFilterTwice,
     };
 
     return SingleChildScrollView(
@@ -634,20 +641,26 @@ class _FilterBar extends StatelessWidget {
       child: Row(
         children: [
           for (final filter in PersonPhotoFilter.values)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: ChoiceChip(
-                // The number before the word, as on the people's tiles: cut
-                // short, it is the word that goes. Unlike there, a zero is
-                // shown — it is a count here, and the answer to the filter.
-                label: Text(
-                  '${NumberFormat.decimalPattern().format(photos.where(filter.keeps).length)}'
-                  ' · ${name(filter)}',
+            // Most people are never on a photo twice; for them the chip would
+            // only ever say zero. Kept while chosen, so the choice stays
+            // visible once the last such photo is cleared up.
+            if (filter != PersonPhotoFilter.twice ||
+                filter == selected ||
+                photos.any(filter.keeps))
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: ChoiceChip(
+                  // The number before the word, as on the people's tiles: cut
+                  // short, it is the word that goes. Unlike there, a zero is
+                  // shown — it is a count here, and the answer to the filter.
+                  label: Text(
+                    '${NumberFormat.decimalPattern().format(photos.where(filter.keeps).length)}'
+                    ' · ${name(filter)}',
+                  ),
+                  selected: filter == selected,
+                  onSelected: (_) => onSelected(filter),
                 ),
-                selected: filter == selected,
-                onSelected: (_) => onSelected(filter),
               ),
-            ),
         ],
       ),
     );

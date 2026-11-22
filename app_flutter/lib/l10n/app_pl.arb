@@ -294,5 +294,6 @@
   "reviewEmpty": "Nie ma nic do sprawdzenia.",
   "peopleRecognizeConfirm": "Porównuje wszystkie twarze bez nazwy z osobami, które mają nazwę. Twarz podobna do jednej z nich zostaje przypisana tej osobie i czeka na sprawdzenie. Osoby z nazwą zachowują swoje twarze. W dużej bibliotece trwa to chwilę.",
   "peopleRecognizeRun": "Porównaj",
-  "reviewConfirm": "Pokazuje wszystkie zdjęcia, na których automatyczny proces przypisał twarze, których nikt jeszcze nie sprawdził. Otwarcie listy niczego nie zmienia."
+  "reviewConfirm": "Pokazuje wszystkie zdjęcia, na których automatyczny proces przypisał twarze, których nikt jeszcze nie sprawdził. Otwarcie listy niczego nie zmienia.",
+  "personFilterTwice": "Kilka razy na jednym zdjęciu"
 }

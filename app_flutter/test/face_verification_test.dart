@@ -196,6 +196,39 @@ void main() {
       expect(find.byType(MediaThumbnail), findsNWidgets(2));
     });
 
+    testWidgets('a photo with the person on it twice has a filter of its own', (
+      tester,
+    ) async {
+      await _openPerson(tester, _VerifyClient(photos: _three));
+
+      // Photo 3 holds two of the person's faces.
+      // The bar scrolls sideways; the last chip starts out of sight.
+      await tester.ensureVisible(find.text('1 · More than once on a photo'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('1 · More than once on a photo'));
+      await tester.pumpAndSettle();
+
+      final shown = tester
+          .widgetList<MediaThumbnail>(find.byType(MediaThumbnail))
+          .map((t) => t.media[t.index].id);
+      expect(shown, ['3']);
+    });
+
+    testWidgets('nobody twice on a photo, no such filter', (tester) async {
+      await _openPerson(
+        tester,
+        _VerifyClient(
+          photos: [
+            _photo('1', ['10']),
+            _photo('2', ['20']),
+          ],
+        ),
+      );
+
+      expect(find.textContaining('More than once'), findsNothing);
+      expect(find.text('2 · All'), findsOneWidget);
+    });
+
     testWidgets('confirming ticked photos sends all of this person\'s faces '
         'on them', (tester) async {
       final client = _VerifyClient(photos: _three);
