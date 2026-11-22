@@ -37,12 +37,10 @@ faces a person has confirmed. Against any other server nothing changes.
   field, and the list keeps only the people whose name contains what is typed.
   Back or the cross closes it and shows everybody again.
 - **"More than once on a photo"**, a filter on a person's page for the photos
-  on which more than one face is filed under that person, so at least one of
-  them is someone else. Their faces are shown when such a photo is opened.
-  The filter appears only for people who have such photos. Clearing them up
-  also lifts a server refusal: as long as a person has one, the server turns
-  down moving any face to them ("the destination would contain duplicate
-  images").
+  on which more than one face is filed under that person. Often one of them
+  is someone else; on a sheet of passport photos or in a mirror, it is right.
+  Their faces are shown when such a photo is opened. The filter appears only
+  for people who have such photos.
 
 ### Changed
 

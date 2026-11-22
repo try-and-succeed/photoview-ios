@@ -1606,6 +1606,6 @@
   },
   "personFilterTwice": "More than once on a photo",
   "@personFilterTwice": {
-    "description": "Filter on a person's page: photos on which more than one face is filed under this person, so at least one is wrong. Shown after a count, as \"12 · …\"."
+    "description": "Filter on a person's page: photos on which more than one face is filed under this person - often a mistake, but right on a sheet of passport photos. Shown after a count, as \"12 · …\"."
   }
 }

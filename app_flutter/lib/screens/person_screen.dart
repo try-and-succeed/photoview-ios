@@ -29,9 +29,10 @@ enum PersonPhotoFilter {
   /// At least one of them waits for review after an automatic run.
   review,
 
-  /// More than one face on the photo is filed under this person, so at
-  /// least one of them is someone else. The server also refuses to move any
-  /// face into a person who has such a photo, so these are worth clearing up.
+  /// More than one face on the photo is filed under this person. Often one
+  /// of them is someone else, but not always: a sheet of passport photos, a
+  /// mirror or a photo of a photo really shows one person several times.
+  /// The filter only finds them; whether they are right is the user's call.
   twice;
 
   bool keeps(PersonPhoto photo) => switch (this) {
