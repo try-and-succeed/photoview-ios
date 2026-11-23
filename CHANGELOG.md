@@ -7,7 +7,7 @@ Every change raises `version:` in [`app_flutter/pubspec.yaml`](./app_flutter/pub
 — the name and the build number after the `+` — and gets an entry here. The app
 shows the running version under Settings › Info.
 
-## 1.2.0 (8) — 2026-11-23
+## 1.2.0 (9) — 2026-11-23
 
 Confirming faces and re-identifying people, for a server that knows which
 faces a person has confirmed. Against any other server nothing changes.
@@ -94,6 +94,10 @@ faces a person has confirmed. Against any other server nothing changes.
 - A face can be tapped on a zoomed photo too. The tap was placed on the
   photo with the zoom the photo view reported, which after a double tap
   still held the zoom from before; it is now mapped onto the photo as drawn.
+  And on a zoomed photo the photo view took a tap for panning as soon as the
+  finger moved a pixel, which a fingertip always does, and dropped it. The
+  gallery now tells taps apart itself, from the finger's own movements: one
+  finger, moved less than the usual touch slop, not followed by a second tap.
 
 ## 1.1.1 (3) — 2026-11-21
 

@@ -16,6 +16,7 @@ import '../l10n/error_messages.dart';
 import '../state/auth.dart';
 import '../state/library.dart';
 import '../state/slideshow.dart';
+import 'gallery_tap_detector.dart';
 import 'media_details_sheet.dart';
 import 'photo_faces.dart';
 
@@ -207,14 +208,21 @@ class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
   /// view claims every tap on the photo — a frame never got one. The tap is
   /// mapped onto the photo's own box, as drawn, so it finds the face under
   /// the finger at any zoom.
-  void _onPhotoTap(int index, MediaItem item, TapUpDetails details) {
+  ///
+  /// Taps come from [GalleryTapDetector], not from the photo view, which
+  /// loses them on a zoomed photo. A video page keeps its own taps.
+  void _onPhotoTap(Offset global) {
+    final index = _index;
+    final item = widget.media[index];
+    if (item.type == MediaType.video) return;
+
     final faces = _showFaces
         ? ref.read(mediaFacesProvider(item.id)).valueOrNull
         : null;
     final photo = _photoKeys[index]?.currentContext?.findRenderObject();
 
     if (faces != null && faces.isNotEmpty && photo is RenderBox) {
-      final point = photoPointAt(photo, details.globalPosition);
+      final point = photoPointAt(photo, global);
       final face = point == null ? null : faceAt(faces, point);
       if (face != null) {
         assignPhotoFace(context, ref, face);
@@ -347,70 +355,69 @@ class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
       ),
       body: session == null
           ? const SizedBox.shrink()
-          : PhotoViewGallery.builder(
-              pageController: _controller,
-              itemCount: widget.media.length,
-              backgroundDecoration: const BoxDecoration(color: Colors.black),
-              onPageChanged: (index) {
-                setState(() => _index = index);
-                widget.onIndexChanged?.call(index);
-              },
-              builder: (context, index) {
-                final item = widget.media[index];
-
-                if (item.type == MediaType.video) {
-                  return PhotoViewGalleryPageOptions.customChild(
-                    child: _VideoPage(mediaId: item.id),
-                    minScale: PhotoViewComputedScale.contained,
-                    maxScale: PhotoViewComputedScale.contained,
-                  );
-                }
-
-                final thumbnail = item.thumbnail;
-                if (thumbnail == null ||
-                    thumbnail.url.isEmpty ||
-                    thumbnail.width <= 0 ||
-                    thumbnail.height <= 0) {
-                  return PhotoViewGalleryPageOptions.customChild(
-                    child: const Center(
-                      child: Icon(
-                        Icons.broken_image_outlined,
-                        color: Colors.white38,
-                        size: 48,
-                      ),
-                    ),
-                    minScale: PhotoViewComputedScale.contained,
-                    maxScale: PhotoViewComputedScale.contained,
-                    onTapUp: (_, _, _) => _toggleControls(),
-                  );
-                }
-
-                // A custom child rather than an image provider, so the page
-                // can show the thumbnail at once and fade the full image in
-                // over it. Only the aspect ratio of childSize matters: zoom
-                // scales the canvas, and the full image is drawn from its own
-                // pixels at whatever scale that is.
-                return PhotoViewGalleryPageOptions.customChild(
-                  child: _PhotoPage(
-                    key: _photoKeys.putIfAbsent(index, GlobalKey.new),
-                    item: item,
-                    session: session,
-                    showFaces: _showFaces,
-                  ),
-                  childSize: Size(
-                    thumbnail.width.toDouble(),
-                    thumbnail.height.toDouble(),
-                  ),
-                  heroAttributes: PhotoViewHeroAttributes(tag: item.id),
-                  minScale: PhotoViewComputedScale.contained,
-                  maxScale: PhotoViewComputedScale.covered * 4,
-                  onTapUp: (_, details, _) =>
-                      _onPhotoTap(index, item, details),
-                );
-              },
-            ),
+          : GalleryTapDetector(onTap: _onPhotoTap, child: _gallery(session)),
     );
   }
+
+  Widget _gallery(Session session) => PhotoViewGallery.builder(
+    pageController: _controller,
+    itemCount: widget.media.length,
+    backgroundDecoration: const BoxDecoration(color: Colors.black),
+    onPageChanged: (index) {
+      setState(() => _index = index);
+      widget.onIndexChanged?.call(index);
+    },
+    builder: (context, index) {
+      final item = widget.media[index];
+
+      if (item.type == MediaType.video) {
+        return PhotoViewGalleryPageOptions.customChild(
+          child: _VideoPage(mediaId: item.id),
+          minScale: PhotoViewComputedScale.contained,
+          maxScale: PhotoViewComputedScale.contained,
+        );
+      }
+
+      final thumbnail = item.thumbnail;
+      if (thumbnail == null ||
+          thumbnail.url.isEmpty ||
+          thumbnail.width <= 0 ||
+          thumbnail.height <= 0) {
+        return PhotoViewGalleryPageOptions.customChild(
+          child: const Center(
+            child: Icon(
+              Icons.broken_image_outlined,
+              color: Colors.white38,
+              size: 48,
+            ),
+          ),
+          minScale: PhotoViewComputedScale.contained,
+          maxScale: PhotoViewComputedScale.contained,
+        );
+      }
+
+      // A custom child rather than an image provider, so the page
+      // can show the thumbnail at once and fade the full image in
+      // over it. Only the aspect ratio of childSize matters: zoom
+      // scales the canvas, and the full image is drawn from its own
+      // pixels at whatever scale that is.
+      return PhotoViewGalleryPageOptions.customChild(
+        child: _PhotoPage(
+          key: _photoKeys.putIfAbsent(index, GlobalKey.new),
+          item: item,
+          session: session,
+          showFaces: _showFaces,
+        ),
+        childSize: Size(
+          thumbnail.width.toDouble(),
+          thumbnail.height.toDouble(),
+        ),
+        heroAttributes: PhotoViewHeroAttributes(tag: item.id),
+        minScale: PhotoViewComputedScale.contained,
+        maxScale: PhotoViewComputedScale.covered * 4,
+      );
+    },
+  );
 }
 
 /// Longest side, in pixels, a full image is decoded at.
