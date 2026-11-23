@@ -7,7 +7,7 @@ Every change raises `version:` in [`app_flutter/pubspec.yaml`](./app_flutter/pub
 — the name and the build number after the `+` — and gets an entry here. The app
 shows the running version under Settings › Info.
 
-## 1.2.0 (6) — 2026-11-23
+## 1.2.0 (7) — 2026-11-23
 
 Confirming faces and re-identifying people, for a server that knows which
 faces a person has confirmed. Against any other server nothing changes.
@@ -87,6 +87,9 @@ faces a person has confirmed. Against any other server nothing changes.
 - The frames around faces no longer darken the face inside them. Their
   shadow, there to keep a frame visible on a bright photo, was also painted
   within the frame; it now falls only outside.
+- A face can be tapped on a zoomed photo too. The tap was placed on the
+  photo with the zoom the photo view reported, which after a double tap
+  still held the zoom from before; it is now mapped onto the photo as drawn.
 
 ## 1.1.1 (3) — 2026-11-21
 

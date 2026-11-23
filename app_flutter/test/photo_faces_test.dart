@@ -247,50 +247,64 @@ void main() {
   });
 
   group('photoPointAt', () {
-    // A photo of 1000 x 500 in a 400 x 800 view: fitted whole it is shown at
-    // 0.4, as 400 x 200, centred — from y 300 to y 500.
-    const child = Size(1000, 500);
-    const viewport = Size(400, 800);
+    // A photo box of 200 x 100, drawn the way the photo view draws it: at
+    // its own size, centred, then scaled about its centre and shifted.
+    final photo = GlobalKey();
 
-    test('maps a tap on the fitted photo to its place on the photo', () {
-      final point = photoPointAt(
-        tap: const Offset(100, 350),
-        viewport: viewport,
-        childSize: child,
-        scale: null,
-        position: Offset.zero,
-      )!;
+    Future<RenderBox> pumpPhoto(
+      WidgetTester tester, {
+      double scale = 1,
+      Offset shift = Offset.zero,
+    }) async {
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: Center(
+            child: Transform(
+              alignment: Alignment.center,
+              transform: Matrix4.identity()
+                ..translateByDouble(shift.dx, shift.dy, 0, 1)
+                ..scaleByDouble(scale, scale, 1, 1),
+              child: SizedBox(key: photo, width: 200, height: 100),
+            ),
+          ),
+        ),
+      );
+      return photo.currentContext!.findRenderObject()! as RenderBox;
+    }
+
+    /// The point on screen where the photo's own (x, y) part is drawn.
+    Offset onScreen(RenderBox box, double x, double y) =>
+        box.localToGlobal(Offset(x * box.size.width, y * box.size.height));
+
+    testWidgets('maps a tap on the photo to its place on the photo', (
+      tester,
+    ) async {
+      final box = await pumpPhoto(tester);
+      final point = photoPointAt(box, onScreen(box, 0.25, 0.75))!;
 
       expect(point.dx, closeTo(0.25, 1e-9));
-      expect(point.dy, closeTo(0.25, 1e-9));
+      expect(point.dy, closeTo(0.75, 1e-9));
     });
 
-    test('follows the zoom and the shift', () {
-      // Zoomed to 0.8 the photo is 800 x 400, centred, then moved 100 left:
-      // its left edge at -300, its top at 200.
-      final point = photoPointAt(
-        tap: const Offset(100, 400),
-        viewport: viewport,
-        childSize: child,
-        scale: 0.8,
-        position: const Offset(-100, 0),
-      )!;
+    testWidgets('follows the zoom and the shift', (tester) async {
+      final box = await pumpPhoto(
+        tester,
+        scale: 3,
+        shift: const Offset(-120, 40),
+      );
+      // Worked out by hand: the screen is 800 x 600, so the box's centre is
+      // drawn at (400 - 120, 300 + 40); its (0.25, 0.5) lies 50 to the left
+      // of that before zooming, 150 after.
+      final point = photoPointAt(box, const Offset(280 - 150, 340))!;
 
-      expect(point.dx, closeTo(0.5, 1e-9));
+      expect(point.dx, closeTo(0.25, 1e-9));
       expect(point.dy, closeTo(0.5, 1e-9));
     });
 
-    test('a tap beside the photo is on no part of it', () {
-      expect(
-        photoPointAt(
-          tap: const Offset(200, 100),
-          viewport: viewport,
-          childSize: child,
-          scale: null,
-          position: Offset.zero,
-        ),
-        isNull,
-      );
+    testWidgets('a tap beside the photo is on no part of it', (tester) async {
+      final box = await pumpPhoto(tester, scale: 2);
+      expect(photoPointAt(box, const Offset(10, 10)), isNull);
     });
   });
 

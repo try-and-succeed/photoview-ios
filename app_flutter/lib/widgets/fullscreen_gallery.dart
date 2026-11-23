@@ -100,6 +100,9 @@ class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
   /// does not have to switch it on again on each one.
   late bool _showFaces = widget.showFaces;
 
+  /// The box each page's photo is drawn in, by index, to map a tap onto it.
+  final _photoKeys = <int, GlobalKey>{};
+
   /// Read afresh in `build`, so a change made in the settings takes hold on
   /// the next picture instead of only on the next slideshow.
   Duration _interval = const Duration(seconds: defaultSlideshowSeconds);
@@ -201,29 +204,17 @@ class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
   /// anywhere else it shows or hides the controls as it always has.
   ///
   /// Worked out here rather than by the frames themselves, because the photo
-  /// view claims every tap on the photo — a frame never got one. The view
-  /// reports where the tap landed and how the photo is zoomed and shifted,
-  /// which is enough to say which face was under the finger.
-  void _onPhotoTap(
-    BuildContext pageContext,
-    MediaItem item,
-    Size childSize,
-    TapUpDetails details,
-    PhotoViewControllerValue value,
-  ) {
+  /// view claims every tap on the photo — a frame never got one. The tap is
+  /// mapped onto the photo's own box, as drawn, so it finds the face under
+  /// the finger at any zoom.
+  void _onPhotoTap(int index, MediaItem item, TapUpDetails details) {
     final faces = _showFaces
         ? ref.read(mediaFacesProvider(item.id)).valueOrNull
         : null;
-    final viewport = pageContext.size;
+    final photo = _photoKeys[index]?.currentContext?.findRenderObject();
 
-    if (faces != null && faces.isNotEmpty && viewport != null) {
-      final point = photoPointAt(
-        tap: details.localPosition,
-        viewport: viewport,
-        childSize: childSize,
-        scale: value.scale,
-        position: value.position,
-      );
+    if (faces != null && faces.isNotEmpty && photo is RenderBox) {
+      final point = photoPointAt(photo, details.globalPosition);
       final face = point == null ? null : faceAt(faces, point);
       if (face != null) {
         assignPhotoFace(context, ref, face);
@@ -401,6 +392,7 @@ class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
                 // pixels at whatever scale that is.
                 return PhotoViewGalleryPageOptions.customChild(
                   child: _PhotoPage(
+                    key: _photoKeys.putIfAbsent(index, GlobalKey.new),
                     item: item,
                     session: session,
                     showFaces: _showFaces,
@@ -412,16 +404,8 @@ class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
                   heroAttributes: PhotoViewHeroAttributes(tag: item.id),
                   minScale: PhotoViewComputedScale.contained,
                   maxScale: PhotoViewComputedScale.covered * 4,
-                  onTapUp: (context, details, value) => _onPhotoTap(
-                    context,
-                    item,
-                    Size(
-                      thumbnail.width.toDouble(),
-                      thumbnail.height.toDouble(),
-                    ),
-                    details,
-                    value,
-                  ),
+                  onTapUp: (_, details, _) =>
+                      _onPhotoTap(index, item, details),
                 );
               },
             ),
@@ -467,6 +451,7 @@ class _PhotoPage extends ConsumerWidget {
   final bool showFaces;
 
   const _PhotoPage({
+    super.key,
     required this.item,
     required this.session,
     this.showFaces = false,

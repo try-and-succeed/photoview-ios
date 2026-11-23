@@ -458,31 +458,21 @@ Future<void> assignPhotoFace(
   );
 }
 
-/// Where on the photo, in parts of its width and height, a tap on the photo
-/// view landed — or null when it landed beside the photo.
+/// Where on the photo, in parts of its width and height, a tap at [global]
+/// landed — or null when it landed beside the photo.
 ///
-/// The photo view draws the photo at [childSize] times [scale], centred in
-/// [viewport] and then shifted by [position]; this undoes that. A null
-/// [scale] is the view's own before the first zoom: the photo fitted whole.
-Offset? photoPointAt({
-  required Offset tap,
-  required Size viewport,
-  required Size childSize,
-  required double? scale,
-  required Offset position,
-}) {
-  if (childSize.isEmpty || viewport.isEmpty) return null;
-  final shown =
-      scale ??
-      (viewport.width / childSize.width < viewport.height / childSize.height
-          ? viewport.width / childSize.width
-          : viewport.height / childSize.height);
-  if (shown <= 0) return null;
-
-  final centre = viewport.center(Offset.zero) + position;
-  final local = (tap - centre) / shown;
-  final x = local.dx / childSize.width + 0.5;
-  final y = local.dy / childSize.height + 0.5;
+/// [photo] is the box the photo is drawn in, at whatever zoom and shift the
+/// photo view gives it. Flutter maps the tap back through that transform
+/// itself. The zoom the photo view reports with a tap cannot be trusted for
+/// that: after a double tap it still holds the scale from before, or none,
+/// so a tap on a zoomed photo was taken for a tap on the photo fitted whole
+/// and found no face.
+Offset? photoPointAt(RenderBox photo, Offset global) {
+  final size = photo.size;
+  if (size.isEmpty) return null;
+  final local = photo.globalToLocal(global);
+  final x = local.dx / size.width;
+  final y = local.dy / size.height;
   if (x < 0 || x > 1 || y < 0 || y > 1) return null;
   return Offset(x, y);
 }
