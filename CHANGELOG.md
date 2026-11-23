@@ -7,12 +7,13 @@ Every change raises `version:` in [`app_flutter/pubspec.yaml`](./app_flutter/pub
 — the name and the build number after the `+` — and gets an entry here. The app
 shows the running version under Settings › Info.
 
-## 1.4.0 (13) — 2026-11-23
+## 1.4.0 (14) — 2026-11-23
 
 ### Added
 
-- **Photos as a list with their file names.** A button in the timeline and in
-  every album switches between tiles and a list: one row per photo, with a
+- **Photos as a list with their file names.** A button in the timeline, in
+  every album, on a person's page, on the review list and on a place's photos
+  switches between tiles and a list: one row per photo, with a
   small thumbnail and the whole file name beside it, wrapped onto as many
   lines as it needs instead of being cut off. Long names break after `_`, `-`
   and `.` rather than mid-number. The choice applies to every list of photos —

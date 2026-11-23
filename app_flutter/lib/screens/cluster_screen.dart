@@ -64,6 +64,7 @@ class _ClusterScreenState extends ConsumerState<ClusterScreen> {
         title: Text(
           _locationName ?? AppLocalizations.of(context).clusterTitleFallback,
         ),
+        actions: const [MediaLayoutButton()],
       ),
       body: media.when(
         loading: () => const Center(child: CircularProgressIndicator()),

@@ -24,7 +24,10 @@ class ReviewScreen extends ConsumerWidget {
     final review = ref.watch(reviewMediaProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.reviewTitle)),
+      appBar: AppBar(
+        title: Text(l10n.reviewTitle),
+        actions: const [MediaLayoutButton()],
+      ),
       body: RefreshIndicator(
         // Awaited, so the spinner stays until the answer is in.
         onRefresh: () => ref.refresh(reviewMediaProvider.future),

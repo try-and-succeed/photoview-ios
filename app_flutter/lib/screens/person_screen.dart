@@ -510,6 +510,7 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
                   if (_busy)
                     const _BusyIndicator()
                   else ...[
+                    const MediaLayoutButton(),
                     IconButton(
                       icon: const Icon(Icons.edit_outlined),
                       tooltip: l10n.personName,
