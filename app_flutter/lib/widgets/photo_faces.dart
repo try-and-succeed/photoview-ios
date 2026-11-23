@@ -190,12 +190,16 @@ Color faceStatusColor(PhotoFace face) {
   return Colors.white;
 }
 
-/// "Everyone on this photo is right": confirms every face on it, or takes
-/// the confirmation back once they all are.
+/// "Everyone named on this photo is right": confirms the faces filed under a
+/// name, or takes that back once they all are.
+///
+/// The unnamed are not confirmed by it — see [FaceActions.verifyPhoto] —
+/// only marked as looked at where they wait for review. A face of someone
+/// unknown is kept as a person of their own one at a time, by tapping it.
 ///
 /// Only there while the faces are shown, on a server that knows about
-/// confirming, and on a photo with faces — confirming what is not seen, or
-/// nobody, would mean nothing.
+/// confirming, and on a photo with something to confirm or take back —
+/// confirming what is not seen, or nobody, would mean nothing.
 class VerifyPhotoFacesButton extends ConsumerStatefulWidget {
   final String mediaId;
 
@@ -212,7 +216,15 @@ class _VerifyPhotoFacesButtonState
 
   /// Sends one decision. Separate from the button so a retry repeats the
   /// sending alone, for the photo and account it was meant for.
-  Future<void> _send(String mediaId, bool verified, String? owner) async {
+  ///
+  /// Confirming sends [named] and [unnamedToReview]; taking back sends
+  /// [named] alone, so it never undoes an unnamed face kept on purpose.
+  Future<void> _send({
+    required List<String> named,
+    required List<String> unnamedToReview,
+    required bool verified,
+    required String? owner,
+  }) async {
     final l10n = AppLocalizations.of(context);
     // Taken now: the messenger outlives the gallery, so the answer still
     // arrives when it was closed while the request ran.
@@ -224,9 +236,15 @@ class _VerifyPhotoFacesButtonState
     setState(() => _busy = true);
     try {
       ensureStillSignedIn(ref, owner);
-      await ref
-          .read(faceActionsProvider)
-          .verifyMedia([mediaId], verified: verified);
+      final actions = ref.read(faceActionsProvider);
+      if (verified) {
+        await actions.verifyPhoto(
+          named: named,
+          unnamedToReview: unnamedToReview,
+        );
+      } else {
+        await actions.verifyFaces(named, verified: false);
+      }
       say(verified ? l10n.galleryFacesVerified : l10n.galleryFacesUnverified);
     } catch (error) {
       if (!mounted) {
@@ -237,7 +255,12 @@ class _VerifyPhotoFacesButtonState
           ref,
           error: error,
           message: l10n.galleryFacesVerifyFailed,
-          retry: () => _send(mediaId, verified, owner),
+          retry: () => _send(
+            named: named,
+            unnamedToReview: unnamedToReview,
+            verified: verified,
+            owner: owner,
+          ),
         );
       }
     } finally {
@@ -251,7 +274,21 @@ class _VerifyPhotoFacesButtonState
       return const SizedBox.shrink();
     }
     final faces = ref.watch(mediaFacesProvider(widget.mediaId)).valueOrNull;
-    if (faces == null || faces.isEmpty) return const SizedBox.shrink();
+    if (faces == null) return const SizedBox.shrink();
+
+    final named = [
+      for (final face in faces)
+        if (faceGroupIsNamed(face.group)) face,
+    ];
+    final unnamedToReview = [
+      for (final face in faces)
+        if (!faceGroupIsNamed(face.group) && face.needsReview) face.id,
+    ];
+    // Nothing to confirm and nothing to take back: only unknown faces,
+    // none of them waiting.
+    if (named.isEmpty && unnamedToReview.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
     if (_busy) {
       return const Padding(
@@ -270,14 +307,21 @@ class _VerifyPhotoFacesButtonState
     }
 
     final l10n = AppLocalizations.of(context);
-    final allVerified = faces.every((face) => face.verified);
+    // Done once every named face is confirmed and no unknown one waits for
+    // review; unknown faces left unconfirmed do not keep it open.
+    final done =
+        named.every((face) => face.verified) && unnamedToReview.isEmpty;
 
     return IconButton(
-      icon: Icon(allVerified ? Icons.verified : Icons.verified_outlined),
-      tooltip: allVerified ? l10n.galleryFacesUnverify : l10n.galleryFacesVerify,
-      isSelected: allVerified,
-      onPressed: () =>
-          _send(widget.mediaId, !allVerified, signedInAccount(ref)),
+      icon: Icon(done ? Icons.verified : Icons.verified_outlined),
+      tooltip: done ? l10n.galleryFacesUnverify : l10n.galleryFacesVerify,
+      isSelected: done,
+      onPressed: () => _send(
+        named: [for (final face in named) face.id],
+        unnamedToReview: unnamedToReview,
+        verified: !done,
+        owner: signedInAccount(ref),
+      ),
     );
   }
 }
@@ -353,6 +397,10 @@ List<Rect> placeLabels({
 
 /// Files [face] under someone else, a new person, or nobody — the same dialog
 /// and question as on a person's own screen.
+///
+/// A face without a name can also be kept as a person of their own there, or
+/// no longer, on a server that knows about confirming: see
+/// [FaceActions.verifyPhoto] for what that means to the server.
 Future<void> assignPhotoFace(
   BuildContext context,
   WidgetRef ref,
@@ -402,6 +450,11 @@ Future<void> assignPhotoFace(
     faceIds: [face.id],
     count: 1,
     title: l10n.galleryFaceAssignPick,
+    keptOnItsOwn:
+        !faceGroupIsNamed(face.group) &&
+            ref.read(hasCapabilityProvider(Capability.faceVerification))
+        ? face.verified
+        : null,
   );
 }
 

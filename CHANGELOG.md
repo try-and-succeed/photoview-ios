@@ -7,7 +7,7 @@ Every change raises `version:` in [`app_flutter/pubspec.yaml`](./app_flutter/pub
 — the name and the build number after the `+` — and gets an entry here. The app
 shows the running version under Settings › Info.
 
-## 1.2.0 (5) — 2026-11-23
+## 1.2.0 (6) — 2026-11-23
 
 Confirming faces and re-identifying people, for a server that knows which
 faces a person has confirmed. Against any other server nothing changes.
@@ -15,11 +15,19 @@ faces a person has confirmed. Against any other server nothing changes.
 ### Added
 
 - **Confirming faces.** With the faces shown on a photo, a new button says
-  "everyone on this photo is right" and confirms every face on it; pressed
-  again once all are confirmed, it takes that back. Confirmed faces are framed
-  green and their names carry a ✓, faces an automatic run placed and nobody has
-  checked are framed amber. A face filed under someone else by hand counts as
-  confirmed by itself.
+  "everyone named on this photo is right" and confirms every face filed under
+  a name; pressed again once all are confirmed, it takes that back. Faces
+  without a name stay unconfirmed: to the server, a confirmed face without a
+  name is someone of their own, never moved by a run again and pulling
+  similar faces in — not knowing a face says neither. Where such a face waits
+  for review, the button only marks it as looked at. Confirmed faces are
+  framed green and their names carry a ✓, faces an automatic run placed and
+  nobody has checked are framed amber. A face filed under someone else by hand
+  counts as confirmed by itself.
+- **Keeping an unknown face as a person of their own.** Tapping a face
+  without a name offers to confirm it without naming it, so that the next
+  matching run gathers similar faces to it and the person can be named later.
+  The same entry takes it back.
 - **Filters on a person's page:** all, confirmed, unconfirmed and to review,
   each with its count, and a mark on each tile that is confirmed or waits for
   review. Photos opened from the unconfirmed or review filter show their faces

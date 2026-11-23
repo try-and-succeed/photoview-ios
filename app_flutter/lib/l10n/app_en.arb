@@ -1374,9 +1374,9 @@
       }
     }
   },
-  "galleryFacesVerify": "Everyone on this photo is right",
+  "galleryFacesVerify": "Everyone named on this photo is right",
   "@galleryFacesVerify": {
-    "description": "Gallery button: confirms every face on the photo is filed under the right person."
+    "description": "Gallery button: confirms every face on the photo that is filed under a named person. Faces without a name are left unconfirmed."
   },
   "galleryFacesUnverify": "Take back the confirmation",
   "@galleryFacesUnverify": {
@@ -1399,6 +1399,26 @@
         "example": "Network unreachable"
       }
     }
+  },
+  "galleryFaceKeep": "Keep as a person of their own",
+  "@galleryFaceKeep": {
+    "description": "Entry in the dialog for a tapped face without a name: confirms it without naming it, so the server treats it as someone of their own whom similar faces can join."
+  },
+  "galleryFaceKeepHint": "Confirm this face without a name, so that similar faces can join it",
+  "@galleryFaceKeepHint": {
+    "description": "Line under galleryFaceKeep, saying what it does."
+  },
+  "galleryFaceUnkeep": "No longer keep as a person of their own",
+  "@galleryFaceUnkeep": {
+    "description": "Entry in the dialog for a tapped face without a name that is confirmed already: takes that confirmation back."
+  },
+  "galleryFaceUnkeepHint": "Take back the confirmation of this face",
+  "@galleryFaceUnkeepHint": {
+    "description": "Line under galleryFaceUnkeep, saying what it does."
+  },
+  "galleryFaceKept": "Face kept as a person of their own",
+  "@galleryFaceKept": {
+    "description": "Message after keeping a face without a name as a person of their own."
   },
   "personFacesVerify": "Confirm",
   "@personFacesVerify": {

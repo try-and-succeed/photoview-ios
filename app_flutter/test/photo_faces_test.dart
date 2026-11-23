@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:photoview/api/capabilities.dart';
 import 'package:photoview/api/client.dart';
 import 'package:photoview/api/models.dart';
 import 'package:photoview/api/session.dart';
 import 'package:photoview/state/auth.dart';
+import 'package:photoview/state/capabilities.dart';
 import 'package:photoview/widgets/photo_faces.dart';
 
 import 'support/localized_app.dart';
@@ -83,6 +85,17 @@ class _FacesClient extends PhotoviewClient {
   @override
   Future<String?> detachImageFaces(List<String> imageFaceIds) async => '42';
 
+  final verifies = <({List<String> faces, bool verified})>[];
+
+  @override
+  Future<int> setImageFacesVerified(
+    List<String> imageFaceIds, {
+    required bool verified,
+  }) async {
+    verifies.add((faces: imageFaceIds, verified: verified));
+    return imageFaceIds.length;
+  }
+
   /// Holds the naming open, so the gallery can be closed while it runs.
   Completer<void>? holdRename;
 
@@ -107,12 +120,22 @@ Future<void> _pump(
 
   /// The style text inherits there, as the app's theme sets one.
   TextStyle inherited = const TextStyle(),
+
+  /// Whether the server knows about confirming faces.
+  bool confirming = false,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
         authProvider.overrideWith(_FixedAuth.new),
         clientProvider.overrideWithValue(client),
+        serverCapabilitiesProvider.overrideWith(
+          (ref) async => ServerCapabilities({
+            Capability.faceVerification: confirming
+                ? CapabilityState.supported
+                : CapabilityState.unsupported,
+          }),
+        ),
       ],
       child: localizedApp(
         home: Scaffold(
@@ -631,9 +654,16 @@ void main() {
     // The gallery goes; the app around it, and its messenger, stay.
     await tester.pumpWidget(
       ProviderScope(
+        // The same overrides as before: the scope stays, and Riverpod does
+        // not take a changed list of them.
         overrides: [
           authProvider.overrideWith(_FixedAuth.new),
           clientProvider.overrideWithValue(client),
+          serverCapabilitiesProvider.overrideWith(
+            (ref) async => ServerCapabilities({
+              Capability.faceVerification: CapabilityState.unsupported,
+            }),
+          ),
         ],
         child: localizedApp(
           home: const Scaffold(body: Center(child: Text('gone'))),
@@ -669,6 +699,61 @@ void main() {
       find.descendant(of: list, matching: find.text('Anna')),
       findsOneWidget,
     );
+  });
+
+  group('keeping a face as a person of their own', () {
+    testWidgets('an unnamed face is kept at once, without a question', (
+      tester,
+    ) async {
+      final client = _FacesClient([_regina, _stranger]);
+      await _pump(tester, client, confirming: true);
+
+      await tester.tap(find.text('assign 101'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Keep as a person of their own'));
+      await tester.pumpAndSettle();
+
+      expect(client.verifies.single.faces, ['101']);
+      expect(client.verifies.single.verified, isTrue);
+      expect(client.moves, isEmpty);
+      expect(find.text('Face kept as a person of their own'), findsOneWidget);
+    });
+
+    testWidgets('a kept one can be let go again', (tester) async {
+      final client = _FacesClient([
+        const PhotoFace(
+          id: '101',
+          rectangle: FaceRectangle(minX: 0.6, maxX: 0.8, minY: 0.2, maxY: 0.5),
+          group: FaceGroup(id: '8', imageFaceCount: 3),
+          verified: true,
+        ),
+      ]);
+      await _pump(tester, client, confirming: true);
+
+      await tester.tap(find.text('assign 101'));
+      await tester.pumpAndSettle();
+      expect(find.text('Keep as a person of their own'), findsNothing);
+      await tester.tap(find.text('No longer keep as a person of their own'));
+      await tester.pumpAndSettle();
+
+      expect(client.verifies.single.faces, ['101']);
+      expect(client.verifies.single.verified, isFalse);
+      expect(find.text('Confirmation taken back'), findsOneWidget);
+    });
+
+    testWidgets('not offered for a named face', (tester) async {
+      await _pump(tester, _FacesClient([_regina, _stranger]), confirming: true);
+      await tester.tap(find.text('assign 100'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('person of their own'), findsNothing);
+    });
+
+    testWidgets('not offered without the capability', (tester) async {
+      await _pump(tester, _FacesClient([_regina, _stranger]));
+      await tester.tap(find.text('assign 101'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('person of their own'), findsNothing);
+    });
   });
 
   testWidgets('after a move the names are asked for again', (tester) async {

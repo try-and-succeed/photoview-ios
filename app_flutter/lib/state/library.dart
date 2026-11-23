@@ -527,27 +527,44 @@ class FaceActions {
     return stored;
   }
 
-  /// Confirms every face on [mediaIds] — "everyone on here is right" — or
-  /// takes the confirmation back. Returns how many faces changed.
+  /// "Everyone named on this photo is right": confirms [named], and marks
+  /// [unnamedToReview] as looked at without confirming them.
   ///
   /// Nothing moves; what changes is how the faces are drawn, which photos a
   /// person's filters hold, the review list, and which people carry the mark
   /// of being confirmed throughout.
-  Future<int> verifyMedia(
-    List<String> mediaIds, {
-    required bool verified,
+  ///
+  /// The unnamed are left unconfirmed on purpose. To the server, a confirmed
+  /// face without a name is someone of their own: it is never moved by a run
+  /// again, and it pulls similar faces in. Not knowing a face says neither.
+  /// But the server clears the review flag only on confirming, so those
+  /// faces are confirmed and at once taken back — which leaves the flag
+  /// cleared. Two requests; if the second fails, the error says so and a
+  /// retry sends both again, which changes nothing that is right already.
+  Future<void> verifyPhoto({
+    required List<String> named,
+    required List<String> unnamedToReview,
   }) async {
-    if (mediaIds.isEmpty) return 0;
-    final changed = await _ref.requireClient.setMediaFacesVerified(
-      mediaIds,
-      verified: verified,
-    );
-    _statusChanged();
-    return changed;
+    if (named.isEmpty && unnamedToReview.isEmpty) return;
+    final client = _ref.requireClient;
+    try {
+      await client.setImageFacesVerified([
+        ...named,
+        ...unnamedToReview,
+      ], verified: true);
+      if (unnamedToReview.isNotEmpty) {
+        await client.setImageFacesVerified(unnamedToReview, verified: false);
+      }
+    } finally {
+      // Also after a failure halfway: the first request may have changed
+      // the faces already.
+      _statusChanged();
+    }
   }
 
   /// Confirms [imageFaceIds], or takes the confirmation back — one person's
-  /// faces on the ticked photos, not the other people on them.
+  /// faces on the ticked photos, not the other people on them; the named on
+  /// a photo; or one unnamed face kept as someone of their own.
   Future<int> verifyFaces(
     List<String> imageFaceIds, {
     required bool verified,

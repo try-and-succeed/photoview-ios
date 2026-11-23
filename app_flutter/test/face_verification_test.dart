@@ -406,26 +406,82 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('confirms every face on the photo', (tester) async {
-      final client = _VerifyClient(faces: [unconfirmed, confirmed]);
+    // Someone without a name: one waiting for review, one not.
+    const strangerToReview = PhotoFace(
+      id: '102',
+      rectangle: FaceRectangle(minX: 0.1, maxX: 0.3, minY: 0.6, maxY: 0.9),
+      group: FaceGroup(id: '20'),
+      needsReview: true,
+    );
+    const stranger = PhotoFace(
+      id: '103',
+      rectangle: FaceRectangle(minX: 0.6, maxX: 0.8, minY: 0.6, maxY: 0.9),
+      group: FaceGroup(id: '21'),
+    );
+
+    testWidgets('confirms the named faces, and not the unnamed', (
+      tester,
+    ) async {
+      final client = _VerifyClient(faces: [unconfirmed, confirmed, stranger]);
       await pumpButton(tester, client);
 
-      await tester.tap(find.byTooltip('Everyone on this photo is right'));
+      await tester.tap(find.byTooltip('Everyone named on this photo is right'));
       await tester.pumpAndSettle();
 
-      expect(client.mediaVerifies.single.ids, ['55']);
-      expect(client.mediaVerifies.single.verified, isTrue);
+      expect(client.mediaVerifies, isEmpty);
+      expect(client.faceVerifies, hasLength(1));
+      expect(client.faceVerifies.single.ids, ['100', '101']);
+      expect(client.faceVerifies.single.verified, isTrue);
       expect(find.text('Faces on this photo confirmed'), findsOneWidget);
     });
 
-    testWidgets('takes it back once every face is confirmed', (tester) async {
-      final client = _VerifyClient(faces: [confirmed]);
+    testWidgets('marks an unnamed face waiting for review as looked at, '
+        'leaving it unconfirmed', (tester) async {
+      final client = _VerifyClient(faces: [unconfirmed, strangerToReview]);
+      await pumpButton(tester, client);
+
+      await tester.tap(find.byTooltip('Everyone named on this photo is right'));
+      await tester.pumpAndSettle();
+
+      // Confirming clears the flag on the server; taking it back at once
+      // leaves the stranger unconfirmed with the flag gone.
+      expect(
+        [for (final v in client.faceVerifies) (v.ids.join(','), v.verified)],
+        [('100,102', true), ('102', false)],
+      );
+    });
+
+    testWidgets('is done once the named are confirmed, whatever the unnamed '
+        'are', (tester) async {
+      final client = _VerifyClient(faces: [confirmed, stranger]);
       await pumpButton(tester, client);
 
       await tester.tap(find.byTooltip('Take back the confirmation'));
       await tester.pumpAndSettle();
 
-      expect(client.mediaVerifies.single.verified, isFalse);
+      // Only the named: an unnamed face kept on purpose stays kept.
+      expect(client.faceVerifies.single.ids, ['101']);
+      expect(client.faceVerifies.single.verified, isFalse);
+    });
+
+    testWidgets('is still open while an unnamed face waits for review', (
+      tester,
+    ) async {
+      await pumpButton(
+        tester,
+        _VerifyClient(faces: [confirmed, strangerToReview]),
+      );
+
+      expect(
+        find.byTooltip('Everyone named on this photo is right'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('is not offered with only unnamed faces, none of them '
+        'waiting', (tester) async {
+      await pumpButton(tester, _VerifyClient(faces: [stranger]));
+      expect(find.byType(IconButton), findsNothing);
     });
 
     testWidgets('is not offered without faces or without the capability', (
