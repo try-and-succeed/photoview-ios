@@ -165,12 +165,18 @@ class FaceGroup {
   final FaceRectangle? rectangle;
   final Thumbnail? thumbnail;
 
+  /// Every face of this person has been confirmed by someone. Null where the
+  /// list was not asked — a server that does not know about confirming, or a
+  /// group that came from anywhere but the people list.
+  final bool? allVerified;
+
   const FaceGroup({
     required this.id,
     this.label,
     this.imageFaceCount = 0,
     this.rectangle,
     this.thumbnail,
+    this.allVerified,
   });
 
   factory FaceGroup.fromJson(Map<String, dynamic> json) {
@@ -179,6 +185,7 @@ class FaceGroup {
     final rect = first?['rectangle'] as Map<String, dynamic>?;
     final media = first?['media'] as Map<String, dynamic>?;
     final thumb = media?['thumbnail'] as Map<String, dynamic>?;
+    final unverified = json['unverifiedFaces'] as List<dynamic>?;
 
     return FaceGroup(
       id: json['id'].toString(),
@@ -186,6 +193,10 @@ class FaceGroup {
       imageFaceCount: _asInt(json['imageFaceCount']),
       rectangle: rect == null ? null : FaceRectangle.fromJson(rect),
       thumbnail: thumb == null ? null : Thumbnail.fromJson(thumb),
+      // A group with no faces at all has nothing confirmed either.
+      allVerified: unverified == null
+          ? null
+          : unverified.isEmpty && faces.isNotEmpty,
     );
   }
 }
@@ -201,7 +212,162 @@ class PersonPhoto {
   final MediaItem media;
   final List<String> faceIds;
 
-  const PersonPhoto({required this.media, required this.faceIds});
+  /// Every face behind this tile has been confirmed by a person. False on a
+  /// server that does not know about confirming.
+  final bool verified;
+
+  /// At least one face behind this tile was placed or checked by an automatic
+  /// run and is waiting to be looked at.
+  final bool needsReview;
+
+  const PersonPhoto({
+    required this.media,
+    required this.faceIds,
+    this.verified = false,
+    this.needsReview = false,
+  });
+}
+
+/// One face the detector found on a photo, and the person it is filed under.
+///
+/// A photo belongs to a person only through a face: with three faces found on
+/// it, it shows under three people. This is what lets the gallery say who is
+/// on a photo, and which rectangle is whose.
+class PhotoFace {
+  final String id;
+  final FaceRectangle rectangle;
+
+  /// The group the face is filed under, without a thumbnail of its own.
+  final FaceGroup group;
+
+  /// Confirmed by a person, so no automatic run moves it any more. False on
+  /// a server that does not know about confirming.
+  final bool verified;
+
+  /// Placed or checked by an automatic run and not yet looked at.
+  final bool needsReview;
+
+  const PhotoFace({
+    required this.id,
+    required this.rectangle,
+    required this.group,
+    this.verified = false,
+    this.needsReview = false,
+  });
+
+  factory PhotoFace.fromJson(Map<String, dynamic> json) {
+    final group = json['faceGroup'] as Map<String, dynamic>? ?? const {};
+
+    return PhotoFace(
+      id: json['id'].toString(),
+      rectangle: FaceRectangle.fromJson(
+        json['rectangle'] as Map<String, dynamic>? ?? const {},
+      ),
+      group: FaceGroup(
+        id: group['id']?.toString() ?? '',
+        label: group['label'] as String?,
+        imageFaceCount: _asInt(group['imageFaceCount']),
+      ),
+      verified: json['verified'] == true,
+      needsReview: json['needsReview'] == true,
+    );
+  }
+}
+
+/// What a re-identification did, or would do when it was only a dry run.
+///
+/// The server compares the unconfirmed faces of a person with the confirmed
+/// faces of everybody; the counts say how that came out.
+class ReclassifyResult {
+  /// Unconfirmed faces looked at.
+  final int checked;
+
+  /// Stayed with the person.
+  final int kept;
+
+  /// Went, or would go, to another person.
+  final int moved;
+
+  /// Close to no confirmed face; each becomes a person of its own.
+  final int unmatched;
+
+  /// Would have gone to someone already on that photo, so they stay.
+  final int conflicts;
+
+  /// Confirmed faces used to compare with.
+  final int verifiedSamples;
+
+  /// The faces that changed person, or would change.
+  final List<FaceReassignment> changes;
+
+  const ReclassifyResult({
+    this.checked = 0,
+    this.kept = 0,
+    this.moved = 0,
+    this.unmatched = 0,
+    this.conflicts = 0,
+    this.verifiedSamples = 0,
+    this.changes = const [],
+  });
+
+  factory ReclassifyResult.fromJson(Map<String, dynamic> json) =>
+      ReclassifyResult(
+        checked: _asInt(json['checked']),
+        kept: _asInt(json['kept']),
+        moved: _asInt(json['moved']),
+        unmatched: _asInt(json['unmatched']),
+        conflicts: _asInt(json['conflicts']),
+        verifiedSamples: _asInt(json['verifiedSamples']),
+        changes: (json['changes'] as List<dynamic>? ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .map(FaceReassignment.fromJson)
+            .toList(),
+      );
+
+  /// How many faces go to each other person, most first — the people a
+  /// dry run would hand faces to. Faces without a match are not in it: in a
+  /// dry run their new person does not exist yet.
+  List<({FaceGroup person, int count})> get destinations {
+    final counts = <String, ({FaceGroup person, int count})>{};
+    for (final change in changes) {
+      final to = change.to;
+      if (to == null || to.id == change.from.id) continue;
+      final before = counts[to.id];
+      counts[to.id] = (person: to, count: (before?.count ?? 0) + 1);
+    }
+    return counts.values.toList()..sort((a, b) {
+      final byCount = b.count.compareTo(a.count);
+      return byCount != 0 ? byCount : a.person.id.compareTo(b.person.id);
+    });
+  }
+}
+
+/// One face a re-identification moved, or would move.
+class FaceReassignment {
+  final String faceId;
+  final FaceGroup from;
+
+  /// Null in a dry run for a face without a match.
+  final FaceGroup? to;
+
+  const FaceReassignment({required this.faceId, required this.from, this.to});
+
+  factory FaceReassignment.fromJson(Map<String, dynamic> json) {
+    FaceGroup? group(Object? raw) => raw is Map<String, dynamic>
+        ? FaceGroup(
+            id: raw['id']?.toString() ?? '',
+            label: raw['label'] as String?,
+            imageFaceCount: _asInt(raw['imageFaceCount']),
+          )
+        : null;
+
+    final face = json['imageFace'] as Map<String, dynamic>? ?? const {};
+    return FaceReassignment(
+      faceId: face['id']?.toString() ?? '',
+      from: group(json['from']) ?? const FaceGroup(id: ''),
+      to: group(json['to']),
+    );
+  }
 }
 
 /// Where a photo was taken, as the server reports it.

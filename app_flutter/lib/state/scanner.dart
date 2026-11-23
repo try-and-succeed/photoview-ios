@@ -187,14 +187,33 @@ class ScannerNotifier extends AutoDisposeNotifier<ScannerState>
   /// server: without that, a scan of album 3 on the new server would join the
   /// old server's request and never be sent, and an old answer would be
   /// written into the new server's state.
-  Future<String?> scanAlbum(String albumId) {
+  ///
+  /// [onlyNewSubAlbums] takes in only what is new — see
+  /// [Capability.scanAlbumNewSubAlbums]. The two kinds of scan of one album
+  /// do not join each other: they queue different work.
+  Future<String?> scanAlbum(String albumId, {bool onlyNewSubAlbums = false}) {
     final generation = this.generation;
-    final key = (generation, albumId);
+    final key = (generation, albumId, onlyNewSubAlbums);
     final pending = _scansRequested[key];
     if (pending != null) return pending;
+    final serverId = ref.read(sessionProvider)?.serverId;
 
     final request = _keptAlive(() async {
-      final message = await ref.guardedRead((c) => c.scanAlbum(albumId));
+      final String? message;
+      try {
+        message = await ref.guardedRead(
+          (c) => c.scanAlbum(albumId, onlyNewSubAlbums: onlyNewSubAlbums),
+        );
+      } on UnsupportedFieldException catch (failure) {
+        // The cache said this server knows the argument, and it does not — a
+        // server rolled back, most likely. Recorded so the choice is no
+        // longer offered; the user is told, and the plain scan is one tap
+        // away. Not sent on their behalf: they asked for less than that.
+        if (serverId != null) {
+          await ref.read(capabilityDowngradeProvider)(serverId, failure);
+        }
+        rethrow;
+      }
       if (!movedOn(generation)) await refresh();
       return message;
     });
@@ -212,8 +231,8 @@ class ScannerNotifier extends AutoDisposeNotifier<ScannerState>
     return request;
   }
 
-  /// Scan requests still waiting for the server, by session and album.
-  final Map<(int, String), Future<String?>> _scansRequested = {};
+  /// Scan requests still waiting for the server, by session, album and kind.
+  final Map<(int, String, bool), Future<String?>> _scansRequested = {};
 
   /// Holds this notifier alive while the server has work to do.
   ///

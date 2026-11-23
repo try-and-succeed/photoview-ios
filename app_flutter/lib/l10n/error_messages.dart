@@ -41,6 +41,7 @@ String describeError(Object? error, AppLocalizations l10n) => switch (error) {
     CertificateFileProblem.invalidBase64 => l10n.certFileInvalidBase64,
   },
   TimeoutException() => l10n.errorTimeout,
+  AccountChangedException() => l10n.errorAccountChanged,
   _ => '$error',
 };
 
@@ -62,6 +63,7 @@ String _problem(AppLocalizations l10n, ApiProblem problem, String? detail) {
     ApiProblem.unknown => detail ?? l10n.errorUnknown,
     ApiProblem.albumNotFound => l10n.errorAlbumNotFound,
     ApiProblem.mediaNotFound => l10n.errorMediaNotFound,
+    ApiProblem.personNotFound => l10n.errorPersonNotFound,
     ApiProblem.invalidMapJson => l10n.errorInvalidMapJson,
     ApiProblem.invalidMapShape => l10n.errorInvalidMapShape,
     ApiProblem.scanRefused => l10n.errorScanRefused,

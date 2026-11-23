@@ -1,10 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:photoview/api/capabilities.dart';
 import 'package:photoview/api/client.dart';
 import 'package:photoview/api/models.dart';
 import 'package:photoview/api/session.dart';
+import 'package:photoview/api/settings_store.dart';
 import 'package:photoview/state/auth.dart';
+import 'package:photoview/state/capabilities.dart';
 import 'package:photoview/state/library.dart';
+import 'package:photoview/state/people_order.dart';
+import 'package:photoview/state/search_limit.dart' show settingsStoreProvider;
 
 final _session = Session(
   endpoint: Uri.parse('http://host:8081/api/graphql'),
@@ -15,24 +22,58 @@ final _session = Session(
 class _FixedAuth extends AuthNotifier {
   @override
   Future<Session?> build() async => _session;
+
+  /// Signs in somewhere else, as switching servers does.
+  void use(Session session) => state = AsyncData(session);
+}
+
+class _MemorySettings extends SettingsStore {
+  _MemorySettings(this.order);
+
+  String? order;
+
+  @override
+  Future<String?> peopleOrder() async => order;
+
+  @override
+  Future<void> setPeopleOrder(String? value) async => order = value;
 }
 
 /// Answers like the server: every named person first, then the unnamed, in
 /// pages of whatever size is asked for.
 class _PagingClient extends PhotoviewClient {
-  _PagingClient({required this.named, required this.unnamed})
-    : super(_session);
+  _PagingClient({
+    required this.named,
+    required this.unnamed,
+    this.knowsCountDirection = true,
+  }) : super(_session);
 
   final int named;
   final int unnamed;
+
+  /// False for a server from before `countDirection`, which rejects it.
+  final bool knowsCountDirection;
+
   final requests = <int>[];
+  final directions = <bool>[];
+
+  /// Runs before each answer, to hold it or to fail it.
+  Future<void> Function(int offset, bool fewestFirst)? gate;
 
   @override
   Future<List<FaceGroup>> faceGroups({
     required int limit,
     required int offset,
+    bool fewestFirst = false,
+    bool withStatus = false,
   }) async {
+    await gate?.call(offset, fewestFirst);
+    if (fewestFirst && !knowsCountDirection) {
+      throw UnsupportedFieldException(field: 'countDirection');
+    }
+
     requests.add(offset);
+    directions.add(fewestFirst);
 
     return [
       for (var i = offset; i < offset + limit && i < named + unnamed; i++)
@@ -45,17 +86,53 @@ class _PagingClient extends PhotoviewClient {
   }
 }
 
-Future<FaceGroupsData> _load(_PagingClient client) async {
+ProviderContainer _container(
+  _PagingClient client, {
+  PeopleOrder? order,
+  CapabilityState countDirection = CapabilityState.unknown,
+  bool recordDowngrades = true,
+}) {
   final container = ProviderContainer(
     overrides: [
+      // Recording one re-reads the capabilities and fetches the people again,
+      // which a test of a single fetch can do without.
+      if (!recordDowngrades)
+        capabilityDowngradeProvider.overrideWithValue((_, _) async {}),
       authProvider.overrideWith(_FixedAuth.new),
       clientProvider.overrideWithValue(client),
+      settingsStoreProvider.overrideWithValue(_MemorySettings(order?.name)),
+      serverCapabilitiesProvider.overrideWith(
+        (ref) async => ServerCapabilities({
+          Capability.faceGroupCountDirection: countDirection,
+        }),
+      ),
     ],
   );
   addTearDown(container.dispose);
+  return container;
+}
 
-  await container.read(authProvider.future);
+Future<FaceGroupsData> _load(
+  _PagingClient client, {
+  PeopleOrder? order,
+  CapabilityState countDirection = CapabilityState.unknown,
+}) async {
+  final container = _container(
+    client,
+    order: order,
+    countDirection: countDirection,
+  );
+
+  await _settled(container);
   return container.read(faceGroupsProvider.future);
+}
+
+/// Waits for what the people's order depends on, as it has long since
+/// arrived by the time someone opens the People tab.
+Future<void> _settled(ProviderContainer container) async {
+  await container.read(authProvider.future);
+  await container.read(peopleOrderProvider.future);
+  await container.read(serverCapabilitiesProvider.future);
 }
 
 void main() {
@@ -81,15 +158,18 @@ void main() {
     expect(data.hasMore, isTrue);
   });
 
-  test('a library of nothing but named people ends without asking forever', () async {
-    final client = _PagingClient(named: 50, unnamed: 0);
+  test(
+    'a library of nothing but named people ends without asking forever',
+    () async {
+      final client = _PagingClient(named: 50, unnamed: 0);
 
-    final data = await _load(client);
+      final data = await _load(client);
 
-    expect(client.requests, [0, 40]);
-    expect(data.groups, hasLength(50));
-    expect(data.hasMore, isFalse);
-  });
+      expect(client.requests, [0, 40]);
+      expect(data.groups, hasLength(50));
+      expect(data.hasMore, isFalse);
+    },
+  );
 
   test('no people at all is one request', () async {
     final client = _PagingClient(named: 0, unnamed: 0);
@@ -99,5 +179,324 @@ void main() {
     expect(client.requests, [0]);
     expect(data.groups, isEmpty);
     expect(data.hasMore, isFalse);
+  });
+
+  group('fetched again', () {
+    test('as many people as were there, not just the first page', () async {
+      // After a move the list is fetched again. Cut back to its first page,
+      // it ended far above where the user had scrolled to.
+      final client = _PagingClient(named: 3, unnamed: 300);
+      final container = _container(client);
+      await _settled(container);
+      container.listen(faceGroupsProvider, (_, _) {});
+      await container.read(faceGroupsProvider.future);
+      final notifier = container.read(faceGroupsProvider.notifier);
+      for (var i = 0; i < 3; i++) {
+        await notifier.loadMore();
+      }
+      expect(container.read(faceGroupsProvider).value!.groups, hasLength(160));
+      client.requests.clear();
+
+      container.invalidate(faceGroupsProvider);
+      final data = await container.read(faceGroupsProvider.future);
+
+      expect(data.groups, hasLength(160));
+      expect(client.requests, [0, 40, 80, 120]);
+    });
+
+    test('a fetch overtaken by the next one stops asking for pages', () async {
+      // Two moves in quick succession. Riverpod drops the first fetch's
+      // result but lets it run on, and without a check it went on paging up
+      // to the old length beside the fetch that replaced it.
+      final client = _PagingClient(named: 3, unnamed: 300);
+      final container = _container(client);
+      await _settled(container);
+      container.listen(faceGroupsProvider, (_, _) {});
+      await container.read(faceGroupsProvider.future);
+      final notifier = container.read(faceGroupsProvider.notifier);
+      for (var i = 0; i < 3; i++) {
+        await notifier.loadMore();
+      }
+      client.requests.clear();
+
+      container.invalidate(faceGroupsProvider);
+      final overtaken = container.read(faceGroupsProvider.future);
+      container.invalidate(faceGroupsProvider);
+      final data = await container.read(faceGroupsProvider.future);
+      await overtaken.catchError((_) => data);
+      // Whatever the overtaken fetch still had in flight, let it come back.
+      await pumpEventQueue();
+
+      expect(data.groups, hasLength(160), reason: 'the new fetch keeps going');
+      expect(client.requests..sort(), [
+        0,
+        0,
+        40,
+        80,
+        120,
+      ], reason: 'the overtaken fetch stops after the page it was waiting on');
+    });
+
+    test('another account starts at one page', () async {
+      // The length is the user's scroll position in one library; in another
+      // library it means nothing, and fetching that many would only be slow.
+      final client = _PagingClient(named: 3, unnamed: 300);
+      final container = _container(client);
+      await _settled(container);
+      container.listen(faceGroupsProvider, (_, _) {});
+      await container.read(faceGroupsProvider.future);
+      final notifier = container.read(faceGroupsProvider.notifier);
+      for (var i = 0; i < 3; i++) {
+        await notifier.loadMore();
+      }
+      client.requests.clear();
+
+      (container.read(authProvider.notifier) as _FixedAuth).use(
+        Session(
+          endpoint: Uri.parse('http://other:8081/api/graphql'),
+          token: 'tok',
+          username: 'admin',
+        ),
+      );
+      final data = await container.read(faceGroupsProvider.future);
+
+      expect(client.requests, [0]);
+      expect(data.groups, hasLength(40));
+    });
+
+    test('a changed direction starts at one page', () async {
+      // The list then begins with other people, so its old length says
+      // nothing about where the user wants to be.
+      final client = _PagingClient(named: 3, unnamed: 300);
+      final container = _container(
+        client,
+        order: PeopleOrder.countDescending,
+        countDirection: CapabilityState.supported,
+      );
+      await _settled(container);
+      container.listen(faceGroupsProvider, (_, _) {});
+      await container.read(faceGroupsProvider.future);
+      final notifier = container.read(faceGroupsProvider.notifier);
+      for (var i = 0; i < 3; i++) {
+        await notifier.loadMore();
+      }
+      client.requests.clear();
+
+      await container
+          .read(peopleOrderProvider.notifier)
+          .choose(PeopleOrder.countAscending);
+      final data = await container.read(faceGroupsProvider.future);
+
+      expect(client.requests, [0]);
+      expect(data.fewestFirst, isTrue);
+    });
+
+    test('the first time, one page as before', () async {
+      final client = _PagingClient(named: 3, unnamed: 300);
+
+      await _load(client);
+
+      expect(client.requests, [0]);
+    });
+
+    test(
+      'scrolling while it is fetched again adds nothing to the old list',
+      () async {
+        final client = _PagingClient(named: 3, unnamed: 300);
+        final container = _container(client);
+        await _settled(container);
+        container.listen(faceGroupsProvider, (_, _) {});
+        await container.read(faceGroupsProvider.future);
+        client.requests.clear();
+
+        container.invalidate(faceGroupsProvider);
+        container.read(faceGroupsProvider);
+        await container.read(faceGroupsProvider.notifier).loadMore();
+        await container.read(faceGroupsProvider.future);
+
+        expect(client.requests, [0], reason: 'only the fetch that replaces it');
+      },
+    );
+  });
+
+  group('fewest photos first', () {
+    test('is asked of a server that can page that way', () async {
+      final client = _PagingClient(named: 95, unnamed: 200);
+
+      final data = await _load(
+        client,
+        order: PeopleOrder.countAscending,
+        countDirection: CapabilityState.supported,
+      );
+
+      expect(client.directions, [true, true, true], reason: 'every page');
+      expect(data.fewestFirst, isTrue);
+    });
+
+    test('and for the pages loaded later as well', () async {
+      final client = _PagingClient(named: 3, unnamed: 200);
+      final container = _container(
+        client,
+        order: PeopleOrder.countAscending,
+        countDirection: CapabilityState.supported,
+      );
+      await _settled(container);
+      await container.read(faceGroupsProvider.future);
+
+      await container.read(faceGroupsProvider.notifier).loadMore();
+
+      expect(client.requests, [0, 40]);
+      expect(client.directions, [true, true]);
+      expect(container.read(faceGroupsProvider).value!.fewestFirst, isTrue);
+    });
+
+    test('is not asked of a server without countDirection', () async {
+      // It would reject the whole request for naming the argument.
+      final client = _PagingClient(named: 3, unnamed: 10);
+
+      for (final state in [
+        CapabilityState.unsupported,
+        CapabilityState.unknown,
+      ]) {
+        final data = await _load(
+          client,
+          order: PeopleOrder.countAscending,
+          countDirection: state,
+        );
+
+        expect(data.fewestFirst, isFalse, reason: state.name);
+      }
+      expect(client.directions, everyElement(isFalse));
+    });
+
+    test('is not asked for under any other order', () async {
+      final client = _PagingClient(named: 3, unnamed: 10);
+
+      for (final order in PeopleOrder.values.where(
+        (o) => o != PeopleOrder.countAscending,
+      )) {
+        final data = await _load(
+          client,
+          order: order,
+          countDirection: CapabilityState.supported,
+        );
+
+        expect(data.fewestFirst, isFalse, reason: order.name);
+      }
+      expect(client.directions, everyElement(isFalse));
+    });
+
+    test('choosing it fetches again; A to Z and Z to A do not', () async {
+      final client = _PagingClient(named: 3, unnamed: 10);
+      final container = _container(
+        client,
+        order: PeopleOrder.nameAscending,
+        countDirection: CapabilityState.supported,
+      );
+      await _settled(container);
+      // Kept alive the way the people screen keeps it, by listening.
+      container.listen(faceGroupsProvider, (_, _) {});
+      await container.read(faceGroupsProvider.future);
+      final notifier = container.read(peopleOrderProvider.notifier);
+
+      await notifier.choose(PeopleOrder.nameDescending);
+      await container.read(faceGroupsProvider.future);
+      expect(client.requests, [0], reason: 'the same pages, re-sorted');
+
+      await notifier.choose(PeopleOrder.countAscending);
+      final data = await container.read(faceGroupsProvider.future);
+      expect(client.directions, [false, true]);
+      expect(data.fewestFirst, isTrue);
+    });
+
+    test('an answer that arrives late fetches the people again', () async {
+      // Most first meanwhile rather than waiting: a setting that cannot be
+      // read must not keep the people from showing.
+      final client = _PagingClient(named: 3, unnamed: 10);
+      final container = _container(
+        client,
+        order: PeopleOrder.countAscending,
+        countDirection: CapabilityState.supported,
+      );
+      await container.read(authProvider.future);
+      container.listen(faceGroupsProvider, (_, _) {});
+
+      final early = await container.read(faceGroupsProvider.future);
+      expect(early.fewestFirst, isFalse);
+
+      await _settled(container);
+      final data = await container.read(faceGroupsProvider.future);
+
+      expect(client.directions, [false, true]);
+      expect(data.fewestFirst, isTrue);
+    });
+
+    test('an overtaken fetch that falls back leaves the order of the next '
+        'alone', () async {
+      // The first fetch is refused fewest first — but only once the next one
+      // has started, which pages fewest first fine. The fallback switched the
+      // order the notifier shares, and the next fetch went on paging most
+      // first from its second page, mixing two orders in one list.
+      final client = _PagingClient(named: 100, unnamed: 10);
+      final firstRefused = Completer<void>();
+      final secondPageHeld = Completer<void>();
+      var calls = 0;
+      client.gate = (offset, fewestFirst) async {
+        calls++;
+        if (calls == 1) {
+          await firstRefused.future;
+          throw UnsupportedFieldException(field: 'countDirection');
+        }
+        if (offset == 40) await secondPageHeld.future;
+      };
+      final container = _container(
+        client,
+        order: PeopleOrder.countAscending,
+        countDirection: CapabilityState.supported,
+        recordDowngrades: false,
+      );
+      await _settled(container);
+      container.listen(faceGroupsProvider, (_, _) {});
+
+      // Not awaited: Riverpod hands the overtaken build's callers the result
+      // of the build that replaced it, which is held below.
+      unawaited(container.read(faceGroupsProvider.future));
+      container.invalidate(faceGroupsProvider);
+      final current = container.read(faceGroupsProvider.future);
+      await pumpEventQueue();
+
+      firstRefused.complete();
+      await pumpEventQueue();
+      secondPageHeld.complete();
+      final data = await current;
+
+      final later = [
+        for (final (i, offset) in client.requests.indexed)
+          if (offset >= 40) client.directions[i],
+      ];
+      expect(later, isNotEmpty);
+      expect(later, everyElement(isTrue), reason: 'one order throughout');
+      expect(data.fewestFirst, isTrue);
+    });
+
+    test('a server that turns out not to have it gets most first', () async {
+      // The cache said yes and the server says no — rolled back, most likely.
+      // An error screen over a sort order would be the wrong answer.
+      final client = _PagingClient(
+        named: 3,
+        unnamed: 10,
+        knowsCountDirection: false,
+      );
+
+      final data = await _load(
+        client,
+        order: PeopleOrder.countAscending,
+        countDirection: CapabilityState.supported,
+      );
+
+      expect(data.groups, hasLength(13));
+      expect(data.fewestFirst, isFalse);
+      expect(client.directions, [false]);
+    });
   });
 }

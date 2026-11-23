@@ -34,6 +34,12 @@ List<String> instanceSegmentsOf(Uri endpoint) {
   return segments;
 }
 
+/// Someone else is signed in than when an action began, so the rest of it was
+/// not sent: it belonged to the first account.
+class AccountChangedException implements Exception {
+  const AccountChangedException();
+}
+
 /// Credentials for a signed-in Photoview instance.
 ///
 /// [endpoint] is the resolved GraphQL endpoint (e.g. `https://host/api/graphql`).

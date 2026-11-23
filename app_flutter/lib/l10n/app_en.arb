@@ -25,13 +25,21 @@
   "@settingsPeopleOrder": {
     "description": "Setting: in what order the people who have a name are listed."
   },
-  "settingsPeopleOrderAlphabetical": "Alphabetical",
-  "@settingsPeopleOrderAlphabetical": {
-    "description": "Ordering option: by name."
+  "settingsPeopleOrderNameAscending": "Name A–Z",
+  "@settingsPeopleOrderNameAscending": {
+    "description": "Ordering option: by name, A to Z."
   },
-  "settingsPeopleOrderByCount": "By number of photos",
-  "@settingsPeopleOrderByCount": {
+  "settingsPeopleOrderNameDescending": "Name Z–A",
+  "@settingsPeopleOrderNameDescending": {
+    "description": "Ordering option: by name, Z to A."
+  },
+  "settingsPeopleOrderMostPhotos": "Most photos first",
+  "@settingsPeopleOrderMostPhotos": {
     "description": "Ordering option: most photos first, which is what the server sends."
+  },
+  "settingsPeopleOrderFewestPhotos": "Fewest photos first",
+  "@settingsPeopleOrderFewestPhotos": {
+    "description": "Ordering option: fewest photos first."
   },
   "settingsPeopleOrderNotSaved": "Could not save the setting: {error}",
   "@settingsPeopleOrderNotSaved": {
@@ -243,6 +251,10 @@
   "actionRetry": "Retry",
   "@actionRetry": {
     "description": "Button that repeats a failed request."
+  },
+  "actionRetryPageClosed": "The page this was started on is closed, so it cannot be tried again from here.",
+  "@actionRetryPageClosed": {
+    "description": "Shown when Retry (or Review certificate) is tapped on a message whose screen has been left meanwhile: the action cannot run without it."
   },
   "navTimeline": "Timeline",
   "@navTimeline": {
@@ -511,6 +523,16 @@
       }
     }
   },
+  "personFacesNameFailed": "The photos are with a new, unnamed person, but it could not be named: {error}",
+  "@personFacesNameFailed": {
+    "description": "Moving photos to a new person went half through: they were taken out into a new person, but naming it failed. Shown with a Retry button that only names it.",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "connection timed out"
+      }
+    }
+  },
   "personFacesDetach": "Split off as a new person",
   "@personFacesDetach": {
     "description": "Tooltip of the action that lifts the ticked photos out into a person of their own."
@@ -525,6 +547,74 @@
     "placeholders": {
       "error": {
         "type": "String"
+      }
+    }
+  },
+  "personMoveToNew": "New person…",
+  "@personMoveToNew": {
+    "description": "Entry at the top of the move dialog: the photos go to a person made for them, after asking for a name."
+  },
+  "personMoveToNewHint": "Make a new person and give it a name",
+  "@personMoveToNewHint": {
+    "description": "Second line of the \"New person…\" entry. Names nothing that moves: the same dialog moves ticked photos on a person's screen and a single face in the gallery."
+  },
+  "personMoveToNewNamed": "New person “{name}”…",
+  "@personMoveToNewNamed": {
+    "description": "The \"New person…\" entry of the move dialog while a name is typed into its filter: one line, with the typed name, which the new person is then offered.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Max"
+      }
+    }
+  },
+  "personMoveToUnlabeledHint": "Take out of this person, without a name",
+  "@personMoveToUnlabeledHint": {
+    "description": "Second line of the unnamed entry in the move dialog, which lifts out without a name. Names nothing that moves, for the same reason."
+  },
+  "personFilterHint": "Find by name",
+  "@personFilterHint": {
+    "description": "Hint of the field that filters the person picker by name as you type."
+  },
+  "personFilterNoMatch": "Nobody by that name",
+  "@personFilterNoMatch": {
+    "description": "The person picker has no named person matching what was typed."
+  },
+  "personMoveConfirmTitle": "Move photos?",
+  "@personMoveConfirmTitle": {
+    "description": "Title of the question asked before photos are moved."
+  },
+  "personMoveConfirmAction": "Move",
+  "@personMoveConfirmAction": {
+    "description": "Button that confirms moving the photos."
+  },
+  "personMoveConfirm": "{count, plural, =1{Move 1 photo from {from} to {to}?} other{Move {count} photos from {from} to {to}?}}",
+  "@personMoveConfirm": {
+    "description": "Question before moving photos to another person. Asked every time, so that what an icon does is said in words before it happens.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "from": {
+        "type": "String",
+        "example": "Regina"
+      },
+      "to": {
+        "type": "String",
+        "example": "Anna"
+      }
+    }
+  },
+  "personMoveConfirmUnlabeled": "{count, plural, =1{Take 1 photo out of {from}? It will show under “Unlabeled”.} other{Take {count} photos out of {from}? They will show under “Unlabeled”.}}",
+  "@personMoveConfirmUnlabeled": {
+    "description": "Question before lifting photos out into a person without a name. Names the word the People tab shows for such a person.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "from": {
+        "type": "String",
+        "example": "Regina"
       }
     }
   },
@@ -586,6 +676,22 @@
   "galleryInfo": "Info",
   "@galleryInfo": {
     "description": "Tooltip of the gallery button that shows a photo's camera data."
+  },
+  "galleryFacesShow": "Show faces",
+  "@galleryFacesShow": {
+    "description": "Gallery button that draws a frame around every face found on the photo, with the name of the person it is filed under."
+  },
+  "galleryFacesHide": "Hide faces",
+  "@galleryFacesHide": {
+    "description": "The same button while the faces are shown."
+  },
+  "galleryFacesNone": "No faces were found on this photo",
+  "@galleryFacesNone": {
+    "description": "Shown on the photo when the faces are switched on and the detector found none."
+  },
+  "galleryFaceAssignPick": "Whose face is this?",
+  "@galleryFaceAssignPick": {
+    "description": "Title of the dialog that opens on tapping a face in the gallery, listing the people to file it under."
   },
   "slideshowStart": "Start slideshow",
   "@slideshowStart": {
@@ -899,6 +1005,28 @@
   "@settingsLogOutSubtitle": {
     "description": "Explains that logging out drops the stored token, leaving the server on the list."
   },
+  "settingsSectionAbout": "Info",
+  "@settingsSectionAbout": {
+    "description": "Header of the last settings section: the app's name, version and licence."
+  },
+  "settingsVersion": "Version {version} (build {build})",
+  "@settingsVersion": {
+    "description": "The running app's version under Settings › Info and in the About dialog: version name and build number, both read from the build.",
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "1.1.0"
+      },
+      "build": {
+        "type": "String",
+        "example": "2"
+      }
+    }
+  },
+  "aboutLegalese": "Free software under the GNU GPL v3. A modified version of the Photoview iOS client by Viktor Strate Kløvedal.",
+  "@aboutLegalese": {
+    "description": "Licence line in the About dialog. The name of the original author is not translated."
+  },
   "caPickerTitle": "Select a CA certificate",
   "@caPickerTitle": {
     "description": "Title of the file picker for a certificate authority file."
@@ -1172,6 +1300,10 @@
   "@errorTimeout": {
     "description": "A request timed out."
   },
+  "errorAccountChanged": "you have signed in to another account since, so it was left as it is",
+  "@errorAccountChanged": {
+    "description": "Why the second half of an action was not sent: another account is signed in than when it began. Fills the {error} of a message such as personFacesNameFailed, so it starts lower-case and has no full stop."
+  },
   "errorUnknown": "Unknown error",
   "@errorUnknown": {
     "description": "A failure without any description."
@@ -1241,5 +1373,299 @@
         "example": "Secure storage is unavailable"
       }
     }
+  },
+  "galleryFacesVerify": "Everyone named on this photo is right",
+  "@galleryFacesVerify": {
+    "description": "Gallery button: confirms every face on the photo that is filed under a named person. Faces without a name are left unconfirmed."
+  },
+  "galleryFacesUnverify": "Take back the confirmation",
+  "@galleryFacesUnverify": {
+    "description": "Gallery button once every face on the photo is confirmed: takes the confirmation back."
+  },
+  "galleryFacesVerified": "Faces on this photo confirmed",
+  "@galleryFacesVerified": {
+    "description": "Message after confirming the faces on a photo."
+  },
+  "galleryFacesUnverified": "Confirmation taken back",
+  "@galleryFacesUnverified": {
+    "description": "Message after taking the confirmation of a photo back."
+  },
+  "galleryFacesVerifyFailed": "Could not change the confirmation: {error}",
+  "@galleryFacesVerifyFailed": {
+    "description": "Confirming, or taking it back, failed.",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Network unreachable"
+      }
+    }
+  },
+  "galleryFaceKeep": "Keep as a person of their own",
+  "@galleryFaceKeep": {
+    "description": "Entry in the dialog for a tapped face without a name: confirms it without naming it, so the server treats it as someone of their own whom similar faces can join."
+  },
+  "galleryFaceKeepHint": "Confirm this face without a name, so that similar faces can join it",
+  "@galleryFaceKeepHint": {
+    "description": "Line under galleryFaceKeep, saying what it does."
+  },
+  "galleryFaceUnkeep": "No longer keep as a person of their own",
+  "@galleryFaceUnkeep": {
+    "description": "Entry in the dialog for a tapped face without a name that is confirmed already: takes that confirmation back."
+  },
+  "galleryFaceUnkeepHint": "Take back the confirmation of this face",
+  "@galleryFaceUnkeepHint": {
+    "description": "Line under galleryFaceUnkeep, saying what it does."
+  },
+  "galleryFaceKept": "Face kept as a person of their own",
+  "@galleryFaceKept": {
+    "description": "Message after keeping a face without a name as a person of their own."
+  },
+  "personFacesVerify": "Confirm",
+  "@personFacesVerify": {
+    "description": "Action on the ticked photos of a person: confirms that person's faces on them."
+  },
+  "personFacesUnverify": "Take back the confirmation",
+  "@personFacesUnverify": {
+    "description": "Action on the ticked photos when all are confirmed: takes the confirmation back."
+  },
+  "personFacesVerified": "Photos confirmed: {count}",
+  "@personFacesVerified": {
+    "description": "How many ticked photos were confirmed. The number is last so no language has to inflect around it.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "personFacesUnverified": "Confirmation taken back for photos: {count}",
+  "@personFacesUnverified": {
+    "description": "How many ticked photos had their confirmation taken back.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "personFacesVerifyFailed": "Could not change the confirmation: {error}",
+  "@personFacesVerifyFailed": {
+    "description": "Confirming the ticked photos, or taking it back, failed.",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Network unreachable"
+      }
+    }
+  },
+  "personFilterAll": "All",
+  "@personFilterAll": {
+    "description": "Filter on a person's page: every photo. Shown after a count, as \"12 · All\"."
+  },
+  "personFilterVerified": "Confirmed",
+  "@personFilterVerified": {
+    "description": "Filter on a person's page: photos whose faces are confirmed. Shown after a count."
+  },
+  "personFilterUnverified": "Unconfirmed",
+  "@personFilterUnverified": {
+    "description": "Filter on a person's page: photos with a face not confirmed yet. Shown after a count."
+  },
+  "personFilterReview": "To review",
+  "@personFilterReview": {
+    "description": "Filter on a person's page, and the review list's title elsewhere: faces an automatic run placed, waiting to be checked."
+  },
+  "personFilterEmpty": "No photos of this person in this view.",
+  "@personFilterEmpty": {
+    "description": "A filter on a person's page holds no photos."
+  },
+  "personReclassify": "Re-identify",
+  "@personReclassify": {
+    "description": "Button on a person's page: files the person's unconfirmed faces again against all confirmed faces."
+  },
+  "personReclassifyNothing": "Every face of this person is confirmed; there is nothing to re-identify.",
+  "@personReclassifyNothing": {
+    "description": "Re-identifying was asked for, but the person has no unconfirmed faces."
+  },
+  "personReclassifyTitle": "Re-identify?",
+  "@personReclassifyTitle": {
+    "description": "Title of the preview shown before re-identifying."
+  },
+  "personReclassifyChecked": "Unconfirmed faces of {name}: {count}",
+  "@personReclassifyChecked": {
+    "description": "Preview line: how many unconfirmed faces of the person are looked at.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Anna"
+      },
+      "count": {
+        "type": "int",
+        "example": "120"
+      }
+    }
+  },
+  "personReclassifySamples": "Compared with confirmed faces of all people: {count}",
+  "@personReclassifySamples": {
+    "description": "Preview line: how many confirmed faces they are compared with.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "40"
+      }
+    }
+  },
+  "personReclassifyKept": "Stay with {name}: {count}",
+  "@personReclassifyKept": {
+    "description": "Preview line: how many stay with the person.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Anna"
+      },
+      "count": {
+        "type": "int",
+        "example": "80"
+      }
+    }
+  },
+  "personReclassifyMoved": "Go to other people: {count}",
+  "@personReclassifyMoved": {
+    "description": "Preview line: how many go to other people; the people follow, one per line.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "30"
+      }
+    }
+  },
+  "personReclassifyOthers": "To further people: {count}",
+  "@personReclassifyOthers": {
+    "description": "Preview line under the people named one by one: faces going to the rest.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "4"
+      }
+    }
+  },
+  "personReclassifyUnmatched": "No match, each becomes a new person: {count}",
+  "@personReclassifyUnmatched": {
+    "description": "Preview line: faces close to no confirmed face; each becomes a new, unnamed person.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "10"
+      }
+    }
+  },
+  "personReclassifyConflicts": "Stay, as that person is on the photo already: {count}",
+  "@personReclassifyConflicts": {
+    "description": "Preview line: faces that would go to someone already on that photo, so they stay.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "personReclassifyReview": "Afterwards all of them wait for review, including those that stay.",
+  "@personReclassifyReview": {
+    "description": "Preview note: every face looked at is flagged for review afterwards."
+  },
+  "personReclassifyAction": "Re-identify",
+  "@personReclassifyAction": {
+    "description": "Confirms the preview and re-identifies."
+  },
+  "personReclassifyDone": "Re-identified. Faces to review: {count}",
+  "@personReclassifyDone": {
+    "description": "Message after re-identifying, with how many faces now wait for review.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "120"
+      }
+    }
+  },
+  "personReclassifyFailed": "Could not re-identify: {error}",
+  "@personReclassifyFailed": {
+    "description": "Re-identifying failed.",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "there are no confirmed faces to compare with yet"
+      }
+    }
+  },
+  "reviewTitle": "To review",
+  "@reviewTitle": {
+    "description": "Title of the list of photos waiting for review, and the button that opens it."
+  },
+  "reviewOpen": "Review",
+  "@reviewOpen": {
+    "description": "Action on the message after re-identifying: opens the review list."
+  },
+  "reviewHint": "An automatic run placed faces on these photos. Open a photo, tap a frame to file that face elsewhere, or confirm with the check mark when everyone is right.",
+  "@reviewHint": {
+    "description": "Explanation above the review list."
+  },
+  "reviewEmpty": "Nothing to review.",
+  "@reviewEmpty": {
+    "description": "The review list is empty."
+  },
+  "peopleRecognizeConfirm": "Compares every unnamed face with the people who have a name. A face that looks like one of them is filed under that person and waits for review. Named people keep their faces. On a large library this takes a while.",
+  "@peopleRecognizeConfirm": {
+    "description": "Explanation asked before matching the unnamed faces on the People tab; the dialog's title is peopleRecognize."
+  },
+  "peopleRecognizeRun": "Match",
+  "@peopleRecognizeRun": {
+    "description": "Button in that dialog that starts the matching."
+  },
+  "reviewConfirm": "Shows every photo on which an automatic run placed faces that nobody has checked yet. Opening the list changes nothing.",
+  "@reviewConfirm": {
+    "description": "Explanation asked before opening the review list from the People tab; the title is reviewTitle, the button reviewOpen."
+  },
+  "personFilterTwice": "More than once on a photo",
+  "@personFilterTwice": {
+    "description": "Filter on a person's page: photos on which more than one face is filed under this person - often a mistake, but right on a sheet of passport photos. Shown after a count, as \"12 · …\"."
+  },
+  "errorPersonNotFound": "This person no longer exists — perhaps merged into someone else meanwhile.",
+  "@errorPersonNotFound": {
+    "description": "Error when a person (face group) no longer exists on the server, usually because it was merged into another person elsewhere meanwhile."
+  },
+  "peopleAllVerified": "All faces confirmed",
+  "@peopleAllVerified": {
+    "description": "Screen-reader label of the green tick on a person tile: every face of this person has been confirmed."
+  },
+  "peopleOnlyUnverified": "Only people with unconfirmed faces",
+  "@peopleOnlyUnverified": {
+    "description": "Tooltip of the People tab button that keeps only the named people with faces still to confirm (no green tick)."
+  },
+  "peopleShowAll": "Show everybody",
+  "@peopleShowAll": {
+    "description": "Tooltip of the same People tab button while the filter is on: shows everybody again."
+  },
+  "peopleAllNamedVerified": "Every named person has all their faces confirmed.",
+  "@peopleAllNamedVerified": {
+    "description": "Shown on the People tab when the unconfirmed filter is on and every named person has all faces confirmed."
+  },
+  "albumScanNew": "Only what is new",
+  "@albumScanNew": {
+    "description": "Scan choice: only the album's own media and its new direct sub-folders."
+  },
+  "albumScanNewHint": "The photos in this album and folders that are not albums yet. Existing sub-albums stay as they are.",
+  "@albumScanNewHint": {
+    "description": "Explanation under the \"only what is new\" scan choice."
+  },
+  "albumScanAll": "Everything",
+  "@albumScanAll": {
+    "description": "Scan choice: the album with all its sub-albums, recursively."
+  },
+  "albumScanAllHint": "This album with all its sub-albums, the existing ones too.",
+  "@albumScanAllHint": {
+    "description": "Explanation under the \"everything\" scan choice."
+  },
+  "albumScanNewStarted": "Scanning this album and its new folders.",
+  "@albumScanNewStarted": {
+    "description": "Confirmation after starting the \"only what is new\" scan of an album."
   }
 }

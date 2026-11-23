@@ -16,13 +16,16 @@ import '../l10n/error_messages.dart';
 import '../state/auth.dart';
 import '../state/library.dart';
 import '../state/slideshow.dart';
+import 'gallery_tap_detector.dart';
 import 'media_details_sheet.dart';
+import 'photo_faces.dart';
 
 void showFullscreenGallery(
   BuildContext context, {
   required List<MediaItem> media,
   required int initialIndex,
   void Function(int index)? onIndexChanged,
+  bool showFaces = false,
 }) {
   Navigator.of(context).push(
     MaterialPageRoute<void>(
@@ -31,6 +34,7 @@ void showFullscreenGallery(
         media: media,
         initialIndex: initialIndex,
         onIndexChanged: onIndexChanged,
+        showFaces: showFaces,
       ),
     ),
   );
@@ -41,11 +45,16 @@ class FullscreenGallery extends ConsumerStatefulWidget {
   final int initialIndex;
   final void Function(int index)? onIndexChanged;
 
+  /// Whether the faces are framed from the start — for photos opened to be
+  /// checked, where the frames are the point.
+  final bool showFaces;
+
   const FullscreenGallery({
     super.key,
     required this.media,
     required this.initialIndex,
     this.onIndexChanged,
+    this.showFaces = false,
   });
 
   @override
@@ -86,6 +95,14 @@ class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
   Timer? _slideshow;
 
   bool _playing = false;
+
+  /// Whether the faces found on the photos are framed and named. Kept while
+  /// paging, so someone going through a set of photos to sort people out
+  /// does not have to switch it on again on each one.
+  late bool _showFaces = widget.showFaces;
+
+  /// The box each page's photo is drawn in, by index, to map a tap onto it.
+  final _photoKeys = <int, GlobalKey>{};
 
   /// Read afresh in `build`, so a change made in the settings takes hold on
   /// the next picture instead of only on the next slideshow.
@@ -183,6 +200,38 @@ class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
   }
 
   void _toggleControls() => _setControlsVisible(!_controlsVisible);
+
+  /// A tap on a photo: on a framed face it files that face elsewhere,
+  /// anywhere else it shows or hides the controls as it always has.
+  ///
+  /// Worked out here rather than by the frames themselves, because the photo
+  /// view claims every tap on the photo — a frame never got one. The tap is
+  /// mapped onto the photo's own box, as drawn, so it finds the face under
+  /// the finger at any zoom.
+  ///
+  /// Taps come from [GalleryTapDetector], not from the photo view, which
+  /// loses them on a zoomed photo. A video page keeps its own taps.
+  void _onPhotoTap(Offset global) {
+    final index = _index;
+    final item = widget.media[index];
+    if (item.type == MediaType.video) return;
+
+    final faces = _showFaces
+        ? ref.read(mediaFacesProvider(item.id)).valueOrNull
+        : null;
+    final photo = _photoKeys[index]?.currentContext?.findRenderObject();
+
+    if (faces != null && faces.isNotEmpty && photo is RenderBox) {
+      final point = photoPointAt(photo, global);
+      final face = point == null ? null : faceAt(faces, point);
+      if (face != null) {
+        assignPhotoFace(context, ref, face);
+        return;
+      }
+    }
+
+    _toggleControls();
+  }
 
   /// Everything known about the photo on screen — camera data, the files it
   /// can be downloaded as, its public links — without leaving the gallery.
@@ -282,6 +331,18 @@ class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
                         : AppLocalizations.of(context).slideshowStart,
                     onPressed: _toggleSlideshow,
                   ),
+                // Videos have no faces the server would have looked for.
+                if (widget.media[_index].type != MediaType.video)
+                  IconButton(
+                    icon: Icon(_showFaces ? Icons.face : Icons.face_outlined),
+                    tooltip: _showFaces
+                        ? AppLocalizations.of(context).galleryFacesHide
+                        : AppLocalizations.of(context).galleryFacesShow,
+                    isSelected: _showFaces,
+                    onPressed: () => setState(() => _showFaces = !_showFaces),
+                  ),
+                if (_showFaces && widget.media[_index].type != MediaType.video)
+                  VerifyPhotoFacesButton(mediaId: widget.media[_index].id),
                 IconButton(
                   icon: const Icon(Icons.info_outline),
                   tooltip: AppLocalizations.of(context).galleryInfo,
@@ -294,64 +355,69 @@ class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
       ),
       body: session == null
           ? const SizedBox.shrink()
-          : PhotoViewGallery.builder(
-              pageController: _controller,
-              itemCount: widget.media.length,
-              backgroundDecoration: const BoxDecoration(color: Colors.black),
-              onPageChanged: (index) {
-                setState(() => _index = index);
-                widget.onIndexChanged?.call(index);
-              },
-              builder: (context, index) {
-                final item = widget.media[index];
-
-                if (item.type == MediaType.video) {
-                  return PhotoViewGalleryPageOptions.customChild(
-                    child: _VideoPage(mediaId: item.id),
-                    minScale: PhotoViewComputedScale.contained,
-                    maxScale: PhotoViewComputedScale.contained,
-                  );
-                }
-
-                final thumbnail = item.thumbnail;
-                if (thumbnail == null ||
-                    thumbnail.url.isEmpty ||
-                    thumbnail.width <= 0 ||
-                    thumbnail.height <= 0) {
-                  return PhotoViewGalleryPageOptions.customChild(
-                    child: const Center(
-                      child: Icon(
-                        Icons.broken_image_outlined,
-                        color: Colors.white38,
-                        size: 48,
-                      ),
-                    ),
-                    minScale: PhotoViewComputedScale.contained,
-                    maxScale: PhotoViewComputedScale.contained,
-                    onTapUp: (_, _, _) => _toggleControls(),
-                  );
-                }
-
-                // A custom child rather than an image provider, so the page
-                // can show the thumbnail at once and fade the full image in
-                // over it. Only the aspect ratio of childSize matters: zoom
-                // scales the canvas, and the full image is drawn from its own
-                // pixels at whatever scale that is.
-                return PhotoViewGalleryPageOptions.customChild(
-                  child: _PhotoPage(item: item, session: session),
-                  childSize: Size(
-                    thumbnail.width.toDouble(),
-                    thumbnail.height.toDouble(),
-                  ),
-                  heroAttributes: PhotoViewHeroAttributes(tag: item.id),
-                  minScale: PhotoViewComputedScale.contained,
-                  maxScale: PhotoViewComputedScale.covered * 4,
-                  onTapUp: (_, _, _) => _toggleControls(),
-                );
-              },
-            ),
+          : GalleryTapDetector(onTap: _onPhotoTap, child: _gallery(session)),
     );
   }
+
+  Widget _gallery(Session session) => PhotoViewGallery.builder(
+    pageController: _controller,
+    itemCount: widget.media.length,
+    backgroundDecoration: const BoxDecoration(color: Colors.black),
+    onPageChanged: (index) {
+      setState(() => _index = index);
+      widget.onIndexChanged?.call(index);
+    },
+    builder: (context, index) {
+      final item = widget.media[index];
+
+      if (item.type == MediaType.video) {
+        return PhotoViewGalleryPageOptions.customChild(
+          child: _VideoPage(mediaId: item.id),
+          minScale: PhotoViewComputedScale.contained,
+          maxScale: PhotoViewComputedScale.contained,
+        );
+      }
+
+      final thumbnail = item.thumbnail;
+      if (thumbnail == null ||
+          thumbnail.url.isEmpty ||
+          thumbnail.width <= 0 ||
+          thumbnail.height <= 0) {
+        return PhotoViewGalleryPageOptions.customChild(
+          child: const Center(
+            child: Icon(
+              Icons.broken_image_outlined,
+              color: Colors.white38,
+              size: 48,
+            ),
+          ),
+          minScale: PhotoViewComputedScale.contained,
+          maxScale: PhotoViewComputedScale.contained,
+        );
+      }
+
+      // A custom child rather than an image provider, so the page
+      // can show the thumbnail at once and fade the full image in
+      // over it. Only the aspect ratio of childSize matters: zoom
+      // scales the canvas, and the full image is drawn from its own
+      // pixels at whatever scale that is.
+      return PhotoViewGalleryPageOptions.customChild(
+        child: _PhotoPage(
+          key: _photoKeys.putIfAbsent(index, GlobalKey.new),
+          item: item,
+          session: session,
+          showFaces: _showFaces,
+        ),
+        childSize: Size(
+          thumbnail.width.toDouble(),
+          thumbnail.height.toDouble(),
+        ),
+        heroAttributes: PhotoViewHeroAttributes(tag: item.id),
+        minScale: PhotoViewComputedScale.contained,
+        maxScale: PhotoViewComputedScale.covered * 4,
+      );
+    },
+  );
 }
 
 /// Longest side, in pixels, a full image is decoded at.
@@ -374,8 +440,7 @@ List<Thumbnail> galleryLayers(MediaItem item, MediaDetails? details) {
 
   return [
     ?thumbnail,
-    if (full != null && full.url.isNotEmpty && full.url != thumbnail?.url)
-      full,
+    if (full != null && full.url.isNotEmpty && full.url != thumbnail?.url) full,
   ];
 }
 
@@ -388,7 +453,16 @@ class _PhotoPage extends ConsumerWidget {
   final MediaItem item;
   final Session session;
 
-  const _PhotoPage({required this.item, required this.session});
+  /// Whether the faces are framed over the photo — inside the page, so they
+  /// zoom and pan with it.
+  final bool showFaces;
+
+  const _PhotoPage({
+    super.key,
+    required this.item,
+    required this.session,
+    this.showFaces = false,
+  });
 
   ImageProvider _provider(Thumbnail rendition) => CachedNetworkImageProvider(
     session.resolve(rendition.url).toString(),
@@ -433,6 +507,7 @@ class _PhotoPage extends ConsumerWidget {
               // which is still a picture of the right thing.
               errorBuilder: (context, error, stack) => const SizedBox.shrink(),
             ),
+        if (showFaces) PhotoFacesOverlay(mediaId: item.id),
       ],
     );
   }
@@ -538,7 +613,9 @@ class _VideoPageState extends ConsumerState<_VideoPage> {
           );
         }
 
-        WidgetsBinding.instance.addPostFrameCallback((_) => _setup(session, url));
+        WidgetsBinding.instance.addPostFrameCallback(
+          (_) => _setup(session, url),
+        );
         return const Center(child: CircularProgressIndicator());
       },
     );

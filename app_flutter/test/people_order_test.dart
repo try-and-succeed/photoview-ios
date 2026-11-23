@@ -25,7 +25,7 @@ void main() {
         _group('1', count: 9),
         _group('2', label: 'Bea', count: 1),
         _group('3', count: 4),
-      ], PeopleOrder.alphabetical);
+      ], PeopleOrder.nameAscending);
 
       expect(ordered.map((g) => g.id), ['2', '1', '3']);
     });
@@ -37,7 +37,7 @@ void main() {
         _group('1', label: 'Zoe', count: 400),
         _group('2', label: 'Anna', count: 2),
         _group('3', label: 'Mia', count: 50),
-      ], PeopleOrder.alphabetical);
+      ], PeopleOrder.nameAscending);
 
       expect(ordered.map((g) => g.label), ['Anna', 'Mia', 'Zoe']);
     });
@@ -46,9 +46,42 @@ void main() {
       final ordered = orderedFaceGroups([
         _group('2', label: 'Anna', count: 2),
         _group('1', label: 'Zoe', count: 400),
-      ], PeopleOrder.byCount);
+      ], PeopleOrder.countDescending);
 
       expect(ordered.map((g) => g.label), ['Zoe', 'Anna']);
+    });
+
+    test('names can run Z to A', () {
+      final ordered = orderedFaceGroups([
+        _group('1', label: 'Mia'),
+        _group('2', label: 'Öztürk'),
+        _group('3', label: 'Anna'),
+      ], PeopleOrder.nameDescending);
+
+      expect(ordered.map((g) => g.label), ['Öztürk', 'Mia', 'Anna']);
+    });
+
+    test('fewest photos first puts the rarely seen on top', () {
+      final ordered = orderedFaceGroups([
+        _group('1', label: 'Zoe', count: 400),
+        _group('2', label: 'Anna', count: 2),
+        _group('3', label: 'Mia', count: 50),
+      ], PeopleOrder.countAscending);
+
+      expect(ordered.map((g) => g.label), ['Anna', 'Mia', 'Zoe']);
+    });
+
+    test('ties keep the same order in either direction', () {
+      // Turning the id round with the key would swap two equals every time
+      // the setting flips, which reads as the list being shuffled.
+      for (final order in PeopleOrder.values) {
+        final ordered = orderedFaceGroups([
+          _group('9', label: 'Anna', count: 5),
+          _group('3', label: 'Anna', count: 5),
+        ], order);
+
+        expect(ordered.map((g) => g.id), ['3', '9'], reason: order.name);
+      }
     });
 
     test('the unnamed stay ordered by count under either setting', () {
@@ -62,13 +95,28 @@ void main() {
       }
     });
 
+    test('the unnamed run fewest first when the server paged them so', () {
+      final ordered = orderedFaceGroups(
+        [
+          _group('1', count: 30),
+          _group('2', label: 'Zoe', count: 400),
+          _group('3', count: 3),
+          _group('4', label: 'Anna', count: 2),
+        ],
+        PeopleOrder.countAscending,
+        unnamedFewestFirst: true,
+      );
+
+      expect(ordered.map((g) => g.id), ['4', '2', '3', '1']);
+    });
+
     test('umlauts sort where a reader expects them', () {
       // Dart compares code units, which puts "Ö" after "Z".
       final ordered = orderedFaceGroups([
         _group('1', label: 'Zimmermann'),
         _group('2', label: 'Öztürk'),
         _group('3', label: 'Ärztin'),
-      ], PeopleOrder.alphabetical);
+      ], PeopleOrder.nameAscending);
 
       expect(ordered.map((g) => g.label), ['Ärztin', 'Öztürk', 'Zimmermann']);
     });
@@ -77,13 +125,12 @@ void main() {
       final ordered = orderedFaceGroups([
         _group('1', label: '   ', count: 1),
         _group('2', count: 8),
-      ], PeopleOrder.alphabetical);
+      ], PeopleOrder.nameAscending);
 
-      expect(
-        ordered.map((g) => g.id),
-        ['2', '1'],
-        reason: 'both unnamed, so by count',
-      );
+      expect(ordered.map((g) => g.id), [
+        '2',
+        '1',
+      ], reason: 'both unnamed, so by count');
     });
 
     test('equal keys fall back to the id, so paging cannot drop a person', () {
@@ -95,13 +142,13 @@ void main() {
         _group('3', label: 'Anna', count: 1),
         _group('7', count: 5),
         _group('2', count: 5),
-      ], PeopleOrder.alphabetical);
+      ], PeopleOrder.nameAscending);
 
       expect(ordered.map((g) => g.id), ['3', '9', '2', '7']);
     });
 
     test('nothing in, nothing out', () {
-      expect(orderedFaceGroups(const [], PeopleOrder.alphabetical), isEmpty);
+      expect(orderedFaceGroups(const [], PeopleOrder.nameAscending), isEmpty);
     });
   });
 
@@ -119,7 +166,7 @@ void main() {
   });
 
   group('the chosen order', () {
-    test('defaults to alphabetical and outlives the session', () async {
+    test('defaults to A to Z and outlives the session', () async {
       final settings = _MemorySettings();
 
       final first = ProviderContainer(
@@ -129,11 +176,13 @@ void main() {
 
       expect(
         await first.read(peopleOrderProvider.future),
-        PeopleOrder.alphabetical,
+        PeopleOrder.nameAscending,
       );
 
-      await first.read(peopleOrderProvider.notifier).choose(PeopleOrder.byCount);
-      expect(settings.order, 'byCount');
+      await first
+          .read(peopleOrderProvider.notifier)
+          .choose(PeopleOrder.countAscending);
+      expect(settings.order, 'countAscending');
 
       final afterRestart = ProviderContainer(
         overrides: [settingsStoreProvider.overrideWithValue(settings)],
@@ -142,24 +191,51 @@ void main() {
 
       expect(
         await afterRestart.read(peopleOrderProvider.future),
-        PeopleOrder.byCount,
+        PeopleOrder.countAscending,
       );
     });
 
-    test('a stored value we no longer know falls back to the default', () async {
-      final container = ProviderContainer(
-        overrides: [
-          settingsStoreProvider.overrideWithValue(
-            _MemorySettings()..order = 'by-phase-of-the-moon',
-          ),
-        ],
-      );
-      addTearDown(container.dispose);
+    test('what the two-order version stored still means the same', () async {
+      // Someone who picked "by number of photos" before the update should
+      // not find the list back on A to Z.
+      for (final (stored, expected) in [
+        ('alphabetical', PeopleOrder.nameAscending),
+        ('byCount', PeopleOrder.countDescending),
+      ]) {
+        final container = ProviderContainer(
+          overrides: [
+            settingsStoreProvider.overrideWithValue(
+              _MemorySettings()..order = stored,
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
 
-      expect(
-        await container.read(peopleOrderProvider.future),
-        PeopleOrder.alphabetical,
-      );
+        expect(
+          await container.read(peopleOrderProvider.future),
+          expected,
+          reason: stored,
+        );
+      }
     });
+
+    test(
+      'a stored value we no longer know falls back to the default',
+      () async {
+        final container = ProviderContainer(
+          overrides: [
+            settingsStoreProvider.overrideWithValue(
+              _MemorySettings()..order = 'by-phase-of-the-moon',
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        expect(
+          await container.read(peopleOrderProvider.future),
+          PeopleOrder.nameAscending,
+        );
+      },
+    );
   });
 }

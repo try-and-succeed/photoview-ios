@@ -42,6 +42,8 @@ class _MergingClient extends PhotoviewClient {
   Future<List<FaceGroup>> faceGroups({
     required int limit,
     required int offset,
+    bool fewestFirst = false,
+    bool withStatus = false,
   }) async => _people.skip(offset).take(limit).toList();
 
   @override
@@ -72,7 +74,10 @@ class _MergingClient extends PhotoviewClient {
   }
 
   @override
-  Future<List<PersonPhoto>> personPhotos(String faceGroupId) async => const [];
+  Future<List<PersonPhoto>> personPhotos(
+    String faceGroupId, {
+    bool withStatus = false,
+  }) async => const [];
 }
 
 Future<void> _openPerson(
@@ -258,6 +263,8 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.person_search_outlined));
     await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Match'));
+    await tester.pumpAndSettle();
 
     expect(client.recognizeCalls, 1);
     expect(find.text('Faces filed: 12'), findsOneWidget);
@@ -270,7 +277,28 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.person_search_outlined));
     await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Match'));
+    await tester.pumpAndSettle();
 
     expect(find.textContaining('The match failed'), findsOneWidget);
+  });
+
+  testWidgets('matching is explained first, and cancelling runs nothing', (
+    tester,
+  ) async {
+    final client = _MergingClient(people: const [regina, stranger])..filed = 12;
+    await _openPeople(tester, client);
+
+    await tester.tap(find.byIcon(Icons.person_search_outlined));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Compares every unnamed face'), findsOneWidget);
+    expect(client.recognizeCalls, 0, reason: 'nothing runs before the yes');
+
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    expect(client.recognizeCalls, 0);
+    expect(find.textContaining('Faces filed'), findsNothing);
   });
 }

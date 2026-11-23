@@ -1,7 +1,10 @@
 name: photoview
 description: "Photoview client — browse a self-hosted Photoview media gallery."
 publish_to: 'none'
-version: 1.0.0+1
+# Name and build number of the app, for Android's versionName/versionCode and
+# iOS's CFBundleShortVersionString/CFBundleVersion. Raised with every change,
+# alongside an entry in ../CHANGELOG.md.
+version: 1.2.0+9
 
 environment:
   sdk: ^3.13.3
@@ -49,6 +52,9 @@ dependencies:
   flutter_file_dialog: ^3.3.2
 
   intl: ^0.20.2
+  # The version shown under Settings › Info, read from the build — which
+  # takes it from `version:` above — so it is never written twice.
+  package_info_plus: ^10.2.2
 
 dev_dependencies:
   flutter_test:

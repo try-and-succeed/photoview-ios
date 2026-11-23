@@ -22,9 +22,17 @@ translations in the 18 languages of the Photoview web client.
 Looking at photos is where it has moved furthest. A tap opens the picture at
 full resolution, with the camera data, downloads and links a button away; a
 slideshow runs on its own at an interval you choose; the details say which
-album a photo is in. People can be given names in the app rather than only in
-the web interface, and are listed by name instead of by how many photos they
-happen to appear in. For getting about a library that does not fit on a screen:
+album a photo is in.
+
+People can be looked after in the app rather than only in the web interface:
+named, merged when the server split one person in two, sorted by name or by
+how many photos they are in, either way round. A photo can show a frame and a
+name over every face on it, and a tap on a frame files that face under someone
+else, a new person, or nobody; the faces behind several photos can be moved at
+once from a person's page, with a name filter to find where they go. Nothing
+moves without being asked in words first.
+
+For getting about a library that does not fit on a screen:
 a scrollbar to drag in every long list, and a date to jump to in the timeline.
 
 The SwiftUI app in [`Photoview/`](./Photoview) is **unchanged** and stays the

@@ -54,7 +54,10 @@ class _ScanningClient extends PhotoviewClient {
   }
 
   @override
-  Future<String?> scanAlbum(String albumId) async => 'Scanner started';
+  Future<String?> scanAlbum(
+    String albumId, {
+    bool onlyNewSubAlbums = false,
+  }) async => 'Scanner started';
 }
 
 void main() {

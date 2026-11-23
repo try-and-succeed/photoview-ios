@@ -82,7 +82,24 @@ class _FaceTile extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          FaceThumbnail(face: face),
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              FaceThumbnail(face: face),
+              if (face.allVerified == true)
+                const PositionedDirectional(
+                  end: 0,
+                  top: 0,
+                  child: VerifiedPersonBadge(),
+                ),
+              if (face.imageFaceCount > 0)
+                PositionedDirectional(
+                  end: 0,
+                  bottom: 0,
+                  child: PhotoCountBadge(count: face.imageFaceCount),
+                ),
+            ],
+          ),
           const SizedBox(height: 6),
           if (label != null)
             Text(
@@ -93,10 +110,7 @@ class _FaceTile extends StatelessWidget {
             )
           else
             Text(
-              unlabeledFaceLabel(
-                AppLocalizations.of(context).personUnlabeled,
-                face.imageFaceCount,
-              ),
+              AppLocalizations.of(context).personUnlabeled,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.bodySmall?.copyWith(
@@ -110,18 +124,81 @@ class _FaceTile extends StatelessWidget {
   }
 }
 
-/// What an unnamed person is called in the grid: how many pictures they are
-/// in, then the word.
+/// How many pictures a person is in, as a small pill on the corner of their
+/// round thumbnail.
 ///
-/// Everyone unnamed is called the same thing, so the count is the only thing
-/// telling them apart on screen — and the one that says which is worth naming
-/// first. **The number comes first** because a tile on a phone held upright
-/// is too narrow for both: whatever is cut off should be the word every tile
-/// shares, not the part that differs. It also saves guessing where the number
-/// belongs in eighteen languages.
+/// On the picture rather than in the line under it: a tile on a phone held
+/// upright has room for about fifteen characters, which a name alone already
+/// fills — the count beside it cut off either the name or itself. The corner
+/// of a square around a circle is empty anyway, so the pill covers almost
+/// nothing of the face. With no words in it there is nothing to translate,
+/// and it reads the same for the named and the unnamed.
 ///
 /// Written with the app language's digit grouping, like the search headings.
-/// Named people are left alone: there the name does that job.
+class PhotoCountBadge extends StatelessWidget {
+  final int count;
+
+  const PhotoCountBadge({super.key, required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: scheme.secondaryContainer,
+        borderRadius: BorderRadius.circular(10),
+        // A ring in the page colour, so the pill stands off the photo
+        // whatever colours the photo has.
+        border: Border.all(color: scheme.surface, width: 2),
+      ),
+      child: Text(
+        NumberFormat.decimalPattern().format(count),
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: scheme.onSecondaryContainer,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+/// A green tick on the corner of a person's thumbnail: every face filed under
+/// them has been confirmed by someone, so nothing about them is left to check.
+///
+/// The opposite corner from [PhotoCountBadge], with the same ring in the page
+/// colour. The same green as a confirmed face's frame on a photo, a shade
+/// darker so a white tick reads on it.
+class VerifiedPersonBadge extends StatelessWidget {
+  const VerifiedPersonBadge({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Semantics(
+      label: AppLocalizations.of(context).peopleAllVerified,
+      child: Container(
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          color: Colors.green.shade600,
+          shape: BoxShape.circle,
+          border: Border.all(color: scheme.surface, width: 2),
+        ),
+        child: const Icon(Icons.check, size: 16, color: Colors.white),
+      ),
+    );
+  }
+}
+
+/// What an unnamed person is called in a list: how many pictures they are
+/// in, then the word.
+///
+/// Used where there is no thumbnail big enough to carry [PhotoCountBadge] —
+/// the person picker. Everyone unnamed is called the same thing, so the count
+/// is what tells them apart there. **The number comes first**, so a cut falls
+/// on the word every entry shares, not on the part that differs.
 ///
 /// A count of zero is left out: the server sends that for a group it has not
 /// counted, and "0 ·" would read as a person in no pictures at all.
