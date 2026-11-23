@@ -284,6 +284,52 @@ mutation reclassifyFaceGroups($faceGroupIDs: [ID!]!, $dryRun: Boolean!) {
 }
 ''';
 
+/// Flags faces for review, or clears the flag, leaving everything else about
+/// them as it is.
+const setImageFacesNeedsReviewMutation = r'''
+mutation setImageFacesNeedsReview($imageFaceIDs: [ID!]!, $needsReview: Boolean!) {
+  setImageFacesNeedsReview(imageFaceIDs: $imageFaceIDs, needsReview: $needsReview) {
+    id
+  }
+}
+''';
+
+/// Proposals to join unnamed groups without a confirmed face whose faces look
+/// alike — as a dry run, or merging all of them. Each face comes with its
+/// rectangle and photo, so the proposal can be shown as faces. No
+/// `imageFaceCount`: the server reloads every album to count it (see
+/// [reclassifyFaceGroupsMutation]), and the faces are counted here anyway.
+const mergeSimilarUnlabeledFaceGroupsMutation = r'''
+mutation mergeSimilarUnlabeledFaceGroups($dryRun: Boolean!) {
+  mergeSimilarUnlabeledFaceGroups(dryRun: $dryRun) {
+    destination {
+      id
+    }
+    sourceFaceGroupIDs
+    imageFaces {
+      id
+      rectangle {
+        minX
+        maxX
+        minY
+        maxY
+      }
+      faceGroup {
+        id
+      }
+      media {
+        id
+        thumbnail {
+          url
+          width
+          height
+        }
+      }
+    }
+  }
+}
+''';
+
 /// Photos with a face waiting for review, newest first.
 const mediaNeedingReviewQuery =
     '''

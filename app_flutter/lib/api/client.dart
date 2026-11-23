@@ -792,6 +792,20 @@ class PhotoviewClient {
     return (data['setImageFacesVerified'] as List<dynamic>?)?.length ?? 0;
   }
 
+  /// Flags [imageFaceIds] for review, or clears the flag, returning how many
+  /// faces the server changed. Only a server with
+  /// [Capability.faceNeedsReview] has it.
+  Future<int> setImageFacesNeedsReview(
+    List<String> imageFaceIds, {
+    required bool needsReview,
+  }) async {
+    final data = await _mutate(setImageFacesNeedsReviewMutation, {
+      'imageFaceIDs': imageFaceIds,
+      'needsReview': needsReview,
+    });
+    return (data['setImageFacesNeedsReview'] as List<dynamic>?)?.length ?? 0;
+  }
+
   /// Files the unconfirmed faces of [faceGroupIds] again against the
   /// confirmed faces of everybody — or, with [dryRun], only says what that
   /// would do.
@@ -808,6 +822,27 @@ class PhotoviewClient {
     return result == null
         ? const ReclassifyResult()
         : ReclassifyResult.fromJson(result);
+  }
+
+  /// Proposals to join unnamed groups whose faces look alike, largest first —
+  /// or, unless [dryRun], merges every one of them, as the server works them
+  /// out again at that moment, and returns what it merged.
+  ///
+  /// With the re-identification's long timeout: the server compares every
+  /// unnamed face with every other.
+  Future<List<MergeProposal>> mergeSimilarUnlabeledFaceGroups({
+    required bool dryRun,
+  }) async {
+    final data = await _mutate(
+      mergeSimilarUnlabeledFaceGroupsMutation,
+      {'dryRun': dryRun},
+      reclassifyTimeout,
+    );
+    return (data['mergeSimilarUnlabeledFaceGroups'] as List<dynamic>? ??
+            const [])
+        .whereType<Map<String, dynamic>>()
+        .map(MergeProposal.fromJson)
+        .toList();
   }
 
   /// One page of the photos with a face waiting for review, newest first.

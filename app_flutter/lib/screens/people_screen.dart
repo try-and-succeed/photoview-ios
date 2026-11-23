@@ -13,6 +13,7 @@ import '../widgets/async_states.dart';
 import '../widgets/load_more.dart';
 import '../widgets/face_grid.dart';
 import '../widgets/face_move.dart' show personMatches;
+import 'merge_unlabeled_screen.dart';
 import 'review_screen.dart';
 
 class PeopleScreen extends ConsumerStatefulWidget {
@@ -110,6 +111,22 @@ class _PeopleScreenState extends ConsumerState<PeopleScreen> {
     }
   }
 
+  /// Explains merging similar unnamed people, then opens the proposals on a
+  /// yes. Opening them changes nothing; each is decided there.
+  Future<void> _askMergeUnlabeled() async {
+    final l10n = AppLocalizations.of(context);
+    if (await _confirm(
+      title: l10n.mergeUnlabeledTitle,
+      message: l10n.mergeUnlabeledConfirm,
+      action: l10n.mergeUnlabeledSearch,
+    )) {
+      if (!mounted) return;
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => const MergeUnlabeledScreen()),
+      );
+    }
+  }
+
   /// Asks the server to have another look at the faces nobody has named.
   ///
   /// It is the server that does the matching, against the people who already
@@ -150,6 +167,9 @@ class _PeopleScreenState extends ConsumerState<PeopleScreen> {
     final query = _query.text.trim();
     final canVerify = ref.watch(
       hasCapabilityProvider(Capability.faceVerification),
+    );
+    final canMergeUnlabeled = ref.watch(
+      hasCapabilityProvider(Capability.mergeUnlabeledFaceGroups),
     );
     // Not left on after the server turned out not to know confirming: the
     // button to switch it off would be gone with it.
@@ -230,6 +250,12 @@ class _PeopleScreenState extends ConsumerState<PeopleScreen> {
                           icon: const Icon(Icons.person_search_outlined),
                           tooltip: l10n.peopleRecognize,
                           onPressed: _askRecognize,
+                        ),
+                      if (canMergeUnlabeled)
+                        IconButton(
+                          icon: const Icon(Icons.group_work_outlined),
+                          tooltip: l10n.mergeUnlabeledTitle,
+                          onPressed: _askMergeUnlabeled,
                         ),
                       if (canVerify) ...[
                         IconButton(

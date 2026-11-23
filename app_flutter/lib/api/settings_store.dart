@@ -108,7 +108,31 @@ class SettingsStore {
   /// record, so two changes that each read it and write it back would keep
   /// only the last one's view — and lose the other account's setting.
   Future<void> setSearchResultLimit(String serverId, int? limit) =>
-      _serialized(() => _setSearchResultLimit(serverId, limit));
+      _serialized(() => _setEntry(serverId, 'searchResultLimit', limit));
+
+  /// The merge proposals the user turned down on [serverId], each as
+  /// `MergeProposal.signature`. Per account, because group ids are. An
+  /// unreadable record reads as none, which only shows them again.
+  Future<Set<String>> rejectedMergeProposals(String serverId) async {
+    final entry = (await _readAll())[serverId];
+    if (entry is! Map<String, dynamic>) return {};
+
+    final value = entry['rejectedMergeProposals'];
+    return value is List ? {...value.whereType<String>()} : {};
+  }
+
+  /// Stores [signatures] for [serverId]; an empty set removes the entry.
+  /// Throws [StorageUnavailable] like [setSearchResultLimit].
+  Future<void> setRejectedMergeProposals(
+    String serverId,
+    Set<String> signatures,
+  ) => _serialized(
+    () => _setEntry(
+      serverId,
+      'rejectedMergeProposals',
+      signatures.isEmpty ? null : (signatures.toList()..sort()),
+    ),
+  );
 
   /// The end of the queue of changes. Static because every instance shares
   /// the same storage record.
@@ -122,17 +146,19 @@ class SettingsStore {
     return result;
   }
 
-  Future<void> _setSearchResultLimit(String serverId, int? limit) async {
+  /// Sets one value of [serverId]'s record, keeping the rest of it and every
+  /// other account's; null removes it.
+  Future<void> _setEntry(String serverId, String key, Object? value) async {
     final all = await _readAllForWrite();
     final entry = all[serverId];
     final updated = <String, dynamic>{
       if (entry is Map<String, dynamic>) ...entry,
     };
 
-    if (limit == null) {
-      updated.remove('searchResultLimit');
+    if (value == null) {
+      updated.remove(key);
     } else {
-      updated['searchResultLimit'] = limit;
+      updated[key] = value;
     }
 
     if (updated.isEmpty) {

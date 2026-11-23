@@ -1667,5 +1667,169 @@
   "albumScanNewStarted": "Scanning this album and its new folders.",
   "@albumScanNewStarted": {
     "description": "Confirmation after starting the \"only what is new\" scan of an album."
+  },
+  "mergeUnlabeledTitle": "Merge similar unnamed",
+  "@mergeUnlabeledTitle": {
+    "description": "People tab button, its question and the screen title: proposals to join unnamed people whose faces look alike."
+  },
+  "mergeUnlabeledConfirm": "Looks for unnamed people without a confirmed face whose faces look alike, and proposes to put them together. You see every proposal as faces and decide on each; until then nothing changes.",
+  "@mergeUnlabeledConfirm": {
+    "description": "Explains the button before the proposals are looked for."
+  },
+  "mergeUnlabeledSearch": "Search",
+  "@mergeUnlabeledSearch": {
+    "description": "Button in that question: look for proposals."
+  },
+  "mergeUnlabeledSearching": "Comparing unnamed faces…",
+  "@mergeUnlabeledSearching": {
+    "description": "Shown while the server compares the unnamed faces."
+  },
+  "mergeUnlabeledHint": "Tap a face to leave its group out; the faces of one group go together. Hold a face to see its photo. Look closely at large proposals: one face can bring in a chain of others.",
+  "@mergeUnlabeledHint": {
+    "description": "Above the proposals: how to leave a group out and see a photo."
+  },
+  "mergeUnlabeledProposal": "Faces: {count} → one person",
+  "@mergeUnlabeledProposal": {
+    "description": "Heading of one proposal: how many faces it puts together. The number is not last on purpose: an arrow follows.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mergeUnlabeledMerge": "Merge",
+  "@mergeUnlabeledMerge": {
+    "description": "Button: merge this proposal."
+  },
+  "mergeUnlabeledReject": "Not the same person",
+  "@mergeUnlabeledReject": {
+    "description": "Button: these faces are not one person; hides the proposal."
+  },
+  "mergeUnlabeledAcceptAll": "Merge all ({count})",
+  "@mergeUnlabeledAcceptAll": {
+    "description": "Button and question title: merge every proposal shown.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mergeUnlabeledAcceptAllConfirm": "Merge every proposal shown, as it is shown? Proposals: {count}. Groups you left out stay as they are. A merge can only be undone face by face.",
+  "@mergeUnlabeledAcceptAllConfirm": {
+    "description": "Question before merging every proposal shown.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mergeUnlabeledProgress": "Merging {done} of {total}…",
+  "@mergeUnlabeledProgress": {
+    "description": "While merging every proposal.",
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "mergeUnlabeledMerged": "Merged",
+  "@mergeUnlabeledMerged": {
+    "description": "Message after merging one proposal."
+  },
+  "mergeUnlabeledAllMerged": "Proposals merged: {count}",
+  "@mergeUnlabeledAllMerged": {
+    "description": "Message after merging every proposal.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mergeUnlabeledFailed": "Could not merge: {error}",
+  "@mergeUnlabeledFailed": {
+    "description": "Merging failed.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "mergeUnlabeledPartlyFailed": "Merged before the error: {done}. {error}",
+  "@mergeUnlabeledPartlyFailed": {
+    "description": "Merging every proposal failed after some went through.",
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "mergeUnlabeledNone": "Nothing to merge: no unnamed faces look alike enough.",
+  "@mergeUnlabeledNone": {
+    "description": "The server found nothing to merge."
+  },
+  "mergeUnlabeledAllDone": "Every proposal is dealt with. Search again: merged groups can bring new proposals.",
+  "@mergeUnlabeledAllDone": {
+    "description": "Every proposal was merged or turned down."
+  },
+  "mergeUnlabeledSearchAgain": "Search again",
+  "@mergeUnlabeledSearchAgain": {
+    "description": "Button: ask for proposals again."
+  },
+  "mergeUnlabeledHidden": "Hidden, turned down earlier: {count}",
+  "@mergeUnlabeledHidden": {
+    "description": "How many proposals are hidden because they were turned down before.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mergeUnlabeledShowHidden": "Show again",
+  "@mergeUnlabeledShowHidden": {
+    "description": "Button: show the turned-down proposals again."
+  },
+  "mergeUnlabeledNotEnough": "Keep at least two groups to merge.",
+  "@mergeUnlabeledNotEnough": {
+    "description": "Under a proposal with fewer than two groups left in it."
+  },
+  "mergeUnlabeledNotStored": "Could not remember the turned-down proposal on this device.",
+  "@mergeUnlabeledNotStored": {
+    "description": "The turned-down proposal could not be stored on the device."
+  },
+  "mergeUnlabeledFaceIn": "Face in this proposal",
+  "@mergeUnlabeledFaceIn": {
+    "description": "Screen reader label of a face that is part of the proposal."
+  },
+  "mergeUnlabeledFaceOut": "Face left out",
+  "@mergeUnlabeledFaceOut": {
+    "description": "Screen reader label of a face left out of the proposal."
+  },
+  "mergeUnlabeledNotFlagged": "Merged, but not added to the review list: {error}",
+  "@mergeUnlabeledNotFlagged": {
+    "description": "The merge went through, but flagging its faces for review failed.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "mergeUnlabeledName": "Name…",
+  "@mergeUnlabeledName": {
+    "description": "Button on a merge proposal: pick or name who it is, and merge it as them."
+  },
+  "mergeUnlabeledMergedAs": "Merged as {name}",
+  "@mergeUnlabeledMergedAs": {
+    "description": "Message after merging a proposal as a named person.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   }
 }
