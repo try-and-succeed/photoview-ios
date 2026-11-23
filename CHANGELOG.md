@@ -76,6 +76,9 @@ faces a person has confirmed. Against any other server nothing changes.
   count, which it recounts for every single face: for 7,500 faces that took
   four minutes instead of 3.5 seconds. The app no longer asks for it, and it
   now waits up to five minutes for re-identifying.
+- The frames around faces no longer darken the face inside them. Their
+  shadow, there to keep a frame visible on a bright photo, was also painted
+  within the frame; it now falls only outside.
 
 ## 1.1.1 (3) — 2026-11-21
 

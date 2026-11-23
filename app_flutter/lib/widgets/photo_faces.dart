@@ -146,7 +146,15 @@ class PhotoFacesOverlay extends ConsumerWidget {
                   width: unit * 0.5,
                 ),
                 borderRadius: BorderRadius.circular(unit),
-                boxShadow: [BoxShadow(color: Colors.black54, blurRadius: unit)],
+                // Outside only: a plain box shadow also fills the box, which
+                // darkened the very face the frame is there to show.
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black54,
+                    blurRadius: unit,
+                    blurStyle: BlurStyle.outer,
+                  ),
+                ],
               ),
             ),
           ),
