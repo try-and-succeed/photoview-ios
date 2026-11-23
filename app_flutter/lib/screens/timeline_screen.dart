@@ -93,6 +93,7 @@ class TimelineScreen extends ConsumerWidget {
                   tooltip: AppLocalizations.of(context).timelineJumpToDay,
                   onPressed: () => _jumpToDay(context, ref),
                 ),
+                const MediaLayoutButton(),
                 IconButton(
                   icon: const Icon(Icons.search),
                   onPressed: () => showPhotoviewSearch(context),

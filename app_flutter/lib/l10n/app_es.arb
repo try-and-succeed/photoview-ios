@@ -123,6 +123,8 @@
   "searchMedia": "Archivos",
   "searchHiddenMore": "{count} más no se muestran. Acota la búsqueda o establece un límite de resultados en Ajustes.",
   "untitledMedia": "Sin título",
+  "mediaLayoutList": "Ver como lista",
+  "mediaLayoutGrid": "Ver como cuadrícula",
   "galleryInfo": "Información",
   "galleryFacesShow": "Mostrar caras",
   "galleryFacesHide": "Ocultar caras",

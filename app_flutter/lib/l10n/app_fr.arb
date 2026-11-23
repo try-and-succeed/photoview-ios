@@ -123,6 +123,8 @@
   "searchMedia": "Médias",
   "searchHiddenMore": "{count} de plus non affichés. Affinez votre recherche ou définissez une limite de résultats dans les Paramètres.",
   "untitledMedia": "Sans titre",
+  "mediaLayoutList": "Afficher en liste",
+  "mediaLayoutGrid": "Afficher en mosaïque",
   "galleryInfo": "Infos",
   "galleryFacesShow": "Afficher les visages",
   "galleryFacesHide": "Masquer les visages",

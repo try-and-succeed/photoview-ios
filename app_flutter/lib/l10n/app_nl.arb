@@ -123,6 +123,8 @@
   "searchMedia": "Media",
   "searchHiddenMore": "Nog {count} niet getoond. Verfijn je zoekopdracht of stel een limiet voor zoekresultaten in bij Instellingen.",
   "untitledMedia": "Naamloos",
+  "mediaLayoutList": "Als lijst tonen",
+  "mediaLayoutGrid": "Als tegels tonen",
   "galleryInfo": "Info",
   "galleryFacesShow": "Gezichten tonen",
   "galleryFacesHide": "Gezichten verbergen",

@@ -123,6 +123,8 @@
   "searchMedia": "Media",
   "searchHiddenMore": "{count} till visas inte. Begränsa sökningen eller ange en gräns för sökresultat i Inställningar.",
   "untitledMedia": "Namnlös",
+  "mediaLayoutList": "Visa som lista",
+  "mediaLayoutGrid": "Visa som rutnät",
   "galleryInfo": "Info",
   "galleryFacesShow": "Visa ansikten",
   "galleryFacesHide": "Dölj ansikten",

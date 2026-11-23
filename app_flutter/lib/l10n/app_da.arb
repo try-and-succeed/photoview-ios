@@ -123,6 +123,8 @@
   "searchMedia": "Medier",
   "searchHiddenMore": "{count} mere vises ikke. Indsnævr din søgning, eller angiv en grænse for søgeresultater i Indstillinger.",
   "untitledMedia": "Uden titel",
+  "mediaLayoutList": "Vis som liste",
+  "mediaLayoutGrid": "Vis som fliser",
   "galleryInfo": "Info",
   "galleryFacesShow": "Vis ansigter",
   "galleryFacesHide": "Skjul ansigter",

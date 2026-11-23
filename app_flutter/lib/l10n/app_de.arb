@@ -123,6 +123,8 @@
   "searchMedia": "Medien",
   "searchHiddenMore": "{count} weitere werden nicht angezeigt. Grenze die Suche ein oder lege in den Einstellungen eine Grenze für Suchergebnisse fest.",
   "untitledMedia": "Ohne Titel",
+  "mediaLayoutList": "Als Liste zeigen",
+  "mediaLayoutGrid": "Als Kacheln zeigen",
   "galleryInfo": "Info",
   "galleryFacesShow": "Gesichter zeigen",
   "galleryFacesHide": "Gesichter ausblenden",

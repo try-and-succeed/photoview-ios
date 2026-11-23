@@ -123,6 +123,8 @@
   "searchMedia": "媒體",
   "searchHiddenMore": "還有 {count} 項未顯示。請縮小搜尋範圍，或在設定中設定搜尋結果上限。",
   "untitledMedia": "未命名",
+  "mediaLayoutList": "以清單顯示",
+  "mediaLayoutGrid": "以格狀顯示",
   "galleryInfo": "資訊",
   "galleryFacesShow": "顯示人臉",
   "galleryFacesHide": "隱藏人臉",

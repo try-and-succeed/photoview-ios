@@ -673,6 +673,14 @@
   "@untitledMedia": {
     "description": "Shown for a photo or video without a title."
   },
+  "mediaLayoutList": "Show as list",
+  "@mediaLayoutList": {
+    "description": "Tooltip of the button that shows photos as a list of file names with small thumbnails."
+  },
+  "mediaLayoutGrid": "Show as tiles",
+  "@mediaLayoutGrid": {
+    "description": "Tooltip of the button that shows photos as square tiles again."
+  },
   "galleryInfo": "Info",
   "@galleryInfo": {
     "description": "Tooltip of the gallery button that shows a photo's camera data."

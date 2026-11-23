@@ -123,6 +123,8 @@
   "searchMedia": "Medya",
   "searchHiddenMore": "{count} tane daha gösterilmiyor. Aramanızı daraltın veya Ayarlar'dan bir arama sonucu sınırı belirleyin.",
   "untitledMedia": "Adsız",
+  "mediaLayoutList": "Liste olarak göster",
+  "mediaLayoutGrid": "Döşeme olarak göster",
   "galleryInfo": "Bilgi",
   "galleryFacesShow": "Yüzleri göster",
   "galleryFacesHide": "Yüzleri gizle",

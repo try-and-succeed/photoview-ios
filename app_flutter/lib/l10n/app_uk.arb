@@ -123,6 +123,8 @@
   "searchMedia": "Медіафайли",
   "searchHiddenMore": "Не показано ще: {count}. Уточніть запит або встановіть обмеження результатів у налаштуваннях.",
   "untitledMedia": "Без назви",
+  "mediaLayoutList": "Показати списком",
+  "mediaLayoutGrid": "Показати плиткою",
   "galleryInfo": "Відомості",
   "galleryFacesShow": "Показати обличчя",
   "galleryFacesHide": "Сховати обличчя",

@@ -123,6 +123,8 @@
   "searchMedia": "Медиа",
   "searchHiddenMore": "Не показано ещё: {count}. Уточните запрос или задайте ограничение результатов в настройках.",
   "untitledMedia": "Без названия",
+  "mediaLayoutList": "Показать списком",
+  "mediaLayoutGrid": "Показать плиткой",
   "galleryInfo": "Сведения",
   "galleryFacesShow": "Показать лица",
   "galleryFacesHide": "Скрыть лица",

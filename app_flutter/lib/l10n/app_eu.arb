@@ -123,6 +123,8 @@
   "searchMedia": "Edukia",
   "searchHiddenMore": "Beste {count} ez dira erakusten. Mugatu bilaketa, edo ezarri bilaketa-emaitzen muga bat Ezarpenetan.",
   "untitledMedia": "Izenik gabe",
+  "mediaLayoutList": "Erakutsi zerrenda gisa",
+  "mediaLayoutGrid": "Erakutsi lauza gisa",
   "galleryInfo": "Informazioa",
   "galleryFacesShow": "Erakutsi aurpegiak",
   "galleryFacesHide": "Ezkutatu aurpegiak",

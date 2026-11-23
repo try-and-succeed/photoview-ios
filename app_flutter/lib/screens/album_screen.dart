@@ -216,6 +216,7 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
           : AppBar(
               title: Text(title),
               actions: [
+                const MediaLayoutButton(),
                 IconButton(
                   icon: const Icon(Icons.download),
                   tooltip: l10n.albumDownloadTooltip,

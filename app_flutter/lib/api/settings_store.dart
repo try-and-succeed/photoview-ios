@@ -29,6 +29,9 @@ class SettingsStore {
   /// How named people are ordered, likewise a display preference.
   static const _peopleOrderKey = 'people-order';
 
+  /// Tiles or a list of file names, likewise a display preference.
+  static const _mediaLayoutKey = 'media-layout';
+
   final FlutterSecureStorage _storage;
 
   SettingsStore({FlutterSecureStorage? storage})
@@ -87,6 +90,21 @@ class SettingsStore {
   Future<void> setPeopleOrder(String? order) => order == null
       ? _storage.delete(key: _peopleOrderKey)
       : _storage.write(key: _peopleOrderKey, value: order);
+
+  /// Whether photos are shown as tiles or as a list with their file names,
+  /// as the name of the chosen option; null means tiles. Unreadable storage
+  /// reads as null, which costs nothing but the default.
+  Future<String?> mediaLayout() async {
+    try {
+      return await _storage.read(key: _mediaLayoutKey);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> setMediaLayout(String? layout) => layout == null
+      ? _storage.delete(key: _mediaLayoutKey)
+      : _storage.write(key: _mediaLayoutKey, value: layout);
 
   /// The locally stored search limit for [serverId], or null if none is set.
   Future<int?> searchResultLimit(String serverId) async {
