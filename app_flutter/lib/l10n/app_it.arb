@@ -335,5 +335,7 @@
   "mergeUnlabeledNotStored": "Impossibile salvare la proposta rifiutata su questo dispositivo.",
   "mergeUnlabeledFaceIn": "Volto nella proposta",
   "mergeUnlabeledFaceOut": "Volto escluso",
-  "mergeUnlabeledNotFlagged": "Unito, ma non aggiunto all’elenco da controllare: {error}"
+  "mergeUnlabeledNotFlagged": "Unito, ma non aggiunto all’elenco da controllare: {error}",
+  "mergeUnlabeledName": "Assegna nome…",
+  "mergeUnlabeledMergedAs": "Unito come {name}"
 }

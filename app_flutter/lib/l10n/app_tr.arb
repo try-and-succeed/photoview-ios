@@ -335,5 +335,7 @@
   "mergeUnlabeledNotStored": "Reddedilen öneri bu cihaza kaydedilemedi.",
   "mergeUnlabeledFaceIn": "Önerideki yüz",
   "mergeUnlabeledFaceOut": "Dışarıda bırakılan yüz",
-  "mergeUnlabeledNotFlagged": "Birleştirildi ama inceleme listesine eklenemedi: {error}"
+  "mergeUnlabeledNotFlagged": "Birleştirildi ama inceleme listesine eklenemedi: {error}",
+  "mergeUnlabeledName": "Adlandır…",
+  "mergeUnlabeledMergedAs": "{name} olarak birleştirildi"
 }

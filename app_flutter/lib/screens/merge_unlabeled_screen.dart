@@ -9,7 +9,7 @@ import '../state/search_limit.dart' show settingsStoreProvider;
 import '../widgets/action_failure.dart';
 import '../widgets/async_states.dart';
 import '../widgets/face_grid.dart';
-import '../widgets/face_move.dart' show ensureStillSignedIn;
+import '../widgets/face_move.dart';
 import '../widgets/fullscreen_gallery.dart';
 
 /// The server's proposals to join unnamed people whose faces look alike, as
@@ -141,26 +141,108 @@ class _MergeUnlabeledScreenState extends ConsumerState<MergeUnlabeledScreen> {
 
   Future<void> _mergeOne(MergeProposal proposal) async {
     final merge = proposal.mergeOf(_kept(proposal));
+    if (merge != null) await _merge(proposal, merge);
+  }
+
+  /// Asks who the proposal is — somebody new, named on the spot, or somebody
+  /// there is — and merges it as them.
+  ///
+  /// Without a name the merged group is one more unnamed person among
+  /// thousands, and finding it again to name it means searching for it.
+  /// Into somebody there is, the kept groups go straight into them, which is
+  /// often what a proposal turns out to be: more photos of a known person.
+  Future<void> _askName(MergeProposal proposal) async {
+    final kept = _kept(proposal);
+    final merge = proposal.mergeOf(kept);
     if (merge == null) return;
     final l10n = AppLocalizations.of(context);
 
+    final target = await showDialog<FaceMoveTarget>(
+      context: context,
+      builder: (context) => PickPersonDialog(
+        exclude: proposal.destinationId,
+        title: l10n.galleryFaceAssignPick,
+        offerNewAndUnlabeled: true,
+        offerUnlabeled: false,
+      ),
+    );
+    if (target == null || !mounted) return;
+
+    switch (target) {
+      case MoveToNewPerson(name: final typed):
+        final name = (await showDialog<String>(
+          context: context,
+          builder: (context) =>
+              PersonNameDialog(initial: null, suggestion: typed),
+        ))?.trim();
+        if (name == null || name.isEmpty || !mounted) return;
+        await _merge(proposal, merge, newName: name);
+
+      case MoveToPerson(:final person):
+        // Every kept group goes in, the proposal's destination too; the
+        // person may be one of the proposal's own groups, which stays.
+        final into = (
+          destination: person.id,
+          sources: [
+            for (final id in proposal.groupIds)
+              if (kept.contains(id) && id != person.id) id,
+          ],
+          faceIds: merge.faceIds,
+        );
+        await _merge(proposal, into, shownAs: describePerson(person, l10n));
+
+      case MoveToUnlabeled() || KeepOnItsOwn():
+        return;
+    }
+  }
+
+  /// Merges one proposal as [merge], then names the result [newName] if
+  /// given. Says what came of it: merged, or merged as somebody.
+  ///
+  /// The faces are flagged for review either way (see
+  /// [FaceActions.mergeAll]). A failure of that, or of the naming, comes
+  /// after the merge went through, and each offers to retry only itself.
+  Future<void> _merge(
+    MergeProposal proposal,
+    ProposalMerge merge, {
+    String? newName,
+    String? shownAs,
+  }) async {
+    final l10n = AppLocalizations.of(context);
+    final owner = _owner;
+
     setState(() => _merging = proposal.signature);
     try {
-      ensureStillSignedIn(ref, _owner);
-      // Through mergeAll, so its faces are flagged for review as well.
-      await ref
-          .read(faceActionsProvider)
-          .mergeAll(
-            [merge],
-            onDone: (_) {
-              if (mounted) {
-                setState(() => _proposals = [..._proposals!]..remove(proposal));
-              }
-            },
-          );
-      if (mounted) _say(l10n.mergeUnlabeledMerged);
-    } on ReviewNotFlaggedException catch (error) {
-      if (mounted) await _reportNotFlagged(error);
+      ensureStillSignedIn(ref, owner);
+      ReviewNotFlaggedException? notFlagged;
+      try {
+        await ref
+            .read(faceActionsProvider)
+            .mergeAll(
+              [merge],
+              onDone: (_) {
+                if (mounted) {
+                  setState(
+                    () => _proposals = [..._proposals!]..remove(proposal),
+                  );
+                }
+              },
+            );
+      } on ReviewNotFlaggedException catch (error) {
+        notFlagged = error;
+      }
+      if (!mounted) return;
+
+      if (newName != null) {
+        await _name(merge.destination, newName, owner);
+      } else {
+        _say(
+          shownAs == null
+              ? l10n.mergeUnlabeledMerged
+              : l10n.mergeUnlabeledMergedAs(shownAs),
+        );
+      }
+      if (notFlagged != null && mounted) await _reportNotFlagged(notFlagged);
     } catch (error) {
       if (mounted) {
         await showActionFailure(
@@ -168,11 +250,34 @@ class _MergeUnlabeledScreenState extends ConsumerState<MergeUnlabeledScreen> {
           ref,
           error: error,
           message: l10n.mergeUnlabeledFailed,
-          retry: () => _mergeOne(proposal),
+          retry: () =>
+              _merge(proposal, merge, newName: newName, shownAs: shownAs),
         );
       }
     } finally {
       if (mounted) setState(() => _merging = null);
+    }
+  }
+
+  /// Names the merged group [groupId]. Its own step with its own retry: the
+  /// merge has gone through, and merging again is not possible.
+  Future<void> _name(String groupId, String name, String? owner) async {
+    final l10n = AppLocalizations.of(context);
+    try {
+      ensureStillSignedIn(ref, owner);
+      final stored = await ref.read(faceActionsProvider).rename(groupId, name);
+      if (mounted) _say(l10n.mergeUnlabeledMergedAs(stored ?? name));
+    } catch (error) {
+      if (mounted) {
+        await showActionFailure(
+          context,
+          ref,
+          error: error,
+          message: l10n.personFacesNameFailed,
+          retry: () => _name(groupId, name, owner),
+          retryAnyError: true,
+        );
+      }
     }
   }
 
@@ -429,6 +534,7 @@ class _MergeUnlabeledScreenState extends ConsumerState<MergeUnlabeledScreen> {
           onOpen: _openPhoto,
           onMerge: () => _mergeOne(proposal),
           onReject: () => _reject(proposal),
+          onName: () => _askName(proposal),
         );
       },
     );
@@ -450,6 +556,9 @@ class _ProposalCard extends StatelessWidget {
   final VoidCallback onMerge;
   final VoidCallback onReject;
 
+  /// Merges it as somebody: a new person named on the spot, or one there is.
+  final VoidCallback onName;
+
   const _ProposalCard({
     required this.proposal,
     required this.kept,
@@ -459,6 +568,7 @@ class _ProposalCard extends StatelessWidget {
     required this.onOpen,
     required this.onMerge,
     required this.onReject,
+    required this.onName,
   });
 
   @override
@@ -513,14 +623,21 @@ class _ProposalCard extends StatelessWidget {
               ),
             ],
             const SizedBox(height: 4),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+            // A Wrap, not a Row: three buttons in German or Danish do not
+            // fit one line of a phone held upright.
+            Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 8,
+              runSpacing: 4,
               children: [
                 TextButton(
                   onPressed: enabled ? onReject : null,
                   child: Text(l10n.mergeUnlabeledReject),
                 ),
-                const SizedBox(width: 8),
+                OutlinedButton(
+                  onPressed: enabled && canMerge ? onName : null,
+                  child: Text(l10n.mergeUnlabeledName),
+                ),
                 FilledButton(
                   onPressed: enabled && canMerge ? onMerge : null,
                   child: merging

@@ -335,5 +335,7 @@
   "mergeUnlabeledNotStored": "Ezin izan da baztertutako proposamena gailu honetan gorde.",
   "mergeUnlabeledFaceIn": "Proposameneko aurpegia",
   "mergeUnlabeledFaceOut": "Kanpoan utzitako aurpegia",
-  "mergeUnlabeledNotFlagged": "Bateratuta, baina ez da berrikusteko zerrendara gehitu: {error}"
+  "mergeUnlabeledNotFlagged": "Bateratuta, baina ez da berrikusteko zerrendara gehitu: {error}",
+  "mergeUnlabeledName": "Izena eman…",
+  "mergeUnlabeledMergedAs": "{name} gisa bateratuta"
 }

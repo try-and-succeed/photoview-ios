@@ -335,5 +335,7 @@
   "mergeUnlabeledNotStored": "Det avvisade förslaget kunde inte sparas på den här enheten.",
   "mergeUnlabeledFaceIn": "Ansikte i förslaget",
   "mergeUnlabeledFaceOut": "Ansikte uteslutet",
-  "mergeUnlabeledNotFlagged": "Ihopslaget, men inte tillagt i granskningslistan: {error}"
+  "mergeUnlabeledNotFlagged": "Ihopslaget, men inte tillagt i granskningslistan: {error}",
+  "mergeUnlabeledName": "Namnge…",
+  "mergeUnlabeledMergedAs": "Ihopslaget som {name}"
 }

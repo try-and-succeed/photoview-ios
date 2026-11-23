@@ -335,5 +335,7 @@
   "mergeUnlabeledNotStored": "無法在此裝置上儲存被拒絕的建議。",
   "mergeUnlabeledFaceIn": "建議中的人臉",
   "mergeUnlabeledFaceOut": "已排除的人臉",
-  "mergeUnlabeledNotFlagged": "已合併，但未加入待檢查清單：{error}"
+  "mergeUnlabeledNotFlagged": "已合併，但未加入待檢查清單：{error}",
+  "mergeUnlabeledName": "命名…",
+  "mergeUnlabeledMergedAs": "已合併為 {name}"
 }

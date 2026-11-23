@@ -335,5 +335,7 @@
   "mergeUnlabeledNotStored": "Der abgelehnte Vorschlag konnte auf diesem Gerät nicht gespeichert werden.",
   "mergeUnlabeledFaceIn": "Gesicht im Vorschlag",
   "mergeUnlabeledFaceOut": "Gesicht herausgenommen",
-  "mergeUnlabeledNotFlagged": "Zusammengefasst, aber nicht in die Prüfliste aufgenommen: {error}"
+  "mergeUnlabeledNotFlagged": "Zusammengefasst, aber nicht in die Prüfliste aufgenommen: {error}",
+  "mergeUnlabeledName": "Benennen…",
+  "mergeUnlabeledMergedAs": "Zusammengefasst als {name}"
 }

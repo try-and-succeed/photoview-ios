@@ -116,9 +116,26 @@ class _MergeClient extends PhotoviewClient {
     bool withStatus = false,
   }) async {
     if (offset == 0) peopleFetches++;
-    return const [];
+    return offset == 0 ? const [_henrik] : const [];
+  }
+
+  final renames = <({String group, String? label})>[];
+
+  /// Fails the next naming.
+  bool failRename = false;
+
+  @override
+  Future<String?> setFaceGroupLabel(String faceGroupId, String? label) async {
+    if (failRename) {
+      failRename = false;
+      throw const ApiException('offline');
+    }
+    renames.add((group: faceGroupId, label: label));
+    return label;
   }
 }
+
+const _henrik = FaceGroup(id: '9', label: 'Henrik', imageFaceCount: 40);
 
 CapabilityState _state(bool supported) =>
     supported ? CapabilityState.supported : CapabilityState.unsupported;
@@ -414,6 +431,95 @@ void main() {
       await tester.tap(find.text('Retry'));
       await tester.pumpAndSettle();
       expect([for (final c in client.combines) c.destination], ['10', '20']);
+    });
+
+    group('naming', () {
+      testWidgets('as somebody new: merged, then named, in one go', (
+        tester,
+      ) async {
+        final client = _MergeClient([_three]);
+        await _open(tester, client);
+
+        await tester.tap(_inCard(0, find.text('Name…')));
+        await tester.pumpAndSettle();
+        expect(find.text('Whose face is this?'), findsOneWidget);
+        // Nobody to take faces out of here.
+        expect(
+          find.text('Take out of this person, without a name'),
+          findsNothing,
+        );
+
+        await tester.tap(find.text('New person…'));
+        await tester.pumpAndSettle();
+        await tester.enterText(find.byType(TextField), 'Max');
+        await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+        await tester.pumpAndSettle();
+
+        expect(client.combines.single.destination, '10');
+        expect(client.combines.single.sources, ['11', '12']);
+        expect(client.renames, [(group: '10', label: 'Max')]);
+        expect(client.flagged, [
+          ['1', '2', '3', '4'],
+        ]);
+        expect(find.text('Merged as Max'), findsOneWidget);
+        expect(find.byType(Card), findsNothing);
+      });
+
+      testWidgets('as somebody there is: straight into them, unnamed groups '
+          'and all', (tester) async {
+        final client = _MergeClient([_three]);
+        await _open(tester, client);
+
+        await tester.tap(_inCard(0, find.text('Name…')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Henrik'));
+        await tester.pumpAndSettle();
+
+        expect(client.combines.single.destination, '9');
+        expect(client.combines.single.sources, ['10', '11', '12']);
+        expect(client.renames, isEmpty);
+        expect(find.text('Merged as Henrik'), findsOneWidget);
+      });
+
+      testWidgets('a group left out stays out when named', (tester) async {
+        final client = _MergeClient([_three]);
+        await _open(tester, client);
+
+        await tester.tap(_inCard(0, find.byType(FaceThumbnail)).last);
+        await tester.pumpAndSettle();
+        await tester.tap(_inCard(0, find.text('Name…')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Henrik'));
+        await tester.pumpAndSettle();
+
+        expect(client.combines.single.sources, ['10', '11']);
+        expect(client.flagged, [
+          ['1', '2', '3'],
+        ]);
+      });
+
+      testWidgets('when only the naming fails, a retry names and does not '
+          'merge again', (tester) async {
+        final client = _MergeClient([_two])..failRename = true;
+        await _open(tester, client);
+
+        await tester.tap(_inCard(0, find.text('Name…')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('New person…'));
+        await tester.pumpAndSettle();
+        await tester.enterText(find.byType(TextField), 'Max');
+        await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+        await tester.pumpAndSettle();
+
+        expect(client.combines, hasLength(1));
+        expect(find.textContaining('could not be named'), findsOneWidget);
+
+        await tester.tap(find.text('Retry'));
+        await tester.pumpAndSettle();
+        expect(client.combines, hasLength(1));
+        expect(client.renames, [(group: '20', label: 'Max')]);
+        expect(find.text('Merged as Max'), findsOneWidget);
+      });
     });
 
     group('the review list', () {

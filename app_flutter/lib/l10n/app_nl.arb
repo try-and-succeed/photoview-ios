@@ -335,5 +335,7 @@
   "mergeUnlabeledNotStored": "Het afgewezen voorstel kon niet op dit apparaat worden bewaard.",
   "mergeUnlabeledFaceIn": "Gezicht in het voorstel",
   "mergeUnlabeledFaceOut": "Gezicht weggelaten",
-  "mergeUnlabeledNotFlagged": "Samengevoegd, maar niet aan de controlelijst toegevoegd: {error}"
+  "mergeUnlabeledNotFlagged": "Samengevoegd, maar niet aan de controlelijst toegevoegd: {error}",
+  "mergeUnlabeledName": "Benoemen…",
+  "mergeUnlabeledMergedAs": "Samengevoegd als {name}"
 }

@@ -335,5 +335,7 @@
   "mergeUnlabeledNotStored": "La proposition refusée n’a pas pu être enregistrée sur cet appareil.",
   "mergeUnlabeledFaceIn": "Visage dans la proposition",
   "mergeUnlabeledFaceOut": "Visage exclu",
-  "mergeUnlabeledNotFlagged": "Regroupé, mais pas ajouté à la liste à vérifier : {error}"
+  "mergeUnlabeledNotFlagged": "Regroupé, mais pas ajouté à la liste à vérifier : {error}",
+  "mergeUnlabeledName": "Nommer…",
+  "mergeUnlabeledMergedAs": "Regroupé sous {name}"
 }

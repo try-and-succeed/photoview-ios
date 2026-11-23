@@ -7,7 +7,7 @@ Every change raises `version:` in [`app_flutter/pubspec.yaml`](./app_flutter/pub
 — the name and the build number after the `+` — and gets an entry here. The app
 shows the running version under Settings › Info.
 
-## 1.3.0 (11) — 2026-11-23
+## 1.3.0 (12) — 2026-11-23
 
 Merging unnamed people whose faces look alike, for a server that knows
 `mergeSimilarUnlabeledFaceGroups`. Against any other server nothing changes.
@@ -23,6 +23,12 @@ Merging unnamed people whose faces look alike, for a server that knows
   is remembered on the device for this account and stays hidden until "Show
   again". Opening the proposals changes nothing; the button explains this
   first. Searching again after merging can bring new proposals.
+- **Naming a proposal while merging it.** "Name…" on a proposal opens the
+  person picker: a new person is named on the spot and the proposal merged
+  under that name; a person there is takes the proposal's faces straight in.
+  Before, a merged proposal was one more unnamed person, to be searched for
+  among thousands to give it a name. If only the naming fails, a retry
+  names it without merging again.
 - **Merged photos on the review list.** On a server with
   `setImageFacesNeedsReview`, the faces of every merged proposal are flagged
   for review, so their photos — which often hold other faces still to sort

@@ -1818,5 +1818,18 @@
         "type": "String"
       }
     }
+  },
+  "mergeUnlabeledName": "Name…",
+  "@mergeUnlabeledName": {
+    "description": "Button on a merge proposal: pick or name who it is, and merge it as them."
+  },
+  "mergeUnlabeledMergedAs": "Merged as {name}",
+  "@mergeUnlabeledMergedAs": {
+    "description": "Message after merging a proposal as a named person.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   }
 }

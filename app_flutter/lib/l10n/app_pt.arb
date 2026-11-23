@@ -335,5 +335,7 @@
   "mergeUnlabeledNotStored": "Não foi possível guardar a proposta recusada neste dispositivo.",
   "mergeUnlabeledFaceIn": "Rosto na proposta",
   "mergeUnlabeledFaceOut": "Rosto deixado de fora",
-  "mergeUnlabeledNotFlagged": "Juntado, mas não adicionado à lista de revisão: {error}"
+  "mergeUnlabeledNotFlagged": "Juntado, mas não adicionado à lista de revisão: {error}",
+  "mergeUnlabeledName": "Nomear…",
+  "mergeUnlabeledMergedAs": "Juntado como {name}"
 }

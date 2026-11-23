@@ -335,5 +335,7 @@
   "mergeUnlabeledNotStored": "Не удалось сохранить отклонённое предложение на этом устройстве.",
   "mergeUnlabeledFaceIn": "Лицо в предложении",
   "mergeUnlabeledFaceOut": "Лицо исключено",
-  "mergeUnlabeledNotFlagged": "Объединено, но не добавлено в список для проверки: {error}"
+  "mergeUnlabeledNotFlagged": "Объединено, но не добавлено в список для проверки: {error}",
+  "mergeUnlabeledName": "Назвать…",
+  "mergeUnlabeledMergedAs": "Объединено как {name}"
 }

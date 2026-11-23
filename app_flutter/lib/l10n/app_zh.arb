@@ -335,5 +335,7 @@
   "mergeUnlabeledNotStored": "无法在此设备上保存被拒绝的建议。",
   "mergeUnlabeledFaceIn": "建议中的人脸",
   "mergeUnlabeledFaceOut": "已排除的人脸",
-  "mergeUnlabeledNotFlagged": "已合并，但未加入待检查列表：{error}"
+  "mergeUnlabeledNotFlagged": "已合并，但未加入待检查列表：{error}",
+  "mergeUnlabeledName": "命名…",
+  "mergeUnlabeledMergedAs": "已合并为 {name}"
 }
