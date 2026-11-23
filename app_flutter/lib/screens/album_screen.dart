@@ -47,7 +47,13 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
   /// What gets queued are this album's sub-albums, so the queue will usually
   /// not list this album by name — the message says so rather than leaving the
   /// user to wonder whether anything happened.
-  Future<void> _scan(BuildContext context, WidgetRef ref) async {
+  ///
+  /// [onlyNewSubAlbums] takes in only what is new; see [_askScan].
+  Future<void> _scan(
+    BuildContext context,
+    WidgetRef ref, {
+    bool onlyNewSubAlbums = false,
+  }) async {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
 
@@ -57,7 +63,9 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
     final navigator = Navigator.of(context);
 
     try {
-      await ref.read(scannerProvider.notifier).scanAlbum(albumId);
+      await ref
+          .read(scannerProvider.notifier)
+          .scanAlbum(albumId, onlyNewSubAlbums: onlyNewSubAlbums);
 
       // One message at a time: tapping twice otherwise queues two identical
       // answers, and a later failure waits behind them.
@@ -65,7 +73,11 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
         ..removeCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text(l10n.albumScanStarted),
+            content: Text(
+              onlyNewSubAlbums
+                  ? l10n.albumScanNewStarted
+                  : l10n.albumScanStarted,
+            ),
             action: SnackBarAction(
               label: l10n.actionShow,
               onPressed: () => showScanner(navigator),
@@ -84,9 +96,56 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
         ref,
         error: error,
         message: l10n.albumScanFailed,
-        retry: () => _scan(context, ref),
+        retry: () => _scan(context, ref, onlyNewSubAlbums: onlyNewSubAlbums),
       );
     }
+  }
+
+  /// Asks which scan to run, where the server offers both; otherwise starts
+  /// the full one at once, as before.
+  ///
+  /// The quick one is for a year album that got a new month: it reads the
+  /// album's own photos and takes in the new folders, without going through
+  /// every month that is there already.
+  Future<void> _askScan(BuildContext context, WidgetRef ref) async {
+    if (!ref.read(hasCapabilityProvider(Capability.scanAlbumNewSubAlbums))) {
+      return _scan(context, ref);
+    }
+
+    final l10n = AppLocalizations.of(context);
+    final onlyNew = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.albumScanTooltip),
+        contentPadding: const EdgeInsets.symmetric(vertical: 16),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.create_new_folder_outlined),
+              title: Text(l10n.albumScanNew),
+              subtitle: Text(l10n.albumScanNewHint),
+              onTap: () => Navigator.of(context).pop(true),
+            ),
+            ListTile(
+              leading: const Icon(Icons.account_tree_outlined),
+              title: Text(l10n.albumScanAll),
+              subtitle: Text(l10n.albumScanAllHint),
+              onTap: () => Navigator.of(context).pop(false),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.actionCancel),
+          ),
+        ],
+      ),
+    );
+
+    if (onlyNew == null || !context.mounted) return;
+    await _scan(context, ref, onlyNewSubAlbums: onlyNew);
   }
 
   /// Sends the ticked photos to another app, then leaves the picking mode.
@@ -171,7 +230,7 @@ class _AlbumScreenState extends ConsumerState<AlbumScreen> {
                   IconButton(
                     icon: const Icon(Icons.radar),
                     tooltip: l10n.albumScanTooltip,
-                    onPressed: () => _scan(context, ref),
+                    onPressed: () => _askScan(context, ref),
                   ),
               ],
             ),

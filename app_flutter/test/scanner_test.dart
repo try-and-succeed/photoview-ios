@@ -61,9 +61,16 @@ class _FakeScannerClient extends PhotoviewClient {
 
   Object? failScanWith;
 
+  /// `onlyNewSubAlbums` of each scan, in order.
+  final List<bool> scannedOnlyNew = [];
+
   @override
-  Future<String?> scanAlbum(String albumId) async {
+  Future<String?> scanAlbum(
+    String albumId, {
+    bool onlyNewSubAlbums = false,
+  }) async {
     scanned.add(albumId);
+    scannedOnlyNew.add(onlyNewSubAlbums);
     if (scanDelay > Duration.zero) await Future<void>.delayed(scanDelay);
     final failure = failScanWith;
     if (failure != null) throw failure;
@@ -366,6 +373,30 @@ void main() {
       await container.read(scannerProvider.notifier).scanAlbum('3');
 
       expect(client.scanned, ['3']);
+    });
+
+    test('a scan of only what is new says so to the server', () async {
+      await start([]);
+
+      await container
+          .read(scannerProvider.notifier)
+          .scanAlbum('3', onlyNewSubAlbums: true);
+
+      expect(client.scanned, ['3']);
+      expect(client.scannedOnlyNew, [true]);
+    });
+
+    test('the two kinds of scan of one album are not merged', () async {
+      await start([]);
+      client.scanDelay = const Duration(milliseconds: 300);
+      final notifier = container.read(scannerProvider.notifier);
+
+      await Future.wait([
+        notifier.scanAlbum('3', onlyNewSubAlbums: true),
+        notifier.scanAlbum('3'),
+      ]);
+
+      expect(client.scannedOnlyNew, [true, false]);
     });
 
     test('tapping scan twice while the first request is out sends one',

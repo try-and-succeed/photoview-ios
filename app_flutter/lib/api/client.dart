@@ -35,6 +35,7 @@ enum ApiProblem {
   unknown,
   albumNotFound,
   mediaNotFound,
+  personNotFound,
   invalidMapJson,
   invalidMapShape,
   scanRefused,
@@ -99,6 +100,12 @@ class CertificateNotTrustedException implements Exception {
 /// self-hosted instance blows past on the heavier queries — face groups, a
 /// 200-item timeline page, or a cluster holding hundreds of media.
 const _requestTimeout = Duration(seconds: 60);
+
+/// Re-identifying a person with thousands of faces compares each of them and,
+/// for real, writes them one by one in a single transaction. That outlasts
+/// [_requestTimeout] on a small server, and a mutation that times out is never
+/// retried — the user would be told it failed while the server finishes it.
+const reclassifyTimeout = Duration(minutes: 5);
 
 class PhotoviewClient {
   final Session session;
@@ -293,7 +300,7 @@ class PhotoviewClient {
       // GraphQL body would otherwise be reported as an HTTP status.
       final errors = graphqlErrorsOf(error);
       if (errors.isNotEmpty) {
-        return ApiException(errors.map((e) => e.message).join(', '));
+        return fromServerMessage(errors.map((e) => e.message).join(', '));
       }
 
       final link = error.linkException;
@@ -303,11 +310,24 @@ class PhotoviewClient {
     return _describeCause(error);
   }
 
+  /// The server's own words, named where the app knows what they mean.
+  ///
+  /// A person that is gone — merged into someone else on another device while
+  /// this one still lists them — is refused, since server 7a4ece2, with
+  /// "face group does not exist or is not owned by the user", for opening the
+  /// person and for moving, merging into or naming them. Before, the server
+  /// answered with an empty person of id 0.
+  @visibleForTesting
+  static ApiException fromServerMessage(String message) =>
+      message.contains('face group does not exist')
+      ? ApiException(message, problem: ApiProblem.personNotFound)
+      : ApiException(message);
+
   static ApiException _describeLink(LinkException link) {
     if (link is ServerException) {
       final errors = link.parsedResponse?.errors;
       if (errors != null && errors.isNotEmpty) {
-        return ApiException(errors.map((e) => e.message).join(', '));
+        return fromServerMessage(errors.map((e) => e.message).join(', '));
       }
 
       // No body at all — the connection may never have produced one. Falling
@@ -394,9 +414,14 @@ class PhotoviewClient {
   Future<Map<String, dynamic>> _mutate(
     String document, [
     Map<String, dynamic> variables = const {},
+    Duration? timeout,
   ]) async {
     final result = await _client.mutate(
-      MutationOptions(document: gql(document), variables: variables),
+      MutationOptions(
+        document: gql(document),
+        variables: variables,
+        queryRequestTimeout: timeout,
+      ),
     );
     return _unwrap(result);
   }
@@ -543,7 +568,10 @@ class PhotoviewClient {
     // Whatever the batch could not settle is asked again on its own, so one
     // suppressed or truncated error cannot leave a whole group unknown.
     for (final capability in ServerCapabilities(found).unresolved) {
-      final single = await _probe(singleCapabilityProbeDocument(capability));
+      final single = await _probe(
+        singleCapabilityProbeDocument(capability),
+        mutation: probedByMutation(capability),
+      );
       if (!single.answered) break;
 
       found = {
@@ -560,14 +588,24 @@ class PhotoviewClient {
   /// [answered] distinguishes "the server said something" — data, GraphQL
   /// errors, or both — from "nothing came back", which is what a timeout or an
   /// unreachable host looks like.
+  ///
+  /// [mutation] for a probe written as one — see [probeSentinel], which keeps
+  /// it from ever running.
   Future<({Map<String, dynamic>? data, List<String> messages, bool answered})>
-  _probe(String document) async {
-    final result = await _client.query(
-      QueryOptions(
-        document: gql(document),
-        fetchPolicy: FetchPolicy.networkOnly,
-      ),
-    );
+  _probe(String document, {bool mutation = false}) async {
+    final result = mutation
+        ? await _client.mutate(
+            MutationOptions(
+              document: gql(document),
+              fetchPolicy: FetchPolicy.networkOnly,
+            ),
+          )
+        : await _client.query(
+            QueryOptions(
+              document: gql(document),
+              fetchPolicy: FetchPolicy.networkOnly,
+            ),
+          );
 
     final exception = result.exception;
     final messages = exception == null
@@ -650,16 +688,22 @@ class PhotoviewClient {
 
   /// The people, named before unnamed, then most photos first — or fewest
   /// first with [fewestFirst], which only a server with
-  /// [Capability.faceGroupCountDirection] understands.
+  /// [Capability.faceGroupCountDirection] understands. [withStatus] also asks
+  /// whether every face of each person is confirmed, which only a server with
+  /// [Capability.faceVerification] understands.
   Future<List<FaceGroup>> faceGroups({
     required int limit,
     required int offset,
     bool fewestFirst = false,
+    bool withStatus = false,
   }) async {
-    final data = await _query(
-      fewestFirst ? myFacesThumbnailsFewestFirstQuery : myFacesThumbnailsQuery,
-      {'limit': limit, 'offset': offset},
-    );
+    final document = switch ((fewestFirst, withStatus)) {
+      (false, false) => myFacesThumbnailsQuery,
+      (true, false) => myFacesThumbnailsFewestFirstQuery,
+      (false, true) => myFacesThumbnailsWithStatusQuery,
+      (true, true) => myFacesThumbnailsFewestFirstWithStatusQuery,
+    };
+    final data = await _query(document, {'limit': limit, 'offset': offset});
     return (data['myFaceGroups'] as List<dynamic>? ?? const [])
         .map((e) => FaceGroup.fromJson(e as Map<String, dynamic>))
         .toList();
@@ -706,25 +750,106 @@ class PhotoviewClient {
     return faces?.length ?? 0;
   }
 
-  Future<List<PersonPhoto>> personPhotos(String faceGroupId) async {
-    final data = await _query(singlePersonQuery, {'faceGroupID': faceGroupId});
+  /// A person's photos, newest first. [withStatus] also asks whether each
+  /// face is confirmed and waiting for review, which only a server with
+  /// [Capability.faceVerification] understands.
+  Future<List<PersonPhoto>> personPhotos(
+    String faceGroupId, {
+    bool withStatus = false,
+  }) async {
+    final data = await _query(
+      withStatus ? singlePersonWithStatusQuery : singlePersonQuery,
+      {'faceGroupID': faceGroupId},
+    );
     final group = data['faceGroup'] as Map<String, dynamic>?;
 
     return personPhotosFrom(group);
+  }
+
+  /// Confirms every face on [mediaIds], or takes the confirmation back,
+  /// returning how many faces the server changed.
+  Future<int> setMediaFacesVerified(
+    List<String> mediaIds, {
+    required bool verified,
+  }) async {
+    final data = await _mutate(setMediaFacesVerifiedMutation, {
+      'mediaIDs': mediaIds,
+      'verified': verified,
+    });
+    return (data['setMediaFacesVerified'] as List<dynamic>?)?.length ?? 0;
+  }
+
+  /// Confirms [imageFaceIds], or takes the confirmation back, returning how
+  /// many faces the server changed.
+  Future<int> setImageFacesVerified(
+    List<String> imageFaceIds, {
+    required bool verified,
+  }) async {
+    final data = await _mutate(setImageFacesVerifiedMutation, {
+      'imageFaceIDs': imageFaceIds,
+      'verified': verified,
+    });
+    return (data['setImageFacesVerified'] as List<dynamic>?)?.length ?? 0;
+  }
+
+  /// Files the unconfirmed faces of [faceGroupIds] again against the
+  /// confirmed faces of everybody — or, with [dryRun], only says what that
+  /// would do.
+  Future<ReclassifyResult> reclassifyFaceGroups(
+    List<String> faceGroupIds, {
+    required bool dryRun,
+  }) async {
+    final data = await _mutate(
+      reclassifyFaceGroupsMutation,
+      {'faceGroupIDs': faceGroupIds, 'dryRun': dryRun},
+      reclassifyTimeout,
+    );
+    final result = data['reclassifyFaceGroups'] as Map<String, dynamic>?;
+    return result == null
+        ? const ReclassifyResult()
+        : ReclassifyResult.fromJson(result);
+  }
+
+  /// One page of the photos with a face waiting for review, newest first.
+  Future<List<MediaItem>> mediaNeedingReview({
+    required int limit,
+    required int offset,
+  }) async {
+    final data = await _query(mediaNeedingReviewQuery, {
+      'limit': limit,
+      'offset': offset,
+    });
+    return (data['myMediaNeedingReview'] as List<dynamic>? ?? const [])
+        .map((e) => MediaItem.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   /// Files [imageFaceIds] under [destinationFaceGroupId] — the photos of one
   /// person that turned out to be someone else.
   ///
   /// Returns the destination's name afterwards, as merging does.
+  ///
+  /// Sent with the server's duplicate check turned off: a move by hand is the
+  /// user's decision, made looking at the photo, and the same person really
+  /// can be on one photo more than once — a sheet of passport photos, a
+  /// mirror, a photographed album page. A server without that switch refuses
+  /// the argument; the move then goes again without it, under that server's
+  /// own check.
   Future<String?> moveImageFaces(
     List<String> imageFaceIds,
     String destinationFaceGroupId,
   ) async {
-    final data = await _mutate(moveImageFacesMutation, {
+    final variables = {
       'imageFaceIDs': imageFaceIds,
       'destinationFaceGroupID': destinationFaceGroupId,
-    });
+    };
+    Map<String, dynamic> data;
+    try {
+      data = await _mutate(moveImageFacesAllowingDuplicatesMutation, variables);
+    } on UnsupportedFieldException catch (error) {
+      if (error.field != 'allowDuplicates') rethrow;
+      data = await _mutate(moveImageFacesMutation, variables);
+    }
 
     final group = data['moveImageFaces'] as Map<String, dynamic>?;
     return group?['label'] as String?;
@@ -804,9 +929,16 @@ class PhotoviewClient {
     return MediaDetails.fromJson(media);
   }
 
-  /// The faces found on one photo, each with the person it is filed under.
-  Future<List<PhotoFace>> mediaFaces(String mediaId) async {
-    final data = await _query(mediaFacesQuery, {'mediaID': mediaId});
+  /// The faces found on one photo, each with the person it is filed under —
+  /// and with [withStatus], whether it is confirmed and waiting for review.
+  Future<List<PhotoFace>> mediaFaces(
+    String mediaId, {
+    bool withStatus = false,
+  }) async {
+    final data = await _query(
+      withStatus ? mediaFacesWithStatusQuery : mediaFacesQuery,
+      {'mediaID': mediaId},
+    );
     final media = data['media'] as Map<String, dynamic>?;
     if (media == null) {
       throw const ApiException(
@@ -891,8 +1023,18 @@ class PhotoviewClient {
   /// deduplicates queued albums, but a repeated request still runs to
   /// completion, and a timeout says nothing about whether the first one was
   /// accepted.
-  Future<String?> scanAlbum(String albumId) async {
-    final data = await _mutate(scanAlbumMutation, {'albumId': albumId});
+  ///
+  /// [onlyNewSubAlbums] scans the album's own media and takes in only the
+  /// direct sub-directories that are not albums yet; only a server with
+  /// [Capability.scanAlbumNewSubAlbums] understands it.
+  Future<String?> scanAlbum(
+    String albumId, {
+    bool onlyNewSubAlbums = false,
+  }) async {
+    final data = await _mutate(
+      onlyNewSubAlbums ? scanAlbumNewSubAlbumsMutation : scanAlbumMutation,
+      {'albumId': albumId},
+    );
     final result = data['scanAlbum'] as Map<String, dynamic>?;
 
     if (result?['success'] != true) {
@@ -990,7 +1132,15 @@ class PhotoviewClient {
 @visibleForTesting
 List<PersonPhoto> personPhotosFrom(Map<String, dynamic>? faceGroup) {
   final byMedia =
-      <String, ({Map<String, dynamic> media, List<String> faces})>{};
+      <
+        String,
+        ({
+          Map<String, dynamic> media,
+          List<String> faces,
+          List<bool> verified,
+          List<bool> review,
+        })
+      >{};
 
   final faces = (faceGroup?['imageFaces'] as List<dynamic>? ?? const [])
       .whereType<Map<String, dynamic>>();
@@ -1004,11 +1154,20 @@ List<PersonPhoto> personPhotosFrom(Map<String, dynamic>? faceGroup) {
 
     final entry = byMedia.putIfAbsent(
       id,
-      () => (media: media, faces: <String>[]),
+      () => (
+        media: media,
+        faces: <String>[],
+        verified: <bool>[],
+        review: <bool>[],
+      ),
     );
 
     final faceId = face['id']?.toString();
     if (faceId != null) entry.faces.add(faceId);
+    // Absent on a server that does not know about confirming: then nothing
+    // is confirmed and nothing waits for review.
+    entry.verified.add(face['verified'] == true);
+    entry.review.add(face['needsReview'] == true);
   }
 
   final photos = byMedia.values.toList()
@@ -1019,6 +1178,10 @@ List<PersonPhoto> personPhotosFrom(Map<String, dynamic>? faceGroup) {
       PersonPhoto(
         media: MediaItem.fromJson(photo.media),
         faceIds: List.unmodifiable(photo.faces),
+        // A tile stands for all of the person's faces on the photo, so it is
+        // confirmed only when all of them are, and up for review when any is.
+        verified: photo.verified.every((v) => v),
+        needsReview: photo.review.any((r) => r),
       ),
   ];
 }

@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:photoview/api/capabilities.dart';
 import 'package:photoview/api/client.dart';
 import 'package:photoview/api/models.dart';
 import 'package:photoview/api/session.dart';
 import 'package:photoview/state/auth.dart';
+import 'package:photoview/state/capabilities.dart';
 import 'package:photoview/widgets/photo_faces.dart';
 
 import 'support/localized_app.dart';
@@ -45,7 +47,10 @@ class _FacesClient extends PhotoviewClient {
   var asked = 0;
 
   @override
-  Future<List<PhotoFace>> mediaFaces(String mediaId) async {
+  Future<List<PhotoFace>> mediaFaces(
+    String mediaId, {
+    bool withStatus = false,
+  }) async {
     asked++;
     return faces;
   }
@@ -55,6 +60,7 @@ class _FacesClient extends PhotoviewClient {
     required int limit,
     required int offset,
     bool fewestFirst = false,
+    bool withStatus = false,
   }) async => offset > 0
       ? const []
       : const [
@@ -78,6 +84,17 @@ class _FacesClient extends PhotoviewClient {
 
   @override
   Future<String?> detachImageFaces(List<String> imageFaceIds) async => '42';
+
+  final verifies = <({List<String> faces, bool verified})>[];
+
+  @override
+  Future<int> setImageFacesVerified(
+    List<String> imageFaceIds, {
+    required bool verified,
+  }) async {
+    verifies.add((faces: imageFaceIds, verified: verified));
+    return imageFaceIds.length;
+  }
 
   /// Holds the naming open, so the gallery can be closed while it runs.
   Completer<void>? holdRename;
@@ -103,12 +120,22 @@ Future<void> _pump(
 
   /// The style text inherits there, as the app's theme sets one.
   TextStyle inherited = const TextStyle(),
+
+  /// Whether the server knows about confirming faces.
+  bool confirming = false,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
         authProvider.overrideWith(_FixedAuth.new),
         clientProvider.overrideWithValue(client),
+        serverCapabilitiesProvider.overrideWith(
+          (ref) async => ServerCapabilities({
+            Capability.faceVerification: confirming
+                ? CapabilityState.supported
+                : CapabilityState.unsupported,
+          }),
+        ),
       ],
       child: localizedApp(
         home: Scaffold(
@@ -220,50 +247,64 @@ void main() {
   });
 
   group('photoPointAt', () {
-    // A photo of 1000 x 500 in a 400 x 800 view: fitted whole it is shown at
-    // 0.4, as 400 x 200, centred — from y 300 to y 500.
-    const child = Size(1000, 500);
-    const viewport = Size(400, 800);
+    // A photo box of 200 x 100, drawn the way the photo view draws it: at
+    // its own size, centred, then scaled about its centre and shifted.
+    final photo = GlobalKey();
 
-    test('maps a tap on the fitted photo to its place on the photo', () {
-      final point = photoPointAt(
-        tap: const Offset(100, 350),
-        viewport: viewport,
-        childSize: child,
-        scale: null,
-        position: Offset.zero,
-      )!;
+    Future<RenderBox> pumpPhoto(
+      WidgetTester tester, {
+      double scale = 1,
+      Offset shift = Offset.zero,
+    }) async {
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: Center(
+            child: Transform(
+              alignment: Alignment.center,
+              transform: Matrix4.identity()
+                ..translateByDouble(shift.dx, shift.dy, 0, 1)
+                ..scaleByDouble(scale, scale, 1, 1),
+              child: SizedBox(key: photo, width: 200, height: 100),
+            ),
+          ),
+        ),
+      );
+      return photo.currentContext!.findRenderObject()! as RenderBox;
+    }
+
+    /// The point on screen where the photo's own (x, y) part is drawn.
+    Offset onScreen(RenderBox box, double x, double y) =>
+        box.localToGlobal(Offset(x * box.size.width, y * box.size.height));
+
+    testWidgets('maps a tap on the photo to its place on the photo', (
+      tester,
+    ) async {
+      final box = await pumpPhoto(tester);
+      final point = photoPointAt(box, onScreen(box, 0.25, 0.75))!;
 
       expect(point.dx, closeTo(0.25, 1e-9));
-      expect(point.dy, closeTo(0.25, 1e-9));
+      expect(point.dy, closeTo(0.75, 1e-9));
     });
 
-    test('follows the zoom and the shift', () {
-      // Zoomed to 0.8 the photo is 800 x 400, centred, then moved 100 left:
-      // its left edge at -300, its top at 200.
-      final point = photoPointAt(
-        tap: const Offset(100, 400),
-        viewport: viewport,
-        childSize: child,
-        scale: 0.8,
-        position: const Offset(-100, 0),
-      )!;
+    testWidgets('follows the zoom and the shift', (tester) async {
+      final box = await pumpPhoto(
+        tester,
+        scale: 3,
+        shift: const Offset(-120, 40),
+      );
+      // Worked out by hand: the screen is 800 x 600, so the box's centre is
+      // drawn at (400 - 120, 300 + 40); its (0.25, 0.5) lies 50 to the left
+      // of that before zooming, 150 after.
+      final point = photoPointAt(box, const Offset(280 - 150, 340))!;
 
-      expect(point.dx, closeTo(0.5, 1e-9));
+      expect(point.dx, closeTo(0.25, 1e-9));
       expect(point.dy, closeTo(0.5, 1e-9));
     });
 
-    test('a tap beside the photo is on no part of it', () {
-      expect(
-        photoPointAt(
-          tap: const Offset(200, 100),
-          viewport: viewport,
-          childSize: child,
-          scale: null,
-          position: Offset.zero,
-        ),
-        isNull,
-      );
+    testWidgets('a tap beside the photo is on no part of it', (tester) async {
+      final box = await pumpPhoto(tester, scale: 2);
+      expect(photoPointAt(box, const Offset(10, 10)), isNull);
     });
   });
 
@@ -627,9 +668,16 @@ void main() {
     // The gallery goes; the app around it, and its messenger, stay.
     await tester.pumpWidget(
       ProviderScope(
+        // The same overrides as before: the scope stays, and Riverpod does
+        // not take a changed list of them.
         overrides: [
           authProvider.overrideWith(_FixedAuth.new),
           clientProvider.overrideWithValue(client),
+          serverCapabilitiesProvider.overrideWith(
+            (ref) async => ServerCapabilities({
+              Capability.faceVerification: CapabilityState.unsupported,
+            }),
+          ),
         ],
         child: localizedApp(
           home: const Scaffold(body: Center(child: Text('gone'))),
@@ -665,6 +713,90 @@ void main() {
       find.descendant(of: list, matching: find.text('Anna')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('the only face of an unnamed person is not offered to be '
+      'taken out without a name', (tester) async {
+    // It would only move into another unnamed person of one.
+    const alone = PhotoFace(
+      id: '102',
+      rectangle: FaceRectangle(minX: 0.4, maxX: 0.5, minY: 0.6, maxY: 0.8),
+      group: FaceGroup(id: '12', imageFaceCount: 1),
+    );
+    await _pump(tester, _FacesClient([_regina, _stranger, alone]));
+    const takeOut = 'Take out of this person, without a name';
+
+    await tester.tap(find.text('assign 102'));
+    await tester.pumpAndSettle();
+    expect(find.text('Whose face is this?'), findsOneWidget);
+    expect(find.text(takeOut), findsNothing);
+    expect(find.text('New person…'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    // One of three, and a named one: there is something to take it out of.
+    for (final face in ['101', '100']) {
+      await tester.tap(find.text('assign $face'));
+      await tester.pumpAndSettle();
+      expect(find.text(takeOut), findsOneWidget, reason: face);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+    }
+  });
+
+  group('keeping a face as a person of their own', () {
+    testWidgets('an unnamed face is kept at once, without a question', (
+      tester,
+    ) async {
+      final client = _FacesClient([_regina, _stranger]);
+      await _pump(tester, client, confirming: true);
+
+      await tester.tap(find.text('assign 101'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Keep as a person of their own'));
+      await tester.pumpAndSettle();
+
+      expect(client.verifies.single.faces, ['101']);
+      expect(client.verifies.single.verified, isTrue);
+      expect(client.moves, isEmpty);
+      expect(find.text('Face kept as a person of their own'), findsOneWidget);
+    });
+
+    testWidgets('a kept one can be let go again', (tester) async {
+      final client = _FacesClient([
+        const PhotoFace(
+          id: '101',
+          rectangle: FaceRectangle(minX: 0.6, maxX: 0.8, minY: 0.2, maxY: 0.5),
+          group: FaceGroup(id: '8', imageFaceCount: 3),
+          verified: true,
+        ),
+      ]);
+      await _pump(tester, client, confirming: true);
+
+      await tester.tap(find.text('assign 101'));
+      await tester.pumpAndSettle();
+      expect(find.text('Keep as a person of their own'), findsNothing);
+      await tester.tap(find.text('No longer keep as a person of their own'));
+      await tester.pumpAndSettle();
+
+      expect(client.verifies.single.faces, ['101']);
+      expect(client.verifies.single.verified, isFalse);
+      expect(find.text('Confirmation taken back'), findsOneWidget);
+    });
+
+    testWidgets('not offered for a named face', (tester) async {
+      await _pump(tester, _FacesClient([_regina, _stranger]), confirming: true);
+      await tester.tap(find.text('assign 100'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('person of their own'), findsNothing);
+    });
+
+    testWidgets('not offered without the capability', (tester) async {
+      await _pump(tester, _FacesClient([_regina, _stranger]));
+      await tester.tap(find.text('assign 101'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('person of their own'), findsNothing);
+    });
   });
 
   testWidgets('after a move the names are asked for again', (tester) async {

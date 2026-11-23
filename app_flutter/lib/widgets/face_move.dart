@@ -52,12 +52,22 @@ class FaceMove {
   ///
   /// [count] is what the questions count — photos on the person screen, where
   /// one photo can stand for two faces.
+  ///
+  /// [keptOnItsOwn], when not null, offers to keep the faces as a person of
+  /// their own — confirmed without a name — or, when they are already, to
+  /// stop that. Only for a face without a name; null offers neither.
+  ///
+  /// [offerUnlabeled] false leaves out taking the faces out without a name —
+  /// for a face that is the only one of an unnamed person, where it would
+  /// only move into another unnamed person of one.
   Future<void> pickAndMove(
     BuildContext context,
     WidgetRef ref, {
     required List<String> faceIds,
     required int count,
     required String title,
+    bool? keptOnItsOwn,
+    bool offerUnlabeled = true,
   }) async {
     if (faceIds.isEmpty) return;
 
@@ -67,6 +77,8 @@ class FaceMove {
         exclude: exclude,
         title: title,
         offerNewAndUnlabeled: true,
+        offerUnlabeled: offerUnlabeled,
+        keptOnItsOwn: keptOnItsOwn,
       ),
     );
     if (target == null || !context.mounted) return;
@@ -101,7 +113,35 @@ class FaceMove {
       case MoveToUnlabeled():
         if (!context.mounted) return;
         await askAndDetach(context, ref, faceIds: faceIds, count: count);
+
+      // No question first: nothing moves, and the same entry takes it back.
+      case KeepOnItsOwn(:final keep):
+        await _sendKeep(ref, l10n, faceIds, keep);
     }
+  }
+
+  /// Keeps the faces as a person of their own, or stops that — the ids as
+  /// they were when it was asked for, see [_sendMove].
+  Future<void> _sendKeep(
+    WidgetRef ref,
+    AppLocalizations l10n,
+    List<String> faceIds,
+    bool keep, {
+    String? account,
+  }) {
+    final owner = account ?? _signedIn(ref);
+
+    return run(
+      () async {
+        _stillSignedIn(ref, owner);
+        await ref
+            .read(faceActionsProvider)
+            .verifyFaces(faceIds, verified: keep);
+        return keep ? l10n.galleryFaceKept : l10n.galleryFacesUnverified;
+      },
+      failed: l10n.galleryFacesVerifyFailed,
+      retry: () => _sendKeep(ref, l10n, faceIds, keep, account: owner),
+    );
   }
 
   /// Asks, then lifts the faces out without a name — from the split button
@@ -151,20 +191,10 @@ class FaceMove {
     );
   }
 
-  /// The account signed in now — the one the face and group ids came from
-  /// when an action starts.
-  static String? _signedIn(WidgetRef ref) =>
-      ref.read(sessionProvider)?.serverId;
+  static String? _signedIn(WidgetRef ref) => signedInAccount(ref);
 
-  /// Throws unless [owner] is still the one signed in.
-  ///
-  /// Every request goes to whoever is signed in when it runs. The ids belong
-  /// to the account the action started on; sent to another — after a sign-in
-  /// elsewhere while a request or a retry was pending — they would move,
-  /// split or rename whatever has those ids there.
-  static void _stillSignedIn(WidgetRef ref, String? owner) {
-    if (_signedIn(ref) != owner) throw const AccountChangedException();
-  }
+  static void _stillSignedIn(WidgetRef ref, String? owner) =>
+      ensureStillSignedIn(ref, owner);
 
   /// Lifts the faces out into a group of their own and names it.
   ///
@@ -244,6 +274,20 @@ class FaceMove {
       retry: () => _sendDetach(ref, l10n, faceIds, account: owner),
     );
   }
+}
+
+/// The account signed in now — the one the face and group ids came from
+/// when an action starts.
+String? signedInAccount(WidgetRef ref) => ref.read(sessionProvider)?.serverId;
+
+/// Throws unless [owner] is still the one signed in.
+///
+/// Every request goes to whoever is signed in when it runs. The ids belong
+/// to the account the action started on; sent to another — after a sign-in
+/// elsewhere while a request or a retry was pending — they would move,
+/// split, rename or confirm whatever has those ids there.
+void ensureStillSignedIn(WidgetRef ref, String? owner) {
+  if (signedInAccount(ref) != owner) throw const AccountChangedException();
 }
 
 /// Asks before faces move. True only for an explicit yes.
@@ -347,11 +391,21 @@ class PickPersonDialog extends ConsumerStatefulWidget {
   /// Only for moving photos: a whole person cannot be merged into nobody.
   final bool offerNewAndUnlabeled;
 
+  /// Whether, of those two, the unnamed are offered: not for the only face
+  /// of an unnamed person, which there is nothing to take out of.
+  final bool offerUnlabeled;
+
+  /// Whether the face is kept as a person of their own already, for the
+  /// entry that keeps it so or stops that; null offers no such entry.
+  final bool? keptOnItsOwn;
+
   const PickPersonDialog({
     super.key,
     required this.exclude,
     required this.title,
     this.offerNewAndUnlabeled = false,
+    this.offerUnlabeled = true,
+    this.keptOnItsOwn,
   });
 
   @override
@@ -375,11 +429,18 @@ class _PickPersonDialogState extends ConsumerState<PickPersonDialog> {
         ref.watch(peopleOrderProvider).valueOrNull ?? PeopleOrder.nameAscending;
     final query = _filter.text.trim();
 
+    // As tall as the screen allows: with the entries above the list, a fixed
+    // 380 left room for a single person on a phone. Measured without what the
+    // keyboard covers, so the dialog still fits while a name is typed.
+    final screen = MediaQuery.sizeOf(context);
+    final free = screen.height - MediaQuery.viewInsetsOf(context).bottom;
+    final height = (free * 0.6).clamp(260.0, 600.0);
+
     return AlertDialog(
       title: Text(widget.title),
       content: SizedBox(
         width: 320,
-        height: 380,
+        height: height,
         child: Column(
           children: [
             // Not focused on opening: the keyboard would cover most of the
@@ -404,6 +465,19 @@ class _PickPersonDialogState extends ConsumerState<PickPersonDialog> {
             // Above the list rather than in it, so they are there at once —
             // before the people have loaded, and however far down the user
             // scrolls.
+            // First, as the one choice that leaves the face where it is. Not
+            // while looking for a name, like the unnamed entry below.
+            if (widget.keptOnItsOwn case final kept? when query.isEmpty)
+              ListTile(
+                leading: Icon(
+                  kept ? Icons.unpublished_outlined : Icons.verified_outlined,
+                ),
+                title: Text(kept ? l10n.galleryFaceUnkeep : l10n.galleryFaceKeep),
+                subtitle: Text(
+                  kept ? l10n.galleryFaceUnkeepHint : l10n.galleryFaceKeepHint,
+                ),
+                onTap: () => Navigator.of(context).pop(KeepOnItsOwn(!kept)),
+              ),
             if (widget.offerNewAndUnlabeled) ...[
               // One line while a name is typed, and that name in it: the
               // keyboard leaves room for little more than a name or two below,
@@ -425,7 +499,7 @@ class _PickPersonDialogState extends ConsumerState<PickPersonDialog> {
               ),
               // Not while looking for a name: the unnamed have none to find,
               // and the keyboard leaves little room.
-              if (query.isEmpty)
+              if (query.isEmpty && widget.offerUnlabeled)
                 ListTile(
                   leading: const Icon(Icons.person_off_outlined),
                   title: Text(l10n.personUnlabeled),
@@ -545,6 +619,13 @@ bool personMatches(FaceGroup person, String query) {
 /// Out of this person, without a name: one more of the unnamed.
 class MoveToUnlabeled extends FaceMoveTarget {
   const MoveToUnlabeled();
+}
+
+/// Nowhere: the face stays, confirmed without a name ([keep]) or no longer.
+class KeepOnItsOwn extends FaceMoveTarget {
+  final bool keep;
+
+  const KeepOnItsOwn(this.keep);
 }
 
 /// How a person reads in a list: their name, or the word for the unnamed with

@@ -24,7 +24,10 @@ class _CountingClient extends PhotoviewClient {
   final personReads = <String>[];
 
   @override
-  Future<List<PersonPhoto>> personPhotos(String faceGroupId) async {
+  Future<List<PersonPhoto>> personPhotos(
+    String faceGroupId, {
+    bool withStatus = false,
+  }) async {
     personReads.add(faceGroupId);
     return const [];
   }
@@ -34,6 +37,7 @@ class _CountingClient extends PhotoviewClient {
     required int limit,
     required int offset,
     bool fewestFirst = false,
+    bool withStatus = false,
   }) async => const [];
 
   final detached = <List<String>>[];

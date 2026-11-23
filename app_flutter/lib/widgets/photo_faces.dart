@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../api/capabilities.dart';
 import '../api/models.dart';
 import '../l10n/app_localizations.dart';
 import '../l10n/error_messages.dart';
+import '../state/capabilities.dart';
 import '../state/library.dart';
 import '../state/people_order.dart' show faceGroupIsNamed;
 import 'action_failure.dart';
@@ -83,7 +85,14 @@ class PhotoFacesOverlay extends ConsumerWidget {
           face.rectangle.height * size.height,
         ),
     ];
-    final names = [for (final face in found) describePerson(face.group, l10n)];
+    // A confirmed face says so in its name as well as in its colour, so the
+    // difference does not rest on telling green from white.
+    final names = [
+      for (final face in found)
+        face.verified
+            ? '✓ ${describePerson(face.group, l10n)}'
+            : describePerson(face.group, l10n),
+    ];
     // On top of the style the text inherits — font, spacing — which the
     // measuring below has to see as well: measured without it, the names came
     // out narrower than they are drawn and were cut short on the device.
@@ -92,7 +101,7 @@ class PhotoFacesOverlay extends ConsumerWidget {
       for (final face in found)
         inherited.merge(
           TextStyle(
-            color: Colors.white,
+            color: faceStatusColor(face),
             fontSize: unit * 3.5,
             fontStyle: faceGroupIsNamed(face.group) ? null : FontStyle.italic,
           ),
@@ -127,14 +136,25 @@ class PhotoFacesOverlay extends ConsumerWidget {
 
     return Stack(
       children: [
-        for (final frame in frames)
+        for (var i = 0; i < found.length; i++)
           Positioned.fromRect(
-            rect: frame,
+            rect: frames[i],
             child: DecoratedBox(
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.white, width: unit * 0.5),
+                border: Border.all(
+                  color: faceStatusColor(found[i]),
+                  width: unit * 0.5,
+                ),
                 borderRadius: BorderRadius.circular(unit),
-                boxShadow: [BoxShadow(color: Colors.black54, blurRadius: unit)],
+                // Outside only: a plain box shadow also fills the box, which
+                // darkened the very face the frame is there to show.
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black54,
+                    blurRadius: unit,
+                    blurStyle: BlurStyle.outer,
+                  ),
+                ],
               ),
             ),
           ),
@@ -157,6 +177,151 @@ class PhotoFacesOverlay extends ConsumerWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// The colour of a face's frame and name: green once a person confirmed it,
+/// amber while an automatic run's choice waits for review, white otherwise —
+/// which is every face on a server that does not know about confirming.
+Color faceStatusColor(PhotoFace face) {
+  if (face.verified) return Colors.lightGreenAccent;
+  if (face.needsReview) return Colors.amberAccent;
+  return Colors.white;
+}
+
+/// "Everyone named on this photo is right": confirms the faces filed under a
+/// name, or takes that back once they all are.
+///
+/// The unnamed are not confirmed by it — see [FaceActions.verifyPhoto] —
+/// only marked as looked at where they wait for review. A face of someone
+/// unknown is kept as a person of their own one at a time, by tapping it.
+///
+/// Only there while the faces are shown, on a server that knows about
+/// confirming, and on a photo with something to confirm or take back —
+/// confirming what is not seen, or nobody, would mean nothing.
+class VerifyPhotoFacesButton extends ConsumerStatefulWidget {
+  final String mediaId;
+
+  const VerifyPhotoFacesButton({super.key, required this.mediaId});
+
+  @override
+  ConsumerState<VerifyPhotoFacesButton> createState() =>
+      _VerifyPhotoFacesButtonState();
+}
+
+class _VerifyPhotoFacesButtonState
+    extends ConsumerState<VerifyPhotoFacesButton> {
+  bool _busy = false;
+
+  /// Sends one decision. Separate from the button so a retry repeats the
+  /// sending alone, for the photo and account it was meant for.
+  ///
+  /// Confirming sends [named] and [unnamedToReview]; taking back sends
+  /// [named] alone, so it never undoes an unnamed face kept on purpose.
+  Future<void> _send({
+    required List<String> named,
+    required List<String> unnamedToReview,
+    required bool verified,
+    required String? owner,
+  }) async {
+    final l10n = AppLocalizations.of(context);
+    // Taken now: the messenger outlives the gallery, so the answer still
+    // arrives when it was closed while the request ran.
+    final messenger = ScaffoldMessenger.of(context);
+    void say(String text) => messenger
+      ..removeCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(text)));
+
+    setState(() => _busy = true);
+    try {
+      ensureStillSignedIn(ref, owner);
+      final actions = ref.read(faceActionsProvider);
+      if (verified) {
+        await actions.verifyPhoto(
+          named: named,
+          unnamedToReview: unnamedToReview,
+        );
+      } else {
+        await actions.verifyFaces(named, verified: false);
+      }
+      say(verified ? l10n.galleryFacesVerified : l10n.galleryFacesUnverified);
+    } catch (error) {
+      if (!mounted) {
+        say(l10n.galleryFacesVerifyFailed(describeError(error, l10n)));
+      } else {
+        await showActionFailure(
+          context,
+          ref,
+          error: error,
+          message: l10n.galleryFacesVerifyFailed,
+          retry: () => _send(
+            named: named,
+            unnamedToReview: unnamedToReview,
+            verified: verified,
+            owner: owner,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!ref.watch(hasCapabilityProvider(Capability.faceVerification))) {
+      return const SizedBox.shrink();
+    }
+    final faces = ref.watch(mediaFacesProvider(widget.mediaId)).valueOrNull;
+    if (faces == null) return const SizedBox.shrink();
+
+    final named = [
+      for (final face in faces)
+        if (faceGroupIsNamed(face.group)) face,
+    ];
+    final unnamedToReview = [
+      for (final face in faces)
+        if (!faceGroupIsNamed(face.group) && face.needsReview) face.id,
+    ];
+    // Nothing to confirm and nothing to take back: only unknown faces,
+    // none of them waiting.
+    if (named.isEmpty && unnamedToReview.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    if (_busy) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 12),
+        child: Center(
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      );
+    }
+
+    final l10n = AppLocalizations.of(context);
+    // Done once every named face is confirmed and no unknown one waits for
+    // review; unknown faces left unconfirmed do not keep it open.
+    final done =
+        named.every((face) => face.verified) && unnamedToReview.isEmpty;
+
+    return IconButton(
+      icon: Icon(done ? Icons.verified : Icons.verified_outlined),
+      tooltip: done ? l10n.galleryFacesUnverify : l10n.galleryFacesVerify,
+      isSelected: done,
+      onPressed: () => _send(
+        named: [for (final face in named) face.id],
+        unnamedToReview: unnamedToReview,
+        verified: !done,
+        owner: signedInAccount(ref),
+      ),
     );
   }
 }
@@ -232,6 +397,10 @@ List<Rect> placeLabels({
 
 /// Files [face] under someone else, a new person, or nobody — the same dialog
 /// and question as on a person's own screen.
+///
+/// A face without a name can also be kept as a person of their own there, or
+/// no longer, on a server that knows about confirming: see
+/// [FaceActions.verifyPhoto] for what that means to the server.
 Future<void> assignPhotoFace(
   BuildContext context,
   WidgetRef ref,
@@ -281,34 +450,36 @@ Future<void> assignPhotoFace(
     faceIds: [face.id],
     count: 1,
     title: l10n.galleryFaceAssignPick,
+    keptOnItsOwn:
+        !faceGroupIsNamed(face.group) &&
+            ref.read(hasCapabilityProvider(Capability.faceVerification))
+        ? face.verified
+        : null,
+    // The only one of an unnamed person: taken out, it would only become
+    // the only one of another. The count is of photos, not faces, so two
+    // faces of one stranger on one photo count as one and are not offered
+    // either — rare enough, and moving one to someone else still works.
+    // Zero means the server did not say, and offers it as before.
+    offerUnlabeled:
+        faceGroupIsNamed(face.group) || face.group.imageFaceCount != 1,
   );
 }
 
-/// Where on the photo, in parts of its width and height, a tap on the photo
-/// view landed — or null when it landed beside the photo.
+/// Where on the photo, in parts of its width and height, a tap at [global]
+/// landed — or null when it landed beside the photo.
 ///
-/// The photo view draws the photo at [childSize] times [scale], centred in
-/// [viewport] and then shifted by [position]; this undoes that. A null
-/// [scale] is the view's own before the first zoom: the photo fitted whole.
-Offset? photoPointAt({
-  required Offset tap,
-  required Size viewport,
-  required Size childSize,
-  required double? scale,
-  required Offset position,
-}) {
-  if (childSize.isEmpty || viewport.isEmpty) return null;
-  final shown =
-      scale ??
-      (viewport.width / childSize.width < viewport.height / childSize.height
-          ? viewport.width / childSize.width
-          : viewport.height / childSize.height);
-  if (shown <= 0) return null;
-
-  final centre = viewport.center(Offset.zero) + position;
-  final local = (tap - centre) / shown;
-  final x = local.dx / childSize.width + 0.5;
-  final y = local.dy / childSize.height + 0.5;
+/// [photo] is the box the photo is drawn in, at whatever zoom and shift the
+/// photo view gives it. Flutter maps the tap back through that transform
+/// itself. The zoom the photo view reports with a tap cannot be trusted for
+/// that: after a double tap it still holds the scale from before, or none,
+/// so a tap on a zoomed photo was taken for a tap on the photo fitted whole
+/// and found no face.
+Offset? photoPointAt(RenderBox photo, Offset global) {
+  final size = photo.size;
+  if (size.isEmpty) return null;
+  final local = photo.globalToLocal(global);
+  final x = local.dx / size.width;
+  final y = local.dy / size.height;
   if (x < 0 || x > 1 || y < 0 || y > 1) return null;
   return Offset(x, y);
 }

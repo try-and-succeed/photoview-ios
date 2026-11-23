@@ -120,6 +120,49 @@ query myFacesThumbnailsFewestFirst($limit: Int!, $offset: Int!) {
 ''' +
     _faceGroupThumbnailFragment;
 
+/// [myFacesThumbnailsQuery] with whether each person still has a face nobody
+/// has confirmed. A document of its own: a server without the face filter
+/// rejects the whole request for naming it, so this one is only sent where
+/// `Capability.faceVerification` says the server has it.
+const myFacesThumbnailsWithStatusQuery =
+    r'''
+query myFacesThumbnailsWithStatus($limit: Int!, $offset: Int!) {
+  myFaceGroups(paginate: {limit: $limit, offset: $offset}) {
+    ...faceGroupThumbnail
+    ...faceGroupStatus
+  }
+}
+''' +
+    _faceGroupThumbnailFragment +
+    _faceGroupStatusFragment;
+
+/// [myFacesThumbnailsFewestFirstQuery] with the status of
+/// [myFacesThumbnailsWithStatusQuery].
+const myFacesThumbnailsFewestFirstWithStatusQuery =
+    r'''
+query myFacesThumbnailsFewestFirstWithStatus($limit: Int!, $offset: Int!) {
+  myFaceGroups(countDirection: ASC, paginate: {limit: $limit, offset: $offset}) {
+    ...faceGroupThumbnail
+    ...faceGroupStatus
+  }
+}
+''' +
+    _faceGroupThumbnailFragment +
+    _faceGroupStatusFragment;
+
+/// One unconfirmed face, if there is any — whether there is one is all the
+/// list needs. Not `verifiedFaceCount` against `imageFaceCount`: the first
+/// counts faces and the second photos, so a person twice on one photo would
+/// come out confirmed with a face still unchecked. This costs the server what
+/// the thumbnail's own one-face page costs.
+const _faceGroupStatusFragment = r'''
+fragment faceGroupStatus on FaceGroup {
+  unverifiedFaces: imageFaces(paginate: {limit: 1}, filter: {verified: false}) {
+    id
+  }
+}
+''';
+
 const _faceGroupThumbnailFragment = r'''
 fragment faceGroupThumbnail on FaceGroup {
   id
@@ -165,6 +208,93 @@ query singlePerson(\$faceGroupID: ID!) {
 $_mediaItemFragment
 ''';
 
+/// [singlePersonQuery] with whether each face is confirmed and waiting for
+/// review. A document of its own: a server without those fields rejects the
+/// whole request for naming them, so this one is only sent where
+/// `Capability.faceVerification` says the server has them.
+const singlePersonWithStatusQuery =
+    '''
+query singlePersonWithStatus(\$faceGroupID: ID!) {
+  faceGroup(id: \$faceGroupID) {
+    id
+    label
+    imageFaces {
+      id
+      verified
+      needsReview
+      media {
+        date
+        ...MediaItem
+      }
+    }
+  }
+}
+$_mediaItemFragment
+''';
+
+/// Confirms every face on the photos — "everyone on here is right" — or takes
+/// the confirmation back. Confirming also clears the review flag.
+const setMediaFacesVerifiedMutation = r'''
+mutation setMediaFacesVerified($mediaIDs: [ID!]!, $verified: Boolean!) {
+  setMediaFacesVerified(mediaIDs: $mediaIDs, verified: $verified) {
+    id
+  }
+}
+''';
+
+/// Confirms single faces, or takes the confirmation back — for the faces of
+/// one person on the ticked photos, leaving the other people on them alone.
+const setImageFacesVerifiedMutation = r'''
+mutation setImageFacesVerified($imageFaceIDs: [ID!]!, $verified: Boolean!) {
+  setImageFacesVerified(imageFaceIDs: $imageFaceIDs, verified: $verified) {
+    id
+  }
+}
+''';
+
+/// Files the unconfirmed faces of the people again, comparing them with the
+/// confirmed faces of everybody. With `dryRun` nothing changes and the answer
+/// says what would.
+///
+/// Asks no `imageFaceCount`: the server recounts it per group and per change,
+/// loading all of the user's albums every time. For a person with 7,500 faces
+/// that turned a 3.5-second answer into four minutes.
+const reclassifyFaceGroupsMutation = r'''
+mutation reclassifyFaceGroups($faceGroupIDs: [ID!]!, $dryRun: Boolean!) {
+  reclassifyFaceGroups(faceGroupIDs: $faceGroupIDs, dryRun: $dryRun) {
+    checked
+    kept
+    moved
+    unmatched
+    conflicts
+    verifiedSamples
+    changes {
+      imageFace {
+        id
+      }
+      from {
+        id
+      }
+      to {
+        id
+        label
+      }
+    }
+  }
+}
+''';
+
+/// Photos with a face waiting for review, newest first.
+const mediaNeedingReviewQuery =
+    '''
+query mediaNeedingReview(\$limit: Int!, \$offset: Int!) {
+  myMediaNeedingReview(paginate: {limit: \$limit, offset: \$offset}) {
+    ...MediaItem
+  }
+}
+$_mediaItemFragment
+''';
+
 /// Naming a person. A null label removes the name — the server's own way of
 /// saying "no name", not an omission.
 const setFaceGroupLabelMutation = r'''
@@ -198,6 +328,26 @@ mutation moveImageFaces($imageFaceIDs: [ID!]!, $destinationFaceGroupID: ID!) {
   moveImageFaces(
     imageFaceIDs: $imageFaceIDs
     destinationFaceGroupID: $destinationFaceGroupID
+  ) {
+    id
+    label
+    imageFaceCount
+  }
+}
+''';
+
+/// The same move with the server's duplicate check turned off: the person may
+/// then be on a photo more than once, as on a sheet of passport photos.
+///
+/// What the app sends for every move. Older servers do not know
+/// `allowDuplicates` and refuse the whole request over it; the client then
+/// falls back to [moveImageFacesMutation].
+const moveImageFacesAllowingDuplicatesMutation = r'''
+mutation moveImageFacesAllowingDuplicates($imageFaceIDs: [ID!]!, $destinationFaceGroupID: ID!) {
+  moveImageFaces(
+    imageFaceIDs: $imageFaceIDs
+    destinationFaceGroupID: $destinationFaceGroupID
+    allowDuplicates: true
   ) {
     id
     label
@@ -260,6 +410,33 @@ query mediaFaces($mediaID: ID!) {
     id
     faces {
       id
+      rectangle {
+        minX
+        maxX
+        minY
+        maxY
+      }
+      faceGroup {
+        id
+        label
+        imageFaceCount
+      }
+    }
+  }
+}
+''';
+
+/// [mediaFacesQuery] with whether each face is confirmed and waiting for
+/// review — only for a server that has those fields, as with
+/// [singlePersonWithStatusQuery].
+const mediaFacesWithStatusQuery = r'''
+query mediaFacesWithStatus($mediaID: ID!) {
+  media(id: $mediaID) {
+    id
+    faces {
+      id
+      verified
+      needsReview
       rectangle {
         minX
         maxX
@@ -401,6 +578,20 @@ query scannerQueueStatus {
 const scanAlbumMutation = r'''
 mutation scanAlbum($albumId: ID!) {
   scanAlbum(albumId: $albumId) {
+    success
+    message
+  }
+}
+''';
+
+/// [scanAlbumMutation] taking in only what is new: the album's own media and
+/// the direct sub-directories that are not albums yet, each with everything
+/// below it. Existing sub-albums are neither scanned nor removed. A document
+/// of its own, sent only where `Capability.scanAlbumNewSubAlbums` says the
+/// server knows the argument.
+const scanAlbumNewSubAlbumsMutation = r'''
+mutation scanAlbumNewSubAlbums($albumId: ID!) {
+  scanAlbum(albumId: $albumId, onlyNewSubAlbums: true) {
     success
     message
   }

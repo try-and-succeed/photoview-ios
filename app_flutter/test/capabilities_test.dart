@@ -50,6 +50,58 @@ void main() {
     });
   });
 
+  group('the scan argument, probed by a mutation that never runs', () {
+    // Both answers as :8080 gave them, on 2026-11-22, with and without the
+    // argument. Nothing ran either time: the sentinel fails validation.
+    const sentinelRefused =
+        'Unknown argument "photoviewProbeSentinel" on field '
+        '"Mutation.scanAlbum".';
+    const argumentRefused =
+        'Unknown argument "onlyNewSubAlbums" on field "Mutation.scanAlbum".';
+
+    test('only the sentinel refused means the server knows the argument', () {
+      expect(
+        readProbe(errorMessages: [sentinelRefused]),
+        {Capability.scanAlbumNewSubAlbums: CapabilityState.supported},
+      );
+    });
+
+    test('the argument refused beside it means it does not', () {
+      expect(
+        readProbe(errorMessages: [argumentRefused, sentinelRefused]),
+        {Capability.scanAlbumNewSubAlbums: CapabilityState.unsupported},
+      );
+    });
+
+    test('a server without scanAlbum at all has neither', () {
+      final states = readProbe(
+        errorMessages: ['Cannot query field "scanAlbum" on type "Mutation".'],
+      );
+      expect(
+        states[Capability.scanAlbumNewSubAlbums],
+        CapabilityState.unsupported,
+      );
+      expect(states[Capability.scanner], CapabilityState.unsupported);
+    });
+
+    test('an answer without the sentinel settles nothing', () {
+      expect(readProbe(errorMessages: ['unauthorized']), isEmpty);
+    });
+
+    test('the probe names the sentinel, so it can never scan', () {
+      final document = singleCapabilityProbeDocument(
+        Capability.scanAlbumNewSubAlbums,
+      );
+      expect(document, startsWith('mutation'));
+      expect(document, contains('$probeSentinel: true'));
+      expect(probedByMutation(Capability.scanAlbumNewSubAlbums), isTrue);
+      expect(
+        Capability.values.where(probedByMutation),
+        [Capability.scanAlbumNewSubAlbums],
+      );
+    });
+  });
+
   group('readProbe', () {
     test('marks a capability supported only on positive evidence', () {
       final states = readProbe(
@@ -207,6 +259,10 @@ void main() {
       'Cannot query field "albumTreeChildren" on type "Query".',
       'Cannot query field "scannerQueueStatus" on type "Query".',
       'Unknown argument "countDirection" on field "Query.myFaceGroups".',
+      // Added later, when the stock instance was gone: the wording is the
+      // server's for any field FaceGroup lacks, taken from :8081 with a field
+      // that does not exist there.
+      'Cannot query field "verifiedFaceCount" on type "FaceGroup".',
     ];
 
     test('one round trip settles every capability', () {
@@ -285,8 +341,13 @@ void main() {
     });
 
     test('rules out the capabilities its field identifies', () {
+      // Without the mutation there is no kind of scan to choose either.
       expect(UnsupportedFieldException(field: 'scanAlbum').ruledOut, {
         Capability.scanner,
+        Capability.scanAlbumNewSubAlbums,
+      });
+      expect(UnsupportedFieldException(field: 'onlyNewSubAlbums').ruledOut, {
+        Capability.scanAlbumNewSubAlbums,
       });
       expect(UnsupportedFieldException(field: 'myUserPreferences').ruledOut, {
         Capability.searchLimitPreference,
@@ -384,6 +445,8 @@ void main() {
             Capability.albumTree => 'albumTreeChildren',
             Capability.scanner => 'scannerQueueStatus',
             Capability.faceGroupCountDirection => 'countDirection',
+            Capability.faceVerification => 'verifiedFaceCount',
+            Capability.scanAlbumNewSubAlbums => 'onlyNewSubAlbums',
           };
 
           expect(
