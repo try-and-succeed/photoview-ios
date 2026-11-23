@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:photoview/api/capabilities.dart';
@@ -55,12 +57,16 @@ class _PagingClient extends PhotoviewClient {
   final requests = <int>[];
   final directions = <bool>[];
 
+  /// Runs before each answer, to hold it or to fail it.
+  Future<void> Function(int offset, bool fewestFirst)? gate;
+
   @override
   Future<List<FaceGroup>> faceGroups({
     required int limit,
     required int offset,
     bool fewestFirst = false,
   }) async {
+    await gate?.call(offset, fewestFirst);
     if (fewestFirst && !knowsCountDirection) {
       throw UnsupportedFieldException(field: 'countDirection');
     }
@@ -83,9 +89,14 @@ ProviderContainer _container(
   _PagingClient client, {
   PeopleOrder? order,
   CapabilityState countDirection = CapabilityState.unknown,
+  bool recordDowngrades = true,
 }) {
   final container = ProviderContainer(
     overrides: [
+      // Recording one re-reads the capabilities and fetches the people again,
+      // which a test of a single fetch can do without.
+      if (!recordDowngrades)
+        capabilityDowngradeProvider.overrideWithValue((_, _) async {}),
       authProvider.overrideWith(_FixedAuth.new),
       clientProvider.overrideWithValue(client),
       settingsStoreProvider.overrideWithValue(_MemorySettings(order?.name)),
@@ -190,6 +201,39 @@ void main() {
 
       expect(data.groups, hasLength(160));
       expect(client.requests, [0, 40, 80, 120]);
+    });
+
+    test('a fetch overtaken by the next one stops asking for pages', () async {
+      // Two moves in quick succession. Riverpod drops the first fetch's
+      // result but lets it run on, and without a check it went on paging up
+      // to the old length beside the fetch that replaced it.
+      final client = _PagingClient(named: 3, unnamed: 300);
+      final container = _container(client);
+      await _settled(container);
+      container.listen(faceGroupsProvider, (_, _) {});
+      await container.read(faceGroupsProvider.future);
+      final notifier = container.read(faceGroupsProvider.notifier);
+      for (var i = 0; i < 3; i++) {
+        await notifier.loadMore();
+      }
+      client.requests.clear();
+
+      container.invalidate(faceGroupsProvider);
+      final overtaken = container.read(faceGroupsProvider.future);
+      container.invalidate(faceGroupsProvider);
+      final data = await container.read(faceGroupsProvider.future);
+      await overtaken.catchError((_) => data);
+      // Whatever the overtaken fetch still had in flight, let it come back.
+      await pumpEventQueue();
+
+      expect(data.groups, hasLength(160), reason: 'the new fetch keeps going');
+      expect(client.requests..sort(), [
+        0,
+        0,
+        40,
+        80,
+        120,
+      ], reason: 'the overtaken fetch stops after the page it was waiting on');
     });
 
     test('another account starts at one page', () async {
@@ -383,6 +427,54 @@ void main() {
       final data = await container.read(faceGroupsProvider.future);
 
       expect(client.directions, [false, true]);
+      expect(data.fewestFirst, isTrue);
+    });
+
+    test('an overtaken fetch that falls back leaves the order of the next '
+        'alone', () async {
+      // The first fetch is refused fewest first — but only once the next one
+      // has started, which pages fewest first fine. The fallback switched the
+      // order the notifier shares, and the next fetch went on paging most
+      // first from its second page, mixing two orders in one list.
+      final client = _PagingClient(named: 100, unnamed: 10);
+      final firstRefused = Completer<void>();
+      final secondPageHeld = Completer<void>();
+      var calls = 0;
+      client.gate = (offset, fewestFirst) async {
+        calls++;
+        if (calls == 1) {
+          await firstRefused.future;
+          throw UnsupportedFieldException(field: 'countDirection');
+        }
+        if (offset == 40) await secondPageHeld.future;
+      };
+      final container = _container(
+        client,
+        order: PeopleOrder.countAscending,
+        countDirection: CapabilityState.supported,
+        recordDowngrades: false,
+      );
+      await _settled(container);
+      container.listen(faceGroupsProvider, (_, _) {});
+
+      // Not awaited: Riverpod hands the overtaken build's callers the result
+      // of the build that replaced it, which is held below.
+      unawaited(container.read(faceGroupsProvider.future));
+      container.invalidate(faceGroupsProvider);
+      final current = container.read(faceGroupsProvider.future);
+      await pumpEventQueue();
+
+      firstRefused.complete();
+      await pumpEventQueue();
+      secondPageHeld.complete();
+      final data = await current;
+
+      final later = [
+        for (final (i, offset) in client.requests.indexed)
+          if (offset >= 40) client.directions[i],
+      ];
+      expect(later, isNotEmpty);
+      expect(later, everyElement(isTrue), reason: 'one order throughout');
       expect(data.fewestFirst, isTrue);
     });
 

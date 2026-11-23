@@ -41,6 +41,7 @@ String describeError(Object? error, AppLocalizations l10n) => switch (error) {
     CertificateFileProblem.invalidBase64 => l10n.certFileInvalidBase64,
   },
   TimeoutException() => l10n.errorTimeout,
+  AccountChangedException() => l10n.errorAccountChanged,
   _ => '$error',
 };
 

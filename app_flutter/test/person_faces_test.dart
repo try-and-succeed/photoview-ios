@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -19,6 +21,9 @@ final _session = Session(
 class _FixedAuth extends AuthNotifier {
   @override
   Future<Session?> build() async => _session;
+
+  /// Signed in elsewhere, as the settings' server switch does it.
+  void switchTo(Session other) => state = AsyncData(other);
 }
 
 /// Records what the screen sends, and answers as the server does.
@@ -37,8 +42,12 @@ class _FacesClient extends PhotoviewClient {
   /// A failure for naming alone, after the split before it went through.
   Object? failRenameWith;
 
+  /// Holds the naming open, so the screen can be left while it runs.
+  Completer<void>? holdRename;
+
   @override
   Future<String?> setFaceGroupLabel(String faceGroupId, String? label) async {
+    await holdRename?.future;
     renames.add((group: faceGroupId, label: label));
     final failure = failRenameWith;
     if (failure != null) throw failure;
@@ -72,13 +81,20 @@ class _FacesClient extends PhotoviewClient {
     return 'Anna';
   }
 
+  /// Runs while the faces are being taken out, before the answer.
+  void Function()? whileDetaching;
+
   @override
   Future<String?> detachImageFaces(List<String> imageFaceIds) async {
+    whileDetaching?.call();
     detaches.add(imageFaceIds);
     final failure = failWith;
     if (failure != null) throw failure;
-    return '42';
+    return createdGroup;
   }
+
+  /// The id of the group a split makes, or null for a server that names none.
+  String? createdGroup = '42';
 }
 
 PersonPhoto _photo(String mediaId, List<String> faceIds, {String? title}) =>
@@ -136,8 +152,95 @@ Future<void> _split(WidgetTester tester) async {
   await _confirm(tester);
 }
 
+/// Signs in to another server, as the settings' server switch does.
+void _signInElsewhere(WidgetTester tester) {
+  final container = ProviderScope.containerOf(
+    tester.element(find.byType(PersonScreen)),
+  );
+  (container.read(authProvider.notifier) as _FixedAuth).switchTo(
+    Session(
+      endpoint: Uri.parse('https://elsewhere/api/graphql'),
+      token: 'other',
+      username: 'someone',
+    ),
+  );
+}
+
 void main() {
   final anna = const FaceGroup(id: '9', label: 'Anna', imageFaceCount: 5);
+
+  group('a retry after a sign-in elsewhere sends nothing', () {
+    // The ids belong to the account the action started on. Every request
+    // goes to whoever is signed in when it runs, so a retry after a switch
+    // would move, split or name whatever has those ids on the other server.
+    testWidgets('a move', (tester) async {
+      final client = _FacesClient(
+        photos: [
+          _photo('1', ['10']),
+        ],
+        people: [anna],
+      )..failWith = CertificateNotTrustedException(_session.endpoint);
+      await _open(tester, client);
+      await _pickFirst(tester);
+      await _moveTo(tester, 'Anna');
+      expect(client.moves, hasLength(1), reason: 'the first attempt failed');
+
+      client.failWith = null;
+      _signInElsewhere(tester);
+      await tester.tap(find.text('Review certificate'));
+      await tester.pumpAndSettle();
+
+      expect(client.moves, hasLength(1));
+    });
+
+    testWidgets('a split', (tester) async {
+      final client = _FacesClient(
+        photos: [
+          _photo('1', ['10']),
+        ],
+        people: [anna],
+      )..failWith = CertificateNotTrustedException(_session.endpoint);
+      await _open(tester, client);
+      await _pickFirst(tester);
+      await _split(tester);
+      expect(client.detaches, hasLength(1), reason: 'the first attempt failed');
+
+      client.failWith = null;
+      _signInElsewhere(tester);
+      await tester.tap(find.text('Review certificate'));
+      await tester.pumpAndSettle();
+
+      expect(client.detaches, hasLength(1));
+    });
+
+    testWidgets('a move to a new person whose split failed', (tester) async {
+      final client = _FacesClient(
+        photos: [
+          _photo('1', ['10']),
+        ],
+        people: [anna],
+      )..failWith = Exception('offline');
+      await _open(tester, client);
+      await _pickFirst(tester);
+      await tester.tap(find.byIcon(Icons.person_add_alt));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('New person…'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Max');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pumpAndSettle();
+      await _confirm(tester);
+      expect(client.detaches, hasLength(1), reason: 'the first attempt failed');
+
+      client.failWith = null;
+      _signInElsewhere(tester);
+      await tester.tap(find.text('Retry'));
+      await tester.pumpAndSettle();
+
+      expect(client.detaches, hasLength(1));
+      expect(client.renames, isEmpty);
+    });
+  });
 
   testWidgets('a long press starts picking, as in the album', (tester) async {
     final client = _FacesClient(
@@ -557,6 +660,220 @@ void main() {
         (group: '42', label: 'Max'),
         (group: '42', label: 'Max'),
       ]);
+    });
+
+    testWidgets('a naming that fails for any reason can still be retried', (
+      tester,
+    ) async {
+      // Not a certificate: the server is simply unreachable for a moment.
+      // The photos are out of this person already and cannot be ticked again,
+      // so the retry is the only way left to give the new person its name.
+      final client = _FacesClient(
+        photos: [
+          _photo('1', ['10']),
+        ],
+        people: [anna],
+      )..failRenameWith = Exception('offline');
+      await _open(tester, client);
+      await _pickFirst(tester);
+
+      await tester.tap(find.byIcon(Icons.person_add_alt));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('New person…'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Max');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pumpAndSettle();
+      await _confirm(tester);
+
+      expect(
+        find.textContaining('The photos are with a new, unnamed person'),
+        findsOneWidget,
+        reason: 'says where the photos are',
+      );
+
+      client.failRenameWith = null;
+      await tester.tap(find.text('Retry'));
+      await tester.pumpAndSettle();
+
+      expect(client.detaches, hasLength(1), reason: 'split once');
+      expect(client.renames, [
+        (group: '42', label: 'Max'),
+        (group: '42', label: 'Max'),
+      ]);
+      expect(find.text('Moved to Max'), findsOneWidget);
+    });
+
+    testWidgets('a new person is not named on an account signed in to since', (
+      tester,
+    ) async {
+      // The group id belongs to the first server. Sent to the second, it
+      // would rename whatever group has that id there.
+      final client = _FacesClient(
+        photos: [
+          _photo('1', ['10']),
+        ],
+        people: [anna],
+      );
+      await _open(tester, client);
+      client.whileDetaching = () => _signInElsewhere(tester);
+      await _pickFirst(tester);
+
+      await tester.tap(find.byIcon(Icons.person_add_alt));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('New person…'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Max');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pumpAndSettle();
+      await _confirm(tester);
+
+      expect(client.detaches, hasLength(1));
+      expect(client.renames, isEmpty);
+      expect(
+        find.textContaining('signed in to another account'),
+        findsOneWidget,
+      );
+
+      expect(
+        find.text('Retry'),
+        findsNothing,
+        reason: 'bound to the first account, it could only fail again',
+      );
+    });
+
+    testWidgets('photos gone after a half-done move are no longer ticked', (
+      tester,
+    ) async {
+      // The faces went out, the naming failed: the picking mode stays on,
+      // but the photos it held are no longer this person's.
+      final client = _FacesClient(
+        photos: [
+          _photo('1', ['10']),
+          _photo('2', ['20']),
+        ],
+        people: [anna],
+      )..failRenameWith = Exception('offline');
+      client.whileDetaching = () => client.photos.removeAt(0);
+      await _open(tester, client);
+      await _pickFirst(tester);
+      expect(find.text('Selected: 1'), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.person_add_alt));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('New person…'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Max');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pumpAndSettle();
+      await _confirm(tester);
+
+      expect(find.text('Selected: 1'), findsNothing);
+      expect(find.byType(MediaThumbnail), findsOneWidget);
+      expect(
+        find.byIcon(Icons.person_add_alt),
+        findsNothing,
+        reason: 'out of the picking mode',
+      );
+    });
+
+    testWidgets('the answer arrives when the screen was left meanwhile', (
+      tester,
+    ) async {
+      // The faces went out, the naming failed after the person was left.
+      // That message is the only word on where the photos now are.
+      final client =
+          _FacesClient(
+              photos: [
+                _photo('1', ['10']),
+              ],
+              people: [anna],
+            )
+            ..failRenameWith = Exception('offline')
+            ..holdRename = Completer<void>();
+      await _open(tester, client);
+      await _pickFirst(tester);
+
+      await tester.tap(find.byIcon(Icons.person_add_alt));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('New person…'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Max');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Move'));
+      await tester.pump();
+
+      // The person goes; the app around it, and its messenger, stay.
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            authProvider.overrideWith(_FixedAuth.new),
+            clientProvider.overrideWithValue(client),
+          ],
+          child: localizedApp(
+            home: const Scaffold(body: Center(child: Text('gone'))),
+          ),
+        ),
+      );
+      client.holdRename!.complete();
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining('The photos are with a new, unnamed person'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a split that names no group is not reported as named', (
+      tester,
+    ) async {
+      final client = _FacesClient(
+        photos: [
+          _photo('1', ['10']),
+        ],
+        people: [anna],
+      )..createdGroup = null;
+      await _open(tester, client);
+      await _pickFirst(tester);
+
+      await tester.tap(find.byIcon(Icons.person_add_alt));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('New person…'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Max');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pumpAndSettle();
+      await _confirm(tester);
+
+      expect(client.renames, isEmpty);
+      expect(find.text('Moved to Max'), findsNothing);
+      expect(find.text('Split off as a new person'), findsOneWidget);
+    });
+
+    testWidgets('a move that fails before anything moved says so', (
+      tester,
+    ) async {
+      final client = _FacesClient(
+        photos: [
+          _photo('1', ['10']),
+        ],
+        people: [anna],
+      )..failWith = Exception('offline');
+      await _open(tester, client);
+      await _pickFirst(tester);
+
+      await tester.tap(find.byIcon(Icons.person_add_alt));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('New person…'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Max');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pumpAndSettle();
+      await _confirm(tester);
+
+      expect(find.textContaining('Could not move the photos'), findsOneWidget);
+      expect(client.renames, isEmpty);
     });
 
     testWidgets('offers the unnamed, which splits the photos off', (

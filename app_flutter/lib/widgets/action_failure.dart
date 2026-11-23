@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/client.dart';
+import '../api/session.dart';
 import '../l10n/app_localizations.dart';
 import '../l10n/error_messages.dart';
 import 'certificate_review.dart';
@@ -24,23 +25,59 @@ import 'certificate_review.dart';
 /// Any message already on screen is replaced rather than queued: tapping a
 /// button twice otherwise plays the first answer, then the second, and a
 /// failure can sit behind a stale success for as long as the queue is.
+///
+/// Other failures get no way out by default: an action the user can simply
+/// start again from where they are needs none. [retryAnyError] offers [retry]
+/// for them too, for an action that cannot be started again — one that went
+/// half through, and whose starting point is gone.
 Future<void> showActionFailure(
   BuildContext context,
   WidgetRef ref, {
   required Object error,
   required String Function(String description) message,
   FutureOr<void> Function()? retry,
+  bool retryAnyError = false,
   CertificateProbe probe = probeCertificate,
   CertificateConfirm confirm = showCertificateDialog,
 }) async {
   final l10n = AppLocalizations.of(context);
   final messenger = ScaffoldMessenger.of(context);
 
+  // The message outlives the screen — the messenger sits above the
+  // navigator — but the retry does not: it runs on that screen's providers.
+  // Said rather than silently skipped, so a button that did nothing is not
+  // taken for one that did. Queued, not swapped in: the snackbar action hides
+  // the current message after its handler runs, which would be this one.
+  void pageClosed() => messenger.showSnackBar(
+    SnackBar(content: Text(l10n.actionRetryPageClosed)),
+  );
+
   messenger.removeCurrentSnackBar();
 
   if (error is! CertificateNotTrustedException) {
+    // Not after a sign-in elsewhere: the retry is bound to the first account
+    // and would only fail the same way again.
+    final offerRetry =
+        retryAnyError && retry != null && error is! AccountChangedException;
     messenger.showSnackBar(
-      SnackBar(content: Text(message(describeError(error, l10n)))),
+      SnackBar(
+        content: Text(message(describeError(error, l10n))),
+        duration: offerRetry
+            ? const Duration(seconds: 10)
+            : const Duration(milliseconds: 4000),
+        action: offerRetry
+            ? SnackBarAction(
+                label: l10n.actionRetry,
+                onPressed: () {
+                  if (context.mounted) {
+                    retry();
+                  } else {
+                    pageClosed();
+                  }
+                },
+              )
+            : null,
+      ),
     );
     return;
   }
@@ -55,7 +92,7 @@ Future<void> showActionFailure(
       action: SnackBarAction(
         label: l10n.certificateReview,
         onPressed: () async {
-          if (!context.mounted) return;
+          if (!context.mounted) return pageClosed();
 
           final review = await reviewCertificate(
             context: context,
@@ -77,7 +114,7 @@ Future<void> showActionFailure(
               // own `mounted` check. The messenger is safe either way: it
               // lives above the navigator, which is why a message can outlive
               // the screen that raised it.
-              if (!context.mounted) return;
+              if (!context.mounted) return pageClosed();
               await retry?.call();
             case CertificateReview.declined:
               messenger

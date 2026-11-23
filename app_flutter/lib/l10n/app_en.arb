@@ -252,6 +252,10 @@
   "@actionRetry": {
     "description": "Button that repeats a failed request."
   },
+  "actionRetryPageClosed": "The page this was started on is closed, so it cannot be tried again from here.",
+  "@actionRetryPageClosed": {
+    "description": "Shown when Retry (or Review certificate) is tapped on a message whose screen has been left meanwhile: the action cannot run without it."
+  },
   "navTimeline": "Timeline",
   "@navTimeline": {
     "description": "Bottom navigation: the timeline of all media, newest first."
@@ -516,6 +520,16 @@
     "placeholders": {
       "error": {
         "type": "String"
+      }
+    }
+  },
+  "personFacesNameFailed": "The photos are with a new, unnamed person, but it could not be named: {error}",
+  "@personFacesNameFailed": {
+    "description": "Moving photos to a new person went half through: they were taken out into a new person, but naming it failed. Shown with a Retry button that only names it.",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "connection timed out"
       }
     }
   },
@@ -1285,6 +1299,10 @@
   "errorTimeout": "The server took too long to answer.",
   "@errorTimeout": {
     "description": "A request timed out."
+  },
+  "errorAccountChanged": "you have signed in to another account since, so it was left as it is",
+  "@errorAccountChanged": {
+    "description": "Why the second half of an action was not sent: another account is signed in than when it began. Fills the {error} of a message such as personFacesNameFailed, so it starts lower-case and has no full stop."
   },
   "errorUnknown": "Unknown error",
   "@errorUnknown": {

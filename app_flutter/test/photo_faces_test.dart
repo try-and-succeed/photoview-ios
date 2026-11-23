@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -67,6 +69,26 @@ class _FacesClient extends PhotoviewClient {
   ) async {
     moves.add((faces: imageFaceIds, destination: destinationFaceGroupId));
     return 'Anna';
+  }
+
+  final renames = <({String group, String? label})>[];
+
+  /// A failure for naming alone, after the split before it went through.
+  Object? failRenameWith;
+
+  @override
+  Future<String?> detachImageFaces(List<String> imageFaceIds) async => '42';
+
+  /// Holds the naming open, so the gallery can be closed while it runs.
+  Completer<void>? holdRename;
+
+  @override
+  Future<String?> setFaceGroupLabel(String faceGroupId, String? label) async {
+    await holdRename?.future;
+    renames.add((group: faceGroupId, label: label));
+    final failure = failRenameWith;
+    if (failure != null) throw failure;
+    return label;
   }
 }
 
@@ -328,6 +350,32 @@ void main() {
       expect(boxes.single.bottom, lessThanOrEqualTo(256));
     });
 
+    test('a face as tall as the photo still gets its name on the photo', () {
+      // No room above or below: the name covers the face rather than being
+      // placed off the photo, where the stack cuts it away entirely.
+      final boxes = placeLabels(
+        frames: [const Rect.fromLTWH(50, 0, 100, 300)],
+        labels: [label],
+        area: area,
+        gap: 4,
+      );
+
+      expect(boxes.single.top, greaterThanOrEqualTo(0));
+      expect(boxes.single.bottom, lessThanOrEqualTo(area.height));
+      expect(boxes.single.size, label);
+    });
+
+    test('a name taller than the photo starts at its top', () {
+      final boxes = placeLabels(
+        frames: [const Rect.fromLTWH(0, 0, 40, 10)],
+        labels: [const Size(40, 30)],
+        area: const Size(100, 20),
+        gap: 2,
+      );
+
+      expect(boxes.single.top, 0);
+    });
+
     test('a name at the right edge is moved left to fit', () {
       final boxes = placeLabels(
         frames: [const Rect.fromLTWH(360, 50, 30, 30)],
@@ -526,6 +574,75 @@ void main() {
     expect(client.moves.single.faces, ['101']);
     expect(client.moves.single.destination, '9');
     expect(find.text('Moved to Anna'), findsOneWidget);
+  });
+
+  testWidgets('a face filed under a new person whose naming fails can be '
+      'named on retry', (tester) async {
+    // As on a person's page: the face is out already, and the retry is the
+    // only way left to give the new person its name.
+    final client = _FacesClient([_regina, _stranger])
+      ..failRenameWith = Exception('offline');
+    await _pump(tester, client);
+
+    await tester.tap(find.text('assign 101'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('New person…'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Max');
+    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Move'));
+    await tester.pumpAndSettle();
+
+    client.failRenameWith = null;
+    await tester.tap(find.text('Retry'));
+    await tester.pumpAndSettle();
+
+    expect(client.renames, [
+      (group: '42', label: 'Max'),
+      (group: '42', label: 'Max'),
+    ]);
+  });
+
+  testWidgets('the answer arrives when the gallery was closed meanwhile', (
+    tester,
+  ) async {
+    // The face went out, the naming failed after the gallery was left. That
+    // message is the only word on where the photo now is.
+    final client = _FacesClient([_regina, _stranger])
+      ..failRenameWith = Exception('offline')
+      ..holdRename = Completer<void>();
+    await _pump(tester, client);
+
+    await tester.tap(find.text('assign 101'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('New person…'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Max');
+    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Move'));
+    await tester.pump();
+
+    // The gallery goes; the app around it, and its messenger, stay.
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authProvider.overrideWith(_FixedAuth.new),
+          clientProvider.overrideWithValue(client),
+        ],
+        child: localizedApp(
+          home: const Scaffold(body: Center(child: Text('gone'))),
+        ),
+      ),
+    );
+    client.holdRename!.complete();
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('The photos are with a new, unnamed person'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('the person a face is filed under is not offered for it', (
