@@ -60,17 +60,15 @@ void main() {
         'Unknown argument "onlyNewSubAlbums" on field "Mutation.scanAlbum".';
 
     test('only the sentinel refused means the server knows the argument', () {
-      expect(
-        readProbe(errorMessages: [sentinelRefused]),
-        {Capability.scanAlbumNewSubAlbums: CapabilityState.supported},
-      );
+      expect(readProbe(errorMessages: [sentinelRefused]), {
+        Capability.scanAlbumNewSubAlbums: CapabilityState.supported,
+      });
     });
 
     test('the argument refused beside it means it does not', () {
-      expect(
-        readProbe(errorMessages: [argumentRefused, sentinelRefused]),
-        {Capability.scanAlbumNewSubAlbums: CapabilityState.unsupported},
-      );
+      expect(readProbe(errorMessages: [argumentRefused, sentinelRefused]), {
+        Capability.scanAlbumNewSubAlbums: CapabilityState.unsupported,
+      });
     });
 
     test('a server without scanAlbum at all has neither', () {
@@ -98,6 +96,7 @@ void main() {
       expect(Capability.values.where(probedByMutation), [
         Capability.scanAlbumNewSubAlbums,
         Capability.mergeUnlabeledFaceGroups,
+        Capability.faceNeedsReview,
       ]);
     });
   });
@@ -134,7 +133,10 @@ void main() {
           'Unknown argument "photoviewProbeSentinel" on field '
           '"Mutation.scanAlbum".';
       final states = readProbe(errorMessages: [onScan]);
-      expect(states[Capability.scanAlbumNewSubAlbums], CapabilityState.supported);
+      expect(
+        states[Capability.scanAlbumNewSubAlbums],
+        CapabilityState.supported,
+      );
       expect(states.containsKey(Capability.mergeUnlabeledFaceGroups), isFalse);
 
       expect(
@@ -142,6 +144,31 @@ void main() {
             .containsKey(Capability.scanAlbumNewSubAlbums),
         isFalse,
       );
+    });
+
+    test('setting the review flag is told apart the same way', () {
+      // As :8081 answered for personal-9b484a8 (the server guide's status).
+      const flagRefused =
+          'Unknown argument "photoviewProbeSentinel" on field '
+          '"Mutation.setImageFacesNeedsReview".';
+      expect(readProbe(errorMessages: [flagRefused]), {
+        Capability.faceNeedsReview: CapabilityState.supported,
+      });
+      expect(
+        readProbe(
+          errorMessages: [
+            'Cannot query field "setImageFacesNeedsReview" on type '
+                '"Mutation".',
+          ],
+        ),
+        {Capability.faceNeedsReview: CapabilityState.unsupported},
+      );
+      final document = singleCapabilityProbeDocument(
+        Capability.faceNeedsReview,
+      );
+      expect(document, startsWith('mutation'));
+      expect(document, contains('imageFaceIDs: []'));
+      expect(document, contains('$probeSentinel: true'));
     });
 
     test('the probe is a dry run that names the sentinel', () {
@@ -501,6 +528,7 @@ void main() {
             Capability.scanAlbumNewSubAlbums => 'onlyNewSubAlbums',
             Capability.mergeUnlabeledFaceGroups =>
               'mergeSimilarUnlabeledFaceGroups',
+            Capability.faceNeedsReview => 'setImageFacesNeedsReview',
           };
 
           expect(

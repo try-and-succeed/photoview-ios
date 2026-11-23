@@ -456,13 +456,15 @@ class MergeProposal {
   String get signature => ([...groupIds]..sort()).join(',');
 
   /// How many of the proposal's faces are in [groupId].
-  int facesIn(String groupId) => faces.where((f) => f.groupId == groupId).length;
+  int facesIn(String groupId) =>
+      faces.where((f) => f.groupId == groupId).length;
 
   /// What to send to merge only [kept] of the proposal's groups: the
   /// destination if it is kept, else the kept group with the most faces (the
   /// first of them in the proposal's order on a tie), and the others as
-  /// sources. Null when fewer than two groups are kept — nothing to merge.
-  ({String destination, List<String> sources})? mergeOf(Set<String> kept) {
+  /// sources — with the faces of all of them, to flag for review afterwards.
+  /// Null when fewer than two groups are kept — nothing to merge.
+  ProposalMerge? mergeOf(Set<String> kept) {
     final groups = [
       for (final id in groupIds)
         if (kept.contains(id)) id,
@@ -481,9 +483,21 @@ class MergeProposal {
         for (final id in groups)
           if (id != destination) id,
       ],
+      faceIds: [
+        for (final face in faces)
+          if (kept.contains(face.groupId)) face.id,
+      ],
     );
   }
 }
+
+/// One merge as sent: [sources] into [destination], and the [faceIds] of
+/// all of them.
+typedef ProposalMerge = ({
+  String destination,
+  List<String> sources,
+  List<String> faceIds,
+});
 
 /// Where a photo was taken, as the server reports it.
 ///

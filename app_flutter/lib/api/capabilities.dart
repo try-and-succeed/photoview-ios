@@ -40,6 +40,10 @@ enum Capability {
   /// without a confirmed face whose faces look alike, as a dry run or for
   /// real.
   mergeUnlabeledFaceGroups,
+
+  /// `setImageFacesNeedsReview`: sets or clears a face's review flag and
+  /// nothing else — not its confirmation, not its group.
+  faceNeedsReview,
 }
 
 /// What is known about one capability.
@@ -119,6 +123,8 @@ const _identifyingFields = <Capability, Set<String>>{
     'verifiedFaceCount',
     'mergeSimilarUnlabeledFaceGroups',
   },
+  // Likewise: the flag it sets came with confirming.
+  Capability.faceNeedsReview: {'verifiedFaceCount', 'setImageFacesNeedsReview'},
 };
 
 /// An argument no server has, named in a probe that must never run.
@@ -143,6 +149,7 @@ const probeSentinel = 'photoviewProbeSentinel';
 const _probedByMutation = {
   Capability.scanAlbumNewSubAlbums: 'scanAlbum',
   Capability.mergeUnlabeledFaceGroups: 'mergeSimilarUnlabeledFaceGroups',
+  Capability.faceNeedsReview: 'setImageFacesNeedsReview',
 };
 
 /// Whether [capability] is probed with a mutation rather than a query.
@@ -245,6 +252,10 @@ String singleCapabilityProbeDocument(
   Capability.mergeUnlabeledFaceGroups =>
     'mutation photoviewCapability { mergeSimilarUnlabeledFaceGroups('
         'dryRun: true, $probeSentinel: true) { sourceFaceGroupIDs } }',
+  // Never runs either, and with no faces besides.
+  Capability.faceNeedsReview =>
+    'mutation photoviewCapability { setImageFacesNeedsReview('
+        'imageFaceIDs: [], needsReview: false, $probeSentinel: true) { id } }',
 };
 
 /// What the server said about every capability.

@@ -334,5 +334,6 @@
   "mergeUnlabeledNotEnough": "Для объединения оставьте не менее двух групп.",
   "mergeUnlabeledNotStored": "Не удалось сохранить отклонённое предложение на этом устройстве.",
   "mergeUnlabeledFaceIn": "Лицо в предложении",
-  "mergeUnlabeledFaceOut": "Лицо исключено"
+  "mergeUnlabeledFaceOut": "Лицо исключено",
+  "mergeUnlabeledNotFlagged": "Объединено, но не добавлено в список для проверки: {error}"
 }

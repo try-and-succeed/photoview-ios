@@ -334,5 +334,6 @@
   "mergeUnlabeledNotEnough": "要合并，请至少保留两个组。",
   "mergeUnlabeledNotStored": "无法在此设备上保存被拒绝的建议。",
   "mergeUnlabeledFaceIn": "建议中的人脸",
-  "mergeUnlabeledFaceOut": "已排除的人脸"
+  "mergeUnlabeledFaceOut": "已排除的人脸",
+  "mergeUnlabeledNotFlagged": "已合并，但未加入待检查列表：{error}"
 }

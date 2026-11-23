@@ -334,5 +334,6 @@
   "mergeUnlabeledNotEnough": "Aby połączyć, zostaw co najmniej dwie grupy.",
   "mergeUnlabeledNotStored": "Nie udało się zapisać odrzuconej propozycji na tym urządzeniu.",
   "mergeUnlabeledFaceIn": "Twarz w propozycji",
-  "mergeUnlabeledFaceOut": "Twarz wykluczona"
+  "mergeUnlabeledFaceOut": "Twarz wykluczona",
+  "mergeUnlabeledNotFlagged": "Połączono, ale nie dodano do listy do sprawdzenia: {error}"
 }

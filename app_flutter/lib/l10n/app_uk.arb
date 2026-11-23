@@ -334,5 +334,6 @@
   "mergeUnlabeledNotEnough": "Для об’єднання залиште щонайменше дві групи.",
   "mergeUnlabeledNotStored": "Не вдалося зберегти відхилену пропозицію на цьому пристрої.",
   "mergeUnlabeledFaceIn": "Обличчя в пропозиції",
-  "mergeUnlabeledFaceOut": "Обличчя виключено"
+  "mergeUnlabeledFaceOut": "Обличчя виключено",
+  "mergeUnlabeledNotFlagged": "Об’єднано, але не додано до списку перевірки: {error}"
 }

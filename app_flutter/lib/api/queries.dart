@@ -284,6 +284,16 @@ mutation reclassifyFaceGroups($faceGroupIDs: [ID!]!, $dryRun: Boolean!) {
 }
 ''';
 
+/// Flags faces for review, or clears the flag, leaving everything else about
+/// them as it is.
+const setImageFacesNeedsReviewMutation = r'''
+mutation setImageFacesNeedsReview($imageFaceIDs: [ID!]!, $needsReview: Boolean!) {
+  setImageFacesNeedsReview(imageFaceIDs: $imageFaceIDs, needsReview: $needsReview) {
+    id
+  }
+}
+''';
+
 /// Proposals to join unnamed groups without a confirmed face whose faces look
 /// alike — as a dry run, or merging all of them. Each face comes with its
 /// rectangle and photo, so the proposal can be shown as faces. No

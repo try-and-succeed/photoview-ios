@@ -1809,5 +1809,14 @@
   "mergeUnlabeledFaceOut": "Face left out",
   "@mergeUnlabeledFaceOut": {
     "description": "Screen reader label of a face left out of the proposal."
+  },
+  "mergeUnlabeledNotFlagged": "Merged, but not added to the review list: {error}",
+  "@mergeUnlabeledNotFlagged": {
+    "description": "The merge went through, but flagging its faces for review failed.",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
   }
 }

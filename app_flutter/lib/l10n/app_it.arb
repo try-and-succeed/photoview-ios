@@ -334,5 +334,6 @@
   "mergeUnlabeledNotEnough": "Mantieni almeno due gruppi per unire.",
   "mergeUnlabeledNotStored": "Impossibile salvare la proposta rifiutata su questo dispositivo.",
   "mergeUnlabeledFaceIn": "Volto nella proposta",
-  "mergeUnlabeledFaceOut": "Volto escluso"
+  "mergeUnlabeledFaceOut": "Volto escluso",
+  "mergeUnlabeledNotFlagged": "Unito, ma non aggiunto all’elenco da controllare: {error}"
 }

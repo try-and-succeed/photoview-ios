@@ -64,6 +64,26 @@ class _MergeClient extends PhotoviewClient {
   /// Fails the combine with this number, counted from 1.
   int? failCombine;
 
+  /// Each request to flag faces for review: the face ids.
+  final flagged = <List<String>>[];
+
+  /// Fails the next request to flag faces for review.
+  bool failFlag = false;
+
+  @override
+  Future<int> setImageFacesNeedsReview(
+    List<String> imageFaceIds, {
+    required bool needsReview,
+  }) async {
+    if (failFlag) {
+      failFlag = false;
+      throw const ApiException('offline');
+    }
+    expect(needsReview, isTrue);
+    flagged.add(imageFaceIds);
+    return imageFaceIds.length;
+  }
+
   @override
   Future<List<MergeProposal>> mergeSimilarUnlabeledFaceGroups({
     required bool dryRun,
@@ -100,12 +120,14 @@ class _MergeClient extends PhotoviewClient {
   }
 }
 
-Override _capabilities({bool merge = true}) =>
+CapabilityState _state(bool supported) =>
+    supported ? CapabilityState.supported : CapabilityState.unsupported;
+
+Override _capabilities({bool merge = true, bool flag = true}) =>
     serverCapabilitiesProvider.overrideWith(
       (ref) async => ServerCapabilities({
-        Capability.mergeUnlabeledFaceGroups: merge
-            ? CapabilityState.supported
-            : CapabilityState.unsupported,
+        Capability.mergeUnlabeledFaceGroups: _state(merge),
+        Capability.faceNeedsReview: _state(flag),
         Capability.faceVerification: CapabilityState.supported,
       }),
     );
@@ -114,6 +136,7 @@ Future<void> _open(
   WidgetTester tester,
   _MergeClient client, {
   SettingsStore? settings,
+  bool flag = true,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
@@ -121,7 +144,7 @@ Future<void> _open(
         authProvider.overrideWith(_FixedAuth.new),
         clientProvider.overrideWithValue(client),
         settingsStoreProvider.overrideWithValue(settings ?? _MemorySettings()),
-        _capabilities(),
+        _capabilities(flag: flag),
       ],
       child: localizedApp(home: const MergeUnlabeledScreen()),
     ),
@@ -391,6 +414,79 @@ void main() {
       await tester.tap(find.text('Retry'));
       await tester.pumpAndSettle();
       expect([for (final c in client.combines) c.destination], ['10', '20']);
+    });
+
+    group('the review list', () {
+      testWidgets('a merged proposal\'s faces are flagged for it', (
+        tester,
+      ) async {
+        final client = _MergeClient([_three, _two]);
+        await _open(tester, client);
+
+        await tester.tap(_inCard(0, find.text('Merge')));
+        await tester.pumpAndSettle();
+
+        expect(client.flagged, [
+          ['1', '2', '3', '4'],
+        ]);
+      });
+
+      testWidgets('merging all flags the kept faces of each, in one request', (
+        tester,
+      ) async {
+        final client = _MergeClient([_three, _two]);
+        await _open(tester, client);
+
+        // Group 12 (face 4) left out of the first.
+        await tester.tap(_inCard(0, find.byType(FaceThumbnail)).last);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Merge all (2)'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(FilledButton, 'Merge').last);
+        await tester.pumpAndSettle();
+
+        expect(client.combines, hasLength(2));
+        expect(client.flagged, [
+          ['1', '2', '3', '5', '6'],
+        ]);
+      });
+
+      testWidgets('a server without the flag gets no such request', (
+        tester,
+      ) async {
+        final client = _MergeClient([_two]);
+        await _open(tester, client, flag: false);
+
+        await tester.tap(_inCard(0, find.text('Merge')));
+        await tester.pumpAndSettle();
+
+        expect(client.combines, hasLength(1));
+        expect(client.flagged, isEmpty);
+        expect(find.text('Merged'), findsOneWidget);
+      });
+
+      testWidgets('when only the flagging fails, a retry flags and does not '
+          'merge again', (tester) async {
+        final client = _MergeClient([_two])..failFlag = true;
+        await _open(tester, client);
+
+        await tester.tap(_inCard(0, find.text('Merge')));
+        await tester.pumpAndSettle();
+
+        expect(client.combines, hasLength(1));
+        expect(find.byType(Card), findsNothing, reason: 'it is merged');
+        expect(
+          find.textContaining('Merged, but not added to the review list'),
+          findsOneWidget,
+        );
+
+        await tester.tap(find.text('Retry'));
+        await tester.pumpAndSettle();
+        expect(client.combines, hasLength(1));
+        expect(client.flagged, [
+          ['5', '6'],
+        ]);
+      });
     });
 
     testWidgets('nothing to merge says so', (tester) async {

@@ -334,5 +334,6 @@
   "mergeUnlabeledNotEnough": "Zum Zusammenfassen mindestens zwei Gruppen behalten.",
   "mergeUnlabeledNotStored": "Der abgelehnte Vorschlag konnte auf diesem Gerät nicht gespeichert werden.",
   "mergeUnlabeledFaceIn": "Gesicht im Vorschlag",
-  "mergeUnlabeledFaceOut": "Gesicht herausgenommen"
+  "mergeUnlabeledFaceOut": "Gesicht herausgenommen",
+  "mergeUnlabeledNotFlagged": "Zusammengefasst, aber nicht in die Prüfliste aufgenommen: {error}"
 }

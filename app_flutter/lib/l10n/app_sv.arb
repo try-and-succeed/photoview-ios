@@ -334,5 +334,6 @@
   "mergeUnlabeledNotEnough": "Behåll minst två grupper för att slå ihop.",
   "mergeUnlabeledNotStored": "Det avvisade förslaget kunde inte sparas på den här enheten.",
   "mergeUnlabeledFaceIn": "Ansikte i förslaget",
-  "mergeUnlabeledFaceOut": "Ansikte uteslutet"
+  "mergeUnlabeledFaceOut": "Ansikte uteslutet",
+  "mergeUnlabeledNotFlagged": "Ihopslaget, men inte tillagt i granskningslistan: {error}"
 }

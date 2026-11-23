@@ -334,5 +334,6 @@
   "mergeUnlabeledNotEnough": "Mantenha pelo menos dois grupos para juntar.",
   "mergeUnlabeledNotStored": "Não foi possível guardar a proposta recusada neste dispositivo.",
   "mergeUnlabeledFaceIn": "Rosto na proposta",
-  "mergeUnlabeledFaceOut": "Rosto deixado de fora"
+  "mergeUnlabeledFaceOut": "Rosto deixado de fora",
+  "mergeUnlabeledNotFlagged": "Juntado, mas não adicionado à lista de revisão: {error}"
 }

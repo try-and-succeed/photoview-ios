@@ -334,5 +334,6 @@
   "mergeUnlabeledNotEnough": "Behold mindst to grupper for at samle.",
   "mergeUnlabeledNotStored": "Det afviste forslag kunne ikke gemmes på denne enhed.",
   "mergeUnlabeledFaceIn": "Ansigt i forslaget",
-  "mergeUnlabeledFaceOut": "Ansigt udeladt"
+  "mergeUnlabeledFaceOut": "Ansigt udeladt",
+  "mergeUnlabeledNotFlagged": "Samlet, men ikke føjet til gennemsynslisten: {error}"
 }

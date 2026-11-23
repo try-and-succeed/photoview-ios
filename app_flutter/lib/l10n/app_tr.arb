@@ -334,5 +334,6 @@
   "mergeUnlabeledNotEnough": "Birleştirmek için en az iki grup bırak.",
   "mergeUnlabeledNotStored": "Reddedilen öneri bu cihaza kaydedilemedi.",
   "mergeUnlabeledFaceIn": "Önerideki yüz",
-  "mergeUnlabeledFaceOut": "Dışarıda bırakılan yüz"
+  "mergeUnlabeledFaceOut": "Dışarıda bırakılan yüz",
+  "mergeUnlabeledNotFlagged": "Birleştirildi ama inceleme listesine eklenemedi: {error}"
 }

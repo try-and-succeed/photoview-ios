@@ -334,5 +334,6 @@
   "mergeUnlabeledNotEnough": "Houd minstens twee groepen over om samen te voegen.",
   "mergeUnlabeledNotStored": "Het afgewezen voorstel kon niet op dit apparaat worden bewaard.",
   "mergeUnlabeledFaceIn": "Gezicht in het voorstel",
-  "mergeUnlabeledFaceOut": "Gezicht weggelaten"
+  "mergeUnlabeledFaceOut": "Gezicht weggelaten",
+  "mergeUnlabeledNotFlagged": "Samengevoegd, maar niet aan de controlelijst toegevoegd: {error}"
 }

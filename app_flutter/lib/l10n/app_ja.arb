@@ -334,5 +334,6 @@
   "mergeUnlabeledNotEnough": "まとめるには少なくとも2つのグループを残してください。",
   "mergeUnlabeledNotStored": "却下した提案をこの端末に保存できませんでした。",
   "mergeUnlabeledFaceIn": "提案に含まれる顔",
-  "mergeUnlabeledFaceOut": "除外された顔"
+  "mergeUnlabeledFaceOut": "除外された顔",
+  "mergeUnlabeledNotFlagged": "まとめましたが、確認リストに追加できませんでした: {error}"
 }

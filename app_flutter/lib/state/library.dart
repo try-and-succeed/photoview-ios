@@ -505,6 +505,20 @@ class ShareActions {
 /// never used it, and names could only be given in the web interface.
 final faceActionsProvider = Provider<FaceActions>((ref) => FaceActions(ref));
 
+/// Every merge went through, but flagging their faces for review did not.
+///
+/// Its own type so the screen can say exactly that, and offer to flag
+/// [faceIds] again — not to merge again: the groups are merged already.
+class ReviewNotFlaggedException implements Exception {
+  final List<String> faceIds;
+  final Object cause;
+
+  const ReviewNotFlaggedException(this.faceIds, this.cause);
+
+  @override
+  String toString() => cause.toString();
+}
+
 /// Every action here also drops what the gallery knows about whose faces are
 /// on which photo: each of them changes a name or a face's person.
 class FaceActions {
@@ -537,9 +551,11 @@ class FaceActions {
   /// The unnamed are left unconfirmed on purpose. To the server, a confirmed
   /// face without a name is someone of their own: it is never moved by a run
   /// again, and it pulls similar faces in. Not knowing a face says neither.
-  /// But the server clears the review flag only on confirming, so those
-  /// faces are confirmed and at once taken back — which leaves the flag
-  /// cleared. Two requests; if the second fails, the error says so and a
+  ///
+  /// A server with [Capability.faceNeedsReview] clears their flag on its
+  /// own. Any other clears it only on confirming, so there those faces are
+  /// confirmed and at once taken back — which leaves the flag cleared. Two
+  /// requests either way; if the second fails, the error says so and a
   /// retry sends both again, which changes nothing that is right already.
   Future<void> verifyPhoto({
     required List<String> named,
@@ -547,13 +563,26 @@ class FaceActions {
   }) async {
     if (named.isEmpty && unnamedToReview.isEmpty) return;
     final client = _ref.requireClient;
+    final canClear = await _clearsReviewFlag();
     try {
-      await client.setImageFacesVerified([
-        ...named,
-        ...unnamedToReview,
-      ], verified: true);
-      if (unnamedToReview.isNotEmpty) {
-        await client.setImageFacesVerified(unnamedToReview, verified: false);
+      if (canClear) {
+        if (named.isNotEmpty) {
+          await client.setImageFacesVerified(named, verified: true);
+        }
+        if (unnamedToReview.isNotEmpty) {
+          await client.setImageFacesNeedsReview(
+            unnamedToReview,
+            needsReview: false,
+          );
+        }
+      } else {
+        await client.setImageFacesVerified([
+          ...named,
+          ...unnamedToReview,
+        ], verified: true);
+        if (unnamedToReview.isNotEmpty) {
+          await client.setImageFacesVerified(unnamedToReview, verified: false);
+        }
       }
     } finally {
       // Also after a failure halfway: the first request may have changed
@@ -642,12 +671,22 @@ class FaceActions {
   /// with the rest. The lists are dropped once at the end, not after each —
   /// a hundred merges would otherwise fetch the people a hundred times — and
   /// also when one fails halfway, since those before it went through.
+  ///
+  /// The faces of every merge that went through are then flagged for review,
+  /// in one request, on a server with [Capability.faceNeedsReview]: their
+  /// photos often hold other faces still to sort out, and the review list is
+  /// where they are found again. `combineFaceGroups` flags nothing itself.
+  /// Also after a failure halfway, for the merges before it. A failure of
+  /// the flagging alone, once every merge is through, is thrown as
+  /// [ReviewNotFlaggedException]; a failed merge wins over it.
   Future<void> mergeAll(
-    List<({String destination, List<String> sources})> merges, {
+    List<ProposalMerge> merges, {
     void Function(int done)? onDone,
   }) async {
     final client = _ref.requireClient;
+    final flag = await _clearsReviewFlag();
     var done = 0;
+    ReviewNotFlaggedException? notFlagged;
     try {
       for (final merge in merges) {
         await client.combineFaceGroups(merge.destination, merge.sources);
@@ -655,11 +694,51 @@ class FaceActions {
       }
     } finally {
       if (done > 0) {
+        final faceIds = [
+          for (final merge in merges.take(done)) ...merge.faceIds,
+        ];
+        if (flag && faceIds.isNotEmpty) {
+          try {
+            await client.setImageFacesNeedsReview(faceIds, needsReview: true);
+          } catch (error) {
+            notFlagged = ReviewNotFlaggedException(faceIds, error);
+          }
+        }
         _ref.invalidate(faceGroupsProvider);
         _ref.invalidate(mediaFacesProvider);
         _ref.invalidate(personPhotosProvider);
+        _ref.invalidate(reviewMediaProvider);
       }
     }
+    final failure = notFlagged;
+    if (failure != null) throw failure;
+  }
+
+  /// Whether the server sets and clears the review flag on its own
+  /// ([Capability.faceNeedsReview]).
+  ///
+  /// Waited for rather than read: nothing on screen may have asked about
+  /// this capability yet, and read cold it is "unknown" — which would
+  /// quietly leave merged faces off the review list.
+  Future<bool> _clearsReviewFlag() async {
+    try {
+      final capabilities = await _ref.read(serverCapabilitiesProvider.future);
+      return capabilities.has(Capability.faceNeedsReview);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Flags [faceIds] for review — again, after [mergeAll] merged them but
+  /// could not.
+  Future<void> flagForReview(List<String> faceIds) async {
+    if (faceIds.isEmpty) return;
+    await _ref.requireClient.setImageFacesNeedsReview(
+      faceIds,
+      needsReview: true,
+    );
+    _ref.invalidate(reviewMediaProvider);
+    _ref.invalidate(mediaFacesProvider);
   }
 
   /// Files [imageFaceIds] under [destination] — photos of this person that

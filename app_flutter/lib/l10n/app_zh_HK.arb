@@ -334,5 +334,6 @@
   "mergeUnlabeledNotEnough": "要合併，請至少保留兩個群組。",
   "mergeUnlabeledNotStored": "無法在此裝置上儲存被拒絕的建議。",
   "mergeUnlabeledFaceIn": "建議中的人臉",
-  "mergeUnlabeledFaceOut": "已排除的人臉"
+  "mergeUnlabeledFaceOut": "已排除的人臉",
+  "mergeUnlabeledNotFlagged": "已合併，但未加入待檢查清單：{error}"
 }

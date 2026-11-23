@@ -147,12 +147,20 @@ class _MergeUnlabeledScreenState extends ConsumerState<MergeUnlabeledScreen> {
     setState(() => _merging = proposal.signature);
     try {
       ensureStillSignedIn(ref, _owner);
+      // Through mergeAll, so its faces are flagged for review as well.
       await ref
           .read(faceActionsProvider)
-          .merge(merge.destination, merge.sources);
-      if (!mounted) return;
-      setState(() => _proposals = [..._proposals!]..remove(proposal));
-      _say(l10n.mergeUnlabeledMerged);
+          .mergeAll(
+            [merge],
+            onDone: (_) {
+              if (mounted) {
+                setState(() => _proposals = [..._proposals!]..remove(proposal));
+              }
+            },
+          );
+      if (mounted) _say(l10n.mergeUnlabeledMerged);
+    } on ReviewNotFlaggedException catch (error) {
+      if (mounted) await _reportNotFlagged(error);
     } catch (error) {
       if (mounted) {
         await showActionFailure(
@@ -221,6 +229,8 @@ class _MergeUnlabeledScreenState extends ConsumerState<MergeUnlabeledScreen> {
             },
           );
       if (mounted) _say(l10n.mergeUnlabeledAllMerged(done));
+    } on ReviewNotFlaggedException catch (error) {
+      if (mounted) await _reportNotFlagged(error);
     } catch (error) {
       if (mounted) {
         final rest = pending.skip(done).toList();
@@ -240,6 +250,32 @@ class _MergeUnlabeledScreenState extends ConsumerState<MergeUnlabeledScreen> {
     } finally {
       if (mounted) setState(() => _bulk = null);
     }
+  }
+
+  /// The merges went through, the flagging for review did not: says so, and
+  /// a retry sends only the flagging again.
+  Future<void> _reportNotFlagged(ReviewNotFlaggedException failure) async {
+    final l10n = AppLocalizations.of(context);
+    final owner = _owner;
+    await showActionFailure(
+      context,
+      ref,
+      error: failure.cause,
+      message: l10n.mergeUnlabeledNotFlagged,
+      retry: () async {
+        try {
+          ensureStillSignedIn(ref, owner);
+          await ref.read(faceActionsProvider).flagForReview(failure.faceIds);
+        } catch (error) {
+          if (mounted) {
+            await _reportNotFlagged(
+              ReviewNotFlaggedException(failure.faceIds, error),
+            );
+          }
+        }
+      },
+      retryAnyError: true,
+    );
   }
 
   void _openPhoto(MergeFace face) => showFullscreenGallery(

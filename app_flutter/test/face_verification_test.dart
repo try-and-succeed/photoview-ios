@@ -42,6 +42,16 @@ class _VerifyClient extends PhotoviewClient {
   final photoFetches = <bool>[];
   final faceVerifies = <({List<String> ids, bool verified})>[];
   final mediaVerifies = <({List<String> ids, bool verified})>[];
+  final reviewFlags = <({List<String> ids, bool needsReview})>[];
+
+  @override
+  Future<int> setImageFacesNeedsReview(
+    List<String> imageFaceIds, {
+    required bool needsReview,
+  }) async {
+    reviewFlags.add((ids: imageFaceIds, needsReview: needsReview));
+    return imageFaceIds.length;
+  }
 
   /// `dryRun` of each re-identification, in order.
   final reclassifyRuns = <bool>[];
@@ -118,8 +128,14 @@ PersonPhoto _photo(
   needsReview: needsReview,
 );
 
-Override _capability(bool supported) => serverCapabilitiesProvider.overrideWith(
+Override _capability(
+  bool supported, {
+  bool clearsFlag = false,
+}) => serverCapabilitiesProvider.overrideWith(
   (ref) async => ServerCapabilities({
+    Capability.faceNeedsReview: clearsFlag
+        ? CapabilityState.supported
+        : CapabilityState.unsupported,
     Capability.faceVerification: supported
         ? CapabilityState.supported
         : CapabilityState.unsupported,
@@ -386,13 +402,14 @@ void main() {
       WidgetTester tester,
       _VerifyClient client, {
       bool supported = true,
+      bool clearsFlag = false,
     }) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             authProvider.overrideWith(_FixedAuth.new),
             clientProvider.overrideWithValue(client),
-            _capability(supported),
+            _capability(supported, clearsFlag: clearsFlag),
           ],
           child: localizedApp(
             home: Scaffold(
@@ -448,6 +465,24 @@ void main() {
       expect(
         [for (final v in client.faceVerifies) (v.ids.join(','), v.verified)],
         [('100,102', true), ('102', false)],
+      );
+    });
+
+    testWidgets('on a server that clears the flag by itself, the unnamed are '
+        'never confirmed, not even for a moment', (tester) async {
+      final client = _VerifyClient(faces: [unconfirmed, strangerToReview]);
+      await pumpButton(tester, client, clearsFlag: true);
+
+      await tester.tap(find.byTooltip('Everyone named on this photo is right'));
+      await tester.pumpAndSettle();
+
+      expect(
+        [for (final v in client.faceVerifies) (v.ids.join(','), v.verified)],
+        [('100', true)],
+      );
+      expect(
+        [for (final r in client.reviewFlags) (r.ids.join(','), r.needsReview)],
+        [('102', false)],
       );
     });
 

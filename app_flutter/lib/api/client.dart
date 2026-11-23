@@ -792,6 +792,20 @@ class PhotoviewClient {
     return (data['setImageFacesVerified'] as List<dynamic>?)?.length ?? 0;
   }
 
+  /// Flags [imageFaceIds] for review, or clears the flag, returning how many
+  /// faces the server changed. Only a server with
+  /// [Capability.faceNeedsReview] has it.
+  Future<int> setImageFacesNeedsReview(
+    List<String> imageFaceIds, {
+    required bool needsReview,
+  }) async {
+    final data = await _mutate(setImageFacesNeedsReviewMutation, {
+      'imageFaceIDs': imageFaceIds,
+      'needsReview': needsReview,
+    });
+    return (data['setImageFacesNeedsReview'] as List<dynamic>?)?.length ?? 0;
+  }
+
   /// Files the unconfirmed faces of [faceGroupIds] again against the
   /// confirmed faces of everybody — or, with [dryRun], only says what that
   /// would do.
