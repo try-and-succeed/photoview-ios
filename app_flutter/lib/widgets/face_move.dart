@@ -56,6 +56,10 @@ class FaceMove {
   /// [keptOnItsOwn], when not null, offers to keep the faces as a person of
   /// their own — confirmed without a name — or, when they are already, to
   /// stop that. Only for a face without a name; null offers neither.
+  ///
+  /// [offerUnlabeled] false leaves out taking the faces out without a name —
+  /// for a face that is the only one of an unnamed person, where it would
+  /// only move into another unnamed person of one.
   Future<void> pickAndMove(
     BuildContext context,
     WidgetRef ref, {
@@ -63,6 +67,7 @@ class FaceMove {
     required int count,
     required String title,
     bool? keptOnItsOwn,
+    bool offerUnlabeled = true,
   }) async {
     if (faceIds.isEmpty) return;
 
@@ -72,6 +77,7 @@ class FaceMove {
         exclude: exclude,
         title: title,
         offerNewAndUnlabeled: true,
+        offerUnlabeled: offerUnlabeled,
         keptOnItsOwn: keptOnItsOwn,
       ),
     );
@@ -385,6 +391,10 @@ class PickPersonDialog extends ConsumerStatefulWidget {
   /// Only for moving photos: a whole person cannot be merged into nobody.
   final bool offerNewAndUnlabeled;
 
+  /// Whether, of those two, the unnamed are offered: not for the only face
+  /// of an unnamed person, which there is nothing to take out of.
+  final bool offerUnlabeled;
+
   /// Whether the face is kept as a person of their own already, for the
   /// entry that keeps it so or stops that; null offers no such entry.
   final bool? keptOnItsOwn;
@@ -394,6 +404,7 @@ class PickPersonDialog extends ConsumerStatefulWidget {
     required this.exclude,
     required this.title,
     this.offerNewAndUnlabeled = false,
+    this.offerUnlabeled = true,
     this.keptOnItsOwn,
   });
 
@@ -418,11 +429,18 @@ class _PickPersonDialogState extends ConsumerState<PickPersonDialog> {
         ref.watch(peopleOrderProvider).valueOrNull ?? PeopleOrder.nameAscending;
     final query = _filter.text.trim();
 
+    // As tall as the screen allows: with the entries above the list, a fixed
+    // 380 left room for a single person on a phone. Measured without what the
+    // keyboard covers, so the dialog still fits while a name is typed.
+    final screen = MediaQuery.sizeOf(context);
+    final free = screen.height - MediaQuery.viewInsetsOf(context).bottom;
+    final height = (free * 0.6).clamp(260.0, 600.0);
+
     return AlertDialog(
       title: Text(widget.title),
       content: SizedBox(
         width: 320,
-        height: 380,
+        height: height,
         child: Column(
           children: [
             // Not focused on opening: the keyboard would cover most of the
@@ -481,7 +499,7 @@ class _PickPersonDialogState extends ConsumerState<PickPersonDialog> {
               ),
               // Not while looking for a name: the unnamed have none to find,
               // and the keyboard leaves little room.
-              if (query.isEmpty)
+              if (query.isEmpty && widget.offerUnlabeled)
                 ListTile(
                   leading: const Icon(Icons.person_off_outlined),
                   title: Text(l10n.personUnlabeled),

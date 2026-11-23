@@ -7,7 +7,7 @@ Every change raises `version:` in [`app_flutter/pubspec.yaml`](./app_flutter/pub
 — the name and the build number after the `+` — and gets an entry here. The app
 shows the running version under Settings › Info.
 
-## 1.2.0 (7) — 2026-11-23
+## 1.2.0 (8) — 2026-11-23
 
 Confirming faces and re-identifying people, for a server that knows which
 faces a person has confirmed. Against any other server nothing changes.
@@ -27,7 +27,11 @@ faces a person has confirmed. Against any other server nothing changes.
 - **Keeping an unknown face as a person of their own.** Tapping a face
   without a name offers to confirm it without naming it, so that the next
   matching run gathers similar faces to it and the person can be named later.
-  The same entry takes it back.
+  The same entry takes it back. For the only face of an unnamed person, the
+  dialog no longer offers to take it out without a name, which would only
+  have moved it into another unnamed person of one. The dialog is also as
+  tall as the screen allows, so the people below its entries are not
+  squeezed into a single line.
 - **Filters on a person's page:** all, confirmed, unconfirmed and to review,
   each with its count, and a mark on each tile that is confirmed or waits for
   review. Photos opened from the unconfirmed or review filter show their faces

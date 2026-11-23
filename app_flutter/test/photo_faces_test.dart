@@ -715,6 +715,35 @@ void main() {
     );
   });
 
+  testWidgets('the only face of an unnamed person is not offered to be '
+      'taken out without a name', (tester) async {
+    // It would only move into another unnamed person of one.
+    const alone = PhotoFace(
+      id: '102',
+      rectangle: FaceRectangle(minX: 0.4, maxX: 0.5, minY: 0.6, maxY: 0.8),
+      group: FaceGroup(id: '12', imageFaceCount: 1),
+    );
+    await _pump(tester, _FacesClient([_regina, _stranger, alone]));
+    const takeOut = 'Take out of this person, without a name';
+
+    await tester.tap(find.text('assign 102'));
+    await tester.pumpAndSettle();
+    expect(find.text('Whose face is this?'), findsOneWidget);
+    expect(find.text(takeOut), findsNothing);
+    expect(find.text('New person…'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    // One of three, and a named one: there is something to take it out of.
+    for (final face in ['101', '100']) {
+      await tester.tap(find.text('assign $face'));
+      await tester.pumpAndSettle();
+      expect(find.text(takeOut), findsOneWidget, reason: face);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+    }
+  });
+
   group('keeping a face as a person of their own', () {
     testWidgets('an unnamed face is kept at once, without a question', (
       tester,

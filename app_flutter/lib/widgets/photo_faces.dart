@@ -455,6 +455,13 @@ Future<void> assignPhotoFace(
             ref.read(hasCapabilityProvider(Capability.faceVerification))
         ? face.verified
         : null,
+    // The only one of an unnamed person: taken out, it would only become
+    // the only one of another. The count is of photos, not faces, so two
+    // faces of one stranger on one photo count as one and are not offered
+    // either — rare enough, and moving one to someone else still works.
+    // Zero means the server did not say, and offers it as before.
+    offerUnlabeled:
+        faceGroupIsNamed(face.group) || face.group.imageFaceCount != 1,
   );
 }
 
