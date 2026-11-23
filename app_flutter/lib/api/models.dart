@@ -370,6 +370,121 @@ class FaceReassignment {
   }
 }
 
+/// One face in a proposal to merge unnamed groups.
+class MergeFace {
+  final String id;
+
+  /// The group it is in now.
+  final String groupId;
+
+  final FaceRectangle rectangle;
+  final String mediaId;
+  final Thumbnail? thumbnail;
+
+  const MergeFace({
+    required this.id,
+    required this.groupId,
+    required this.rectangle,
+    required this.mediaId,
+    this.thumbnail,
+  });
+
+  factory MergeFace.fromJson(Map<String, dynamic> json) {
+    final group = json['faceGroup'] as Map<String, dynamic>? ?? const {};
+    final media = json['media'] as Map<String, dynamic>? ?? const {};
+    final thumb = media['thumbnail'] as Map<String, dynamic>?;
+    return MergeFace(
+      id: json['id'].toString(),
+      groupId: group['id']?.toString() ?? '',
+      rectangle: FaceRectangle.fromJson(
+        json['rectangle'] as Map<String, dynamic>? ?? const {},
+      ),
+      mediaId: media['id']?.toString() ?? '',
+      thumbnail: thumb == null ? null : Thumbnail.fromJson(thumb),
+    );
+  }
+
+  /// As a group of one, for [FaceThumbnail] to crop.
+  FaceGroup get asThumbnail =>
+      FaceGroup(id: groupId, rectangle: rectangle, thumbnail: thumbnail);
+}
+
+/// The server's proposal to join unnamed groups whose faces look alike:
+/// [sourceGroupIds] go into [destinationId].
+///
+/// Proposals of one answer never share a group, so taking one leaves the
+/// others as they were.
+class MergeProposal {
+  final String destinationId;
+  final List<String> sourceGroupIds;
+
+  /// Every face of the proposal, from the destination and the sources.
+  final List<MergeFace> faces;
+
+  const MergeProposal({
+    required this.destinationId,
+    required this.sourceGroupIds,
+    required this.faces,
+  });
+
+  factory MergeProposal.fromJson(Map<String, dynamic> json) {
+    final destination =
+        json['destination'] as Map<String, dynamic>? ?? const {};
+    return MergeProposal(
+      destinationId: destination['id']?.toString() ?? '',
+      sourceGroupIds: [
+        for (final id in json['sourceFaceGroupIDs'] as List<dynamic>? ?? [])
+          id.toString(),
+      ],
+      faces: (json['imageFaces'] as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(MergeFace.fromJson)
+          .toList(),
+    );
+  }
+
+  /// Every group the proposal touches, the destination first.
+  List<String> get groupIds => [
+    destinationId,
+    for (final id in sourceGroupIds)
+      if (id != destinationId) id,
+  ];
+
+  /// The proposal's groups as one sorted key, for remembering a rejection:
+  /// the same groups proposed again make the same key, and a proposal that
+  /// has gained or lost a group is a new one.
+  String get signature => ([...groupIds]..sort()).join(',');
+
+  /// How many of the proposal's faces are in [groupId].
+  int facesIn(String groupId) => faces.where((f) => f.groupId == groupId).length;
+
+  /// What to send to merge only [kept] of the proposal's groups: the
+  /// destination if it is kept, else the kept group with the most faces (the
+  /// first of them in the proposal's order on a tie), and the others as
+  /// sources. Null when fewer than two groups are kept — nothing to merge.
+  ({String destination, List<String> sources})? mergeOf(Set<String> kept) {
+    final groups = [
+      for (final id in groupIds)
+        if (kept.contains(id)) id,
+    ];
+    if (groups.length < 2) return null;
+
+    var destination = groups.first;
+    if (destination != destinationId) {
+      for (final id in groups) {
+        if (facesIn(id) > facesIn(destination)) destination = id;
+      }
+    }
+    return (
+      destination: destination,
+      sources: [
+        for (final id in groups)
+          if (id != destination) id,
+      ],
+    );
+  }
+}
+
 /// Where a photo was taken, as the server reports it.
 ///
 /// Its own type rather than two loose numbers: half a position is no

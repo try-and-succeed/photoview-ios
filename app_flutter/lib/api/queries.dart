@@ -284,6 +284,42 @@ mutation reclassifyFaceGroups($faceGroupIDs: [ID!]!, $dryRun: Boolean!) {
 }
 ''';
 
+/// Proposals to join unnamed groups without a confirmed face whose faces look
+/// alike — as a dry run, or merging all of them. Each face comes with its
+/// rectangle and photo, so the proposal can be shown as faces. No
+/// `imageFaceCount`: the server reloads every album to count it (see
+/// [reclassifyFaceGroupsMutation]), and the faces are counted here anyway.
+const mergeSimilarUnlabeledFaceGroupsMutation = r'''
+mutation mergeSimilarUnlabeledFaceGroups($dryRun: Boolean!) {
+  mergeSimilarUnlabeledFaceGroups(dryRun: $dryRun) {
+    destination {
+      id
+    }
+    sourceFaceGroupIDs
+    imageFaces {
+      id
+      rectangle {
+        minX
+        maxX
+        minY
+        maxY
+      }
+      faceGroup {
+        id
+      }
+      media {
+        id
+        thumbnail {
+          url
+          width
+          height
+        }
+      }
+    }
+  }
+}
+''';
+
 /// Photos with a face waiting for review, newest first.
 const mediaNeedingReviewQuery =
     '''

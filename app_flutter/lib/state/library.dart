@@ -628,6 +628,40 @@ class FaceActions {
     return label;
   }
 
+  /// The server's proposals to join unnamed groups that look alike. A dry
+  /// run: nothing changes.
+  Future<List<MergeProposal>> mergeProposals() =>
+      _ref.requireClient.mergeSimilarUnlabeledFaceGroups(dryRun: true);
+
+  /// Carries out [merges] one after another, telling [onDone] after each how
+  /// many are through.
+  ///
+  /// One by one with `combineFaceGroups` rather than the server's real run,
+  /// which merges every proposal it finds: that would take the ones the user
+  /// turned down, and whole groups the user took out of a proposal, along
+  /// with the rest. The lists are dropped once at the end, not after each —
+  /// a hundred merges would otherwise fetch the people a hundred times — and
+  /// also when one fails halfway, since those before it went through.
+  Future<void> mergeAll(
+    List<({String destination, List<String> sources})> merges, {
+    void Function(int done)? onDone,
+  }) async {
+    final client = _ref.requireClient;
+    var done = 0;
+    try {
+      for (final merge in merges) {
+        await client.combineFaceGroups(merge.destination, merge.sources);
+        onDone?.call(++done);
+      }
+    } finally {
+      if (done > 0) {
+        _ref.invalidate(faceGroupsProvider);
+        _ref.invalidate(mediaFacesProvider);
+        _ref.invalidate(personPhotosProvider);
+      }
+    }
+  }
+
   /// Files [imageFaceIds] under [destination] — photos of this person that
   /// are somebody else.
   ///

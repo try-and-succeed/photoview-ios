@@ -7,6 +7,29 @@ Every change raises `version:` in [`app_flutter/pubspec.yaml`](./app_flutter/pub
 — the name and the build number after the `+` — and gets an entry here. The app
 shows the running version under Settings › Info.
 
+## 1.3.0 (10) — 2026-11-23
+
+Merging unnamed people whose faces look alike, for a server that knows
+`mergeSimilarUnlabeledFaceGroups`. Against any other server nothing changes.
+
+### Added
+
+- **Merge similar unnamed** (People tab): the server compares the faces of
+  every unnamed person without a confirmed face and proposes which of them
+  are one person. Each proposal shows as its faces. A tap on a face leaves
+  its group out, a long press shows its photo. Proposals are merged one by
+  one or all at once, exactly as shown — groups left out stay out, and
+  proposals turned down are not merged with the rest. A turned-down proposal
+  is remembered on the device for this account and stays hidden until "Show
+  again". Opening the proposals changes nothing; the button explains this
+  first. Searching again after merging can bring new proposals.
+
+### Changed
+
+- A server feature probed with a mutation now counts as present only when
+  its own mutation was validated. The sentinel refused on one mutation used
+  to count for every feature probed that way.
+
 ## 1.2.0 (9) — 2026-11-23
 
 Confirming faces and re-identifying people, for a server that knows which

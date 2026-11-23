@@ -95,10 +95,62 @@ void main() {
       expect(document, startsWith('mutation'));
       expect(document, contains('$probeSentinel: true'));
       expect(probedByMutation(Capability.scanAlbumNewSubAlbums), isTrue);
+      expect(Capability.values.where(probedByMutation), [
+        Capability.scanAlbumNewSubAlbums,
+        Capability.mergeUnlabeledFaceGroups,
+      ]);
+    });
+  });
+
+  group('merging similar unnamed, probed by a mutation that never runs', () {
+    // As :8081 answered on 2026-11-23: the sentinel refused, nothing else.
+    const sentinelRefused =
+        'Unknown argument "photoviewProbeSentinel" on field '
+        '"Mutation.mergeSimilarUnlabeledFaceGroups".';
+
+    test('the sentinel refused on it means the server has it', () {
+      expect(readProbe(errorMessages: [sentinelRefused]), {
+        Capability.mergeUnlabeledFaceGroups: CapabilityState.supported,
+      });
+    });
+
+    test('a server without it names the field', () {
       expect(
-        Capability.values.where(probedByMutation),
-        [Capability.scanAlbumNewSubAlbums],
+        readProbe(
+          errorMessages: [
+            'Cannot query field "mergeSimilarUnlabeledFaceGroups" on type '
+                '"Mutation".',
+          ],
+        ),
+        {Capability.mergeUnlabeledFaceGroups: CapabilityState.unsupported},
       );
+    });
+
+    test('the sentinel refused on another mutation says nothing about it', () {
+      // Each single probe asks about one capability. Taken as evidence for
+      // every mutation-probed one, the scan probe's answer would report a
+      // server without the merge as having it.
+      const onScan =
+          'Unknown argument "photoviewProbeSentinel" on field '
+          '"Mutation.scanAlbum".';
+      final states = readProbe(errorMessages: [onScan]);
+      expect(states[Capability.scanAlbumNewSubAlbums], CapabilityState.supported);
+      expect(states.containsKey(Capability.mergeUnlabeledFaceGroups), isFalse);
+
+      expect(
+        readProbe(errorMessages: [sentinelRefused])
+            .containsKey(Capability.scanAlbumNewSubAlbums),
+        isFalse,
+      );
+    });
+
+    test('the probe is a dry run that names the sentinel', () {
+      final document = singleCapabilityProbeDocument(
+        Capability.mergeUnlabeledFaceGroups,
+      );
+      expect(document, startsWith('mutation'));
+      expect(document, contains('dryRun: true'));
+      expect(document, contains('$probeSentinel: true'));
     });
   });
 
@@ -447,6 +499,8 @@ void main() {
             Capability.faceGroupCountDirection => 'countDirection',
             Capability.faceVerification => 'verifiedFaceCount',
             Capability.scanAlbumNewSubAlbums => 'onlyNewSubAlbums',
+            Capability.mergeUnlabeledFaceGroups =>
+              'mergeSimilarUnlabeledFaceGroups',
           };
 
           expect(
