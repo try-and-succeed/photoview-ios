@@ -20,9 +20,13 @@ These apply to the Flutter client in `app_flutter/`. The SwiftUI client in
   version in [`app_flutter/pubspec.yaml`](./app_flutter/pubspec.yaml): raise the
   version name (`1.1.0`) and always the build number after the `+` (`+2`). The
   build number becomes Android's `versionCode` and must only ever go up.
-- **One version per pull request**, not per commit: the first commit of a
-  branch raises the version, and each later commit on it adds its line to the
-  same changelog entry.
+- **One version name per pull request**, not per commit: the first commit of
+  a branch raises the version name, and each later commit on it adds its line
+  to the same changelog entry.
+- **One build number per APK**: every commit raises the build number after
+  the `+`, even within a pull request, so no two APKs handed out carry the
+  same number. The changelog heading names the latest build of that version,
+  e.g. `## 1.2.0 (5)`.
 - `test/about_test.dart` fails when the version in `pubspec.yaml` has no
   heading in `CHANGELOG.md`.
 

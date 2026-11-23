@@ -7,7 +7,7 @@ Every change raises `version:` in [`app_flutter/pubspec.yaml`](./app_flutter/pub
 — the name and the build number after the `+` — and gets an entry here. The app
 shows the running version under Settings › Info.
 
-## 1.2.0 (4) — 2026-11-21
+## 1.2.0 (5) — 2026-11-23
 
 Confirming faces and re-identifying people, for a server that knows which
 faces a person has confirmed. Against any other server nothing changes.
