@@ -2,13 +2,18 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:photoview/api/capabilities.dart';
+import 'package:photoview/api/capability_store.dart';
 import 'package:photoview/api/client.dart';
 import 'package:photoview/api/models.dart';
 import 'package:photoview/api/session.dart';
 import 'package:photoview/api/trusted_certificates.dart';
 import 'package:photoview/state/auth.dart';
+import 'package:photoview/state/capabilities.dart';
 import 'package:photoview/state/library.dart';
+import 'package:photoview/state/search_limit.dart';
 import 'package:photoview/widgets/certificate_error.dart';
 
 import 'support/localized_app.dart';
@@ -48,6 +53,32 @@ class _UntrustedUntilAccepted extends PhotoviewClient {
       throw CertificateNotTrustedException(_testSession.endpoint);
     }
     return const [AlbumItem(id: '2', title: 'Landscapes')];
+  }
+}
+
+/// Keeps the search limit on the server, behind the same reissued certificate.
+class _PreferencesUntilAccepted extends PhotoviewClient {
+  _PreferencesUntilAccepted() : super(_testSession);
+
+  bool trusted = false;
+  int calls = 0;
+
+  @override
+  Future<UserPreferences> userPreferences({bool withAlbumTree = false}) async {
+    calls++;
+    if (!trusted) {
+      throw CertificateNotTrustedException(_testSession.endpoint);
+    }
+    return const UserPreferences(searchResultLimit: 25);
+  }
+
+  @override
+  Future<Map<Capability, CapabilityState>> probeCapabilities() async {
+    calls++;
+    if (!trusted) {
+      throw CertificateNotTrustedException(_testSession.endpoint);
+    }
+    return const {Capability.scanner: CapabilityState.supported};
   }
 }
 
@@ -97,6 +128,72 @@ void main() {
       [isA<AlbumItem>().having((a) => a.title, 'title', 'Landscapes')],
     );
     expect(client.calls, 2, reason: 'the failed request was made again');
+  });
+
+  group('after a certificate is accepted', () {
+    setUp(() => FlutterSecureStorage.setMockInitialValues({}));
+
+    test('the search limit is read again', () async {
+      // The bug this covers: the search awaits the limit, and the limit kept
+      // the certificate failure it had met. Accepting the certificate re-ran
+      // the search, which met that stored failure and asked about the
+      // certificate again — over and over, until the user signed out and in.
+      // Every capability already known, so no probe runs: the limit has to
+      // recover on its own, not as a side effect of the capabilities reloading.
+      await CapabilityStore().write(
+        _testSession.serverId,
+        ServerCapabilities({
+          for (final capability in Capability.values)
+            capability: CapabilityState.supported,
+        }),
+      );
+
+      final client = _PreferencesUntilAccepted();
+      final container = ProviderContainer(
+        overrides: [
+          authProvider.overrideWith(_FixedAuth.new),
+          clientProvider.overrideWithValue(client),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(authProvider.future);
+      await container.read(serverCapabilitiesProvider.future);
+      await expectLater(
+        container.read(searchLimitProvider.future),
+        throwsA(isA<CertificateNotTrustedException>()),
+      );
+
+      client.trusted = true;
+      container.read(tlsTrustGenerationProvider.notifier).state++;
+
+      final limit = await container.read(searchLimitProvider.future);
+      expect(limit.value, 25);
+      expect(limit.source, SearchLimitSource.server);
+    });
+
+    test('an unfinished capability probe asks again', () async {
+      // A probe that met the certificate leaves its questions open. Without
+      // asking again, the features stayed hidden until the next sign-in.
+      final client = _PreferencesUntilAccepted();
+      final container = ProviderContainer(
+        overrides: [
+          authProvider.overrideWith(_FixedAuth.new),
+          clientProvider.overrideWithValue(client),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(authProvider.future);
+      final before = await container.read(serverCapabilitiesProvider.future);
+      expect(before[Capability.scanner], CapabilityState.unknown);
+
+      client.trusted = true;
+      container.read(tlsTrustGenerationProvider.notifier).state++;
+
+      final after = await container.read(serverCapabilitiesProvider.future);
+      expect(after[Capability.scanner], CapabilityState.supported);
+    });
   });
 
   testWidgets('accepting a certificate tells the rest of the app', (

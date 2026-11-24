@@ -7,7 +7,17 @@ Every change raises `version:` in [`app_flutter/pubspec.yaml`](./app_flutter/pub
 — the name and the build number after the `+` — and gets an entry here. The app
 shows the running version under Settings › Info.
 
-## 1.4.0 (14) — 2026-11-23
+## 1.4.0 (15) — 2026-11-24
+
+### Fixed
+
+- **Search no longer asks about the certificate over and over.** When the
+  server's short-lived certificate had been renewed, accepting the new one
+  did not unblock the search: it kept failing on an old error from loading
+  the search limit and showed the certificate dialog again, until signing out
+  and back in. The search limit is now loaded again once a certificate is
+  accepted, and so are server features whose check failed on it. Retrying a
+  failed search also reloads a search limit that failed to load.
 
 ### Added
 

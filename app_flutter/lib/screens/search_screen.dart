@@ -143,7 +143,15 @@ class _Results extends ConsumerWidget {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, _) => ErrorMessage.forError(
         error,
-        onRetry: () => ref.invalidate(searchProvider(request)),
+        onRetry: () {
+          // The search awaits the limit, and a limit that failed to load —
+          // a dropped connection, say — keeps its failure: retrying only the
+          // search would meet it again however often the user taps.
+          if (ref.read(searchLimitProvider).hasError) {
+            ref.invalidate(searchLimitProvider);
+          }
+          ref.invalidate(searchProvider(request));
+        },
       ),
       data: (data) {
         if (data.albums.isEmpty && data.media.isEmpty) {

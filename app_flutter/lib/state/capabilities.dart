@@ -29,6 +29,19 @@ final serverCapabilitiesProvider = FutureProvider<ServerCapabilities>((
   final client = ref.watch(clientProvider);
   final serverId = session.serverId;
 
+  // A probe that met an untrusted certificate leaves its questions open, and
+  // nothing else would ask them again before the next sign-in: the features it
+  // was asking about would stay hidden although the certificate has since been
+  // accepted. Listened to rather than watched, and only acted on after a
+  // failed probe: a rebuild reports every feature as unknown while it runs,
+  // which would hide them all for a moment — and briefly hand the search the
+  // device's limit instead of the server's — each time a certificate is
+  // accepted, for answers that were already complete.
+  var probeFailed = false;
+  ref.listen(tlsTrustGenerationProvider, (_, _) {
+    if (probeFailed) ref.invalidateSelf();
+  });
+
   final remembered = await store.read(serverId);
   if (remembered.unresolved.isEmpty) return remembered;
   if (client == null) return remembered;
@@ -57,6 +70,7 @@ final serverCapabilitiesProvider = FutureProvider<ServerCapabilities>((
     // Deliberately swallowed. A probe is the app asking after optional
     // features; failing to get an answer must not break the screen the user
     // is actually on.
+    probeFailed = true;
     return remembered;
   }
 });
