@@ -126,6 +126,8 @@
   "mediaLayoutList": "Mostra come elenco",
   "mediaLayoutGrid": "Mostra come griglia",
   "galleryInfo": "Info",
+  "galleryShowInAlbum": "Mostra nell'album",
+  "albumMediaNotFound": "La foto non è stata trovata nell'album",
   "galleryFacesShow": "Mostra volti",
   "galleryFacesHide": "Nascondi volti",
   "galleryFacesNone": "Nessun volto trovato in questa foto",

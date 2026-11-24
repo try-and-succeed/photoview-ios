@@ -126,6 +126,8 @@
   "mediaLayoutList": "Afficher en liste",
   "mediaLayoutGrid": "Afficher en mosaïque",
   "galleryInfo": "Infos",
+  "galleryShowInAlbum": "Afficher dans l'album",
+  "albumMediaNotFound": "La photo est introuvable dans l'album",
   "galleryFacesShow": "Afficher les visages",
   "galleryFacesHide": "Masquer les visages",
   "galleryFacesNone": "Aucun visage n’a été trouvé sur cette photo",

@@ -126,6 +126,8 @@
   "mediaLayoutList": "Visa som lista",
   "mediaLayoutGrid": "Visa som rutnät",
   "galleryInfo": "Info",
+  "galleryShowInAlbum": "Visa i album",
+  "albumMediaNotFound": "Bilden hittades inte i albumet",
   "galleryFacesShow": "Visa ansikten",
   "galleryFacesHide": "Dölj ansikten",
   "galleryFacesNone": "Inga ansikten hittades på den här bilden",

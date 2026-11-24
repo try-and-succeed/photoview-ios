@@ -126,6 +126,8 @@
   "mediaLayoutList": "Pokaż jako listę",
   "mediaLayoutGrid": "Pokaż jako kafelki",
   "galleryInfo": "Informacje",
+  "galleryShowInAlbum": "Pokaż w albumie",
+  "albumMediaNotFound": "Nie znaleziono zdjęcia w albumie",
   "galleryFacesShow": "Pokaż twarze",
   "galleryFacesHide": "Ukryj twarze",
   "galleryFacesNone": "Na tym zdjęciu nie znaleziono twarzy",

@@ -58,12 +58,18 @@ class MediaSliverGrid extends ConsumerWidget {
   /// Whether the gallery opened from a tile frames the faces from the start.
   final bool showFacesInGallery;
 
+  /// Whether the gallery opened from a tile offers to open the photo in its
+  /// album — for screens that gather photos from many albums. Left off in
+  /// the album itself, where it would lead back to where the user is.
+  final bool albumLinkInGallery;
+
   const MediaSliverGrid({
     super.key,
     required this.media,
     this.selection,
     this.badgeFor,
     this.showFacesInGallery = false,
+    this.albumLinkInGallery = false,
   });
 
   @override
@@ -81,6 +87,7 @@ class MediaSliverGrid extends ConsumerWidget {
           selection: selection,
           badge: badgeFor?.call(media[index]),
           showFacesInGallery: showFacesInGallery,
+          albumLinkInGallery: albumLinkInGallery,
         ),
       );
     }
@@ -95,6 +102,7 @@ class MediaSliverGrid extends ConsumerWidget {
           selection: selection,
           badge: badgeFor?.call(media[index]),
           showFacesInGallery: showFacesInGallery,
+          albumLinkInGallery: albumLinkInGallery,
         );
       },
     );
@@ -127,6 +135,7 @@ class MediaThumbnail extends StatelessWidget {
   final MediaSelection? selection;
   final MediaTileBadge? badge;
   final bool showFacesInGallery;
+  final bool albumLinkInGallery;
 
   const MediaThumbnail({
     super.key,
@@ -135,6 +144,7 @@ class MediaThumbnail extends StatelessWidget {
     this.selection,
     this.badge,
     this.showFacesInGallery = false,
+    this.albumLinkInGallery = false,
   });
 
   @override
@@ -157,6 +167,7 @@ class MediaThumbnail extends StatelessWidget {
               media: media,
               initialIndex: index,
               showFaces: showFacesInGallery,
+              showAlbumLink: albumLinkInGallery,
             ),
       onLongPress: selection == null ? null : () => selection.onToggle(item),
       child: Stack(
@@ -242,6 +253,7 @@ class MediaListRow extends StatelessWidget {
   final MediaSelection? selection;
   final MediaTileBadge? badge;
   final bool showFacesInGallery;
+  final bool albumLinkInGallery;
 
   const MediaListRow({
     super.key,
@@ -250,6 +262,7 @@ class MediaListRow extends StatelessWidget {
     this.selection,
     this.badge,
     this.showFacesInGallery = false,
+    this.albumLinkInGallery = false,
   });
 
   @override
@@ -273,6 +286,7 @@ class MediaListRow extends StatelessWidget {
                 media: media,
                 initialIndex: index,
                 showFaces: showFacesInGallery,
+                showAlbumLink: albumLinkInGallery,
               ),
         onLongPress: selection == null ? null : () => selection.onToggle(item),
         child: Padding(

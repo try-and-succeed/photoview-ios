@@ -126,6 +126,8 @@
   "mediaLayoutList": "Erakutsi zerrenda gisa",
   "mediaLayoutGrid": "Erakutsi lauza gisa",
   "galleryInfo": "Informazioa",
+  "galleryShowInAlbum": "Erakutsi albumean",
+  "albumMediaNotFound": "Ez da argazkia aurkitu albumean",
   "galleryFacesShow": "Erakutsi aurpegiak",
   "galleryFacesHide": "Ezkutatu aurpegiak",
   "galleryFacesNone": "Ez da aurpegirik aurkitu argazki honetan",

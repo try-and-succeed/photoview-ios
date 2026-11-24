@@ -126,6 +126,8 @@
   "mediaLayoutList": "Vis som liste",
   "mediaLayoutGrid": "Vis som fliser",
   "galleryInfo": "Info",
+  "galleryShowInAlbum": "Vis i album",
+  "albumMediaNotFound": "Billedet blev ikke fundet i albummet",
   "galleryFacesShow": "Vis ansigter",
   "galleryFacesHide": "Skjul ansigter",
   "galleryFacesNone": "Der blev ikke fundet ansigter på dette billede",

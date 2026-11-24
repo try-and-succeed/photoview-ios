@@ -126,6 +126,8 @@
   "mediaLayoutList": "Als lijst tonen",
   "mediaLayoutGrid": "Als tegels tonen",
   "galleryInfo": "Info",
+  "galleryShowInAlbum": "Tonen in album",
+  "albumMediaNotFound": "De foto is niet gevonden in het album",
   "galleryFacesShow": "Gezichten tonen",
   "galleryFacesHide": "Gezichten verbergen",
   "galleryFacesNone": "Er zijn geen gezichten gevonden op deze foto",

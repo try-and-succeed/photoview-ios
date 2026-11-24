@@ -126,6 +126,8 @@
   "mediaLayoutList": "Показати списком",
   "mediaLayoutGrid": "Показати плиткою",
   "galleryInfo": "Відомості",
+  "galleryShowInAlbum": "Показати в альбомі",
+  "albumMediaNotFound": "Фотографію не знайдено в альбомі",
   "galleryFacesShow": "Показати обличчя",
   "galleryFacesHide": "Сховати обличчя",
   "galleryFacesNone": "На цьому знімку облич не знайдено",

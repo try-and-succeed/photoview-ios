@@ -126,6 +126,8 @@
   "mediaLayoutList": "リストで表示",
   "mediaLayoutGrid": "タイルで表示",
   "galleryInfo": "情報",
+  "galleryShowInAlbum": "アルバムで表示",
+  "albumMediaNotFound": "この写真はアルバム内に見つかりませんでした",
   "galleryFacesShow": "顔を表示",
   "galleryFacesHide": "顔を非表示",
   "galleryFacesNone": "この写真では顔が見つかりませんでした",

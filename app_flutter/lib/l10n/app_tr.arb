@@ -126,6 +126,8 @@
   "mediaLayoutList": "Liste olarak göster",
   "mediaLayoutGrid": "Döşeme olarak göster",
   "galleryInfo": "Bilgi",
+  "galleryShowInAlbum": "Albümde göster",
+  "albumMediaNotFound": "Fotoğraf albümde bulunamadı",
   "galleryFacesShow": "Yüzleri göster",
   "galleryFacesHide": "Yüzleri gizle",
   "galleryFacesNone": "Bu fotoğrafta yüz bulunamadı",

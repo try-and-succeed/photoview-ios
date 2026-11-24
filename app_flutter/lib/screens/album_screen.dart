@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -12,6 +14,7 @@ import '../widgets/scrollable_view.dart';
 import '../widgets/album_download.dart';
 import '../widgets/album_grid.dart';
 import '../widgets/async_states.dart';
+import '../widgets/fullscreen_gallery.dart';
 import '../widgets/load_more.dart';
 import '../widgets/media_grid.dart';
 import '../widgets/share_selection.dart';
@@ -21,13 +24,99 @@ class AlbumScreen extends ConsumerStatefulWidget {
   final String albumId;
   final String title;
 
-  const AlbumScreen({super.key, required this.albumId, required this.title});
+  /// A photo to open in the gallery once the album is there — for arriving
+  /// from a photo seen elsewhere, such as on a person's page.
+  final String? openMediaId;
+
+  /// Whether that gallery frames the faces, as the one left behind did.
+  final bool showFaces;
+
+  const AlbumScreen({
+    super.key,
+    required this.albumId,
+    required this.title,
+    this.openMediaId,
+    this.showFaces = false,
+  });
 
   @override
   ConsumerState<AlbumScreen> createState() => _AlbumScreenState();
 }
 
 class _AlbumScreenState extends ConsumerState<AlbumScreen> {
+  @override
+  void initState() {
+    super.initState();
+    if (widget.openMediaId case final id?) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _open(id));
+    }
+  }
+
+  /// Opens the photo [mediaId] in the gallery, over this album's photos.
+  ///
+  /// The album arrives in pages; a photo far down a large one is only in a
+  /// later page, so pages are loaded until it turns up or the album ends.
+  Future<void> _open(String mediaId) async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+
+    AlbumData? data;
+    try {
+      data = await ref.read(albumProvider(albumId).future);
+    } catch (_) {
+      // The screen shows the failure and a retry already.
+      return;
+    }
+
+    while (true) {
+      if (!mounted) return;
+      final index = data!.media.indexWhere((m) => m.id == mediaId);
+      if (index >= 0) {
+        showFullscreenGallery(
+          context,
+          media: data.media,
+          initialIndex: index,
+          showFaces: widget.showFaces,
+        );
+        return;
+      }
+      if (!data.hasMore) break;
+
+      final before = data.media.length;
+      await ref.read(albumProvider(albumId).notifier).loadMore();
+      data = await _settled();
+      // A failed page, or one that brought nothing: give up rather than
+      // loop. The screen says what went wrong, if anything did.
+      if (data == null || data.media.length <= before) return;
+    }
+
+    messenger
+      ..removeCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(l10n.albumMediaNotFound)));
+  }
+
+  /// The album once no page is loading any more, or null when it failed.
+  ///
+  /// A page may already have been on its way — started by scrolling — when
+  /// [_open] asked for one; that call then returns at once, and the page
+  /// that matters is the one still coming.
+  Future<AlbumData?> _settled() {
+    final done = Completer<AlbumData?>();
+    final subscription = ref.listenManual<AsyncValue<AlbumData>>(
+      albumProvider(albumId),
+      (_, next) {
+        if (done.isCompleted) return;
+        if (next.hasError) {
+          done.complete(null);
+        } else if (next.valueOrNull case final data? when !data.loadingMore) {
+          done.complete(data);
+        }
+      },
+      fireImmediately: true,
+    );
+    return done.future.whenComplete(subscription.close);
+  }
+
   /// Ids the user has ticked. Empty means the picking mode is not running —
   /// there is no separate flag, because an empty selection and no selection
   /// are the same thing to everything that reads this.

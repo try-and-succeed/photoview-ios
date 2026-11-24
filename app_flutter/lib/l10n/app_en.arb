@@ -685,6 +685,14 @@
   "@galleryInfo": {
     "description": "Tooltip of the gallery button that shows a photo's camera data."
   },
+  "galleryShowInAlbum": "Show in album",
+  "@galleryShowInAlbum": {
+    "description": "Tooltip of the gallery button that opens the album the photo is in, with the photo open there."
+  },
+  "albumMediaNotFound": "This photo was not found in the album",
+  "@albumMediaNotFound": {
+    "description": "Message when an album was opened to show a photo it turned out not to contain, e.g. one moved meanwhile."
+  },
   "galleryFacesShow": "Show faces",
   "@galleryFacesShow": {
     "description": "Gallery button that draws a frame around every face found on the photo, with the name of the person it is filed under."
