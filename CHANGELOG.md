@@ -7,6 +7,74 @@ Every change raises `version:` in [`app_flutter/pubspec.yaml`](./app_flutter/pub
 — the name and the build number after the `+` — and gets an entry here. The app
 shows the running version under Settings › Info.
 
+## 1.4.0 (17) — 2026-11-25
+
+### Fixed
+
+- **Search no longer asks about the certificate over and over.** When the
+  server's short-lived certificate had been renewed, accepting the new one
+  did not unblock the search: it kept failing on an old error from loading
+  the search limit and showed the certificate dialog again, until signing out
+  and back in. The search limit is now loaded again once a certificate is
+  accepted, and so are server features whose check failed on it. Retrying a
+  failed search also reloads a search limit that failed to load.
+
+### Added
+
+- **Photos as a list with their file names.** A button in the timeline, in
+  every album, on a person's page, on the review list and on a place's photos
+  switches between tiles and a list: one row per photo, with a
+  small thumbnail and the whole file name beside it, wrapped onto as many
+  lines as it needs instead of being cut off. Long names break after `_`, `-`
+  and `.` rather than mid-number. The choice applies to every list of photos —
+  albums, timeline, a person's page, the review list, places and search — and
+  is kept on the device. Rows open and are picked like tiles; videos,
+  favourites and the confirmed or to-review marks show as well.
+- **From a photo to its album.** A photo opened on a person's page, on the
+  review list, in the search results or on a place's photos has an album
+  button at the top: it opens the album the photo is in, with
+  the same photo open there, so the photos taken around it are a swipe away.
+  Framed faces stay framed. In a large album the pages are loaded until the
+  photo turns up; if the album no longer holds it, a message says so. Back
+  from the album leads to the page the photo was opened from.
+
+## 1.3.0 (12) — 2026-11-23
+
+Merging unnamed people whose faces look alike, for a server that knows
+`mergeSimilarUnlabeledFaceGroups`. Against any other server nothing changes.
+
+### Added
+
+- **Merge similar unnamed** (People tab): the server compares the faces of
+  every unnamed person without a confirmed face and proposes which of them
+  are one person. Each proposal shows as its faces. A tap on a face leaves
+  its group out, a long press shows its photo. Proposals are merged one by
+  one or all at once, exactly as shown — groups left out stay out, and
+  proposals turned down are not merged with the rest. A turned-down proposal
+  is remembered on the device for this account and stays hidden until "Show
+  again". Opening the proposals changes nothing; the button explains this
+  first. Searching again after merging can bring new proposals.
+- **Naming a proposal while merging it.** "Name…" on a proposal opens the
+  person picker: a new person is named on the spot and the proposal merged
+  under that name; a person there is takes the proposal's faces straight in.
+  Before, a merged proposal was one more unnamed person, to be searched for
+  among thousands to give it a name. If only the naming fails, a retry
+  names it without merging again.
+- **Merged photos on the review list.** On a server with
+  `setImageFacesNeedsReview`, the faces of every merged proposal are flagged
+  for review, so their photos — which often hold other faces still to sort
+  out — turn up on the review list. If only the flagging fails, the message
+  says so and a retry flags them without merging again.
+
+### Changed
+
+- The photo's tick clears the review flag of unnamed faces with
+  `setImageFacesNeedsReview` where the server has it, instead of confirming
+  them and taking it back at once.
+- A server feature probed with a mutation now counts as present only when
+  its own mutation was validated. The sentinel refused on one mutation used
+  to count for every feature probed that way.
+
 ## 1.2.0 (9) — 2026-11-23
 
 Confirming faces and re-identifying people, for a server that knows which

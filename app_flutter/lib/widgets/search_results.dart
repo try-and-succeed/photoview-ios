@@ -136,8 +136,14 @@ class MediaResultList extends StatelessWidget {
           trailing: item.type == MediaType.video
               ? const Icon(Icons.play_circle_outline, size: 20)
               : null,
-          onTap: () =>
-              showFullscreenGallery(context, media: media, initialIndex: index),
+          // Search results come from any album, so the gallery offers the
+          // way into the one a photo is in.
+          onTap: () => showFullscreenGallery(
+            context,
+            media: media,
+            initialIndex: index,
+            showAlbumLink: true,
+          ),
         );
       },
     );

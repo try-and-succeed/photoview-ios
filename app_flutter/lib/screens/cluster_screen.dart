@@ -64,6 +64,7 @@ class _ClusterScreenState extends ConsumerState<ClusterScreen> {
         title: Text(
           _locationName ?? AppLocalizations.of(context).clusterTitleFallback,
         ),
+        actions: const [MediaLayoutButton()],
       ),
       body: media.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -77,7 +78,11 @@ class _ClusterScreenState extends ConsumerState<ClusterScreen> {
                 slivers: [
                   SliverPadding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),
-                    sliver: MediaSliverGrid(media: data),
+                    // A place gathers photos from any album.
+                    sliver: MediaSliverGrid(
+                      media: data,
+                      albumLinkInGallery: true,
+                    ),
                   ),
                   const SliverToBoxAdapter(child: SizedBox(height: 24)),
                 ],

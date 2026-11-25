@@ -13,6 +13,7 @@ import '../api/models.dart';
 import '../api/session.dart';
 import '../l10n/app_localizations.dart';
 import '../l10n/error_messages.dart';
+import '../screens/album_screen.dart';
 import '../state/auth.dart';
 import '../state/library.dart';
 import '../state/slideshow.dart';
@@ -26,6 +27,7 @@ void showFullscreenGallery(
   required int initialIndex,
   void Function(int index)? onIndexChanged,
   bool showFaces = false,
+  bool showAlbumLink = false,
 }) {
   Navigator.of(context).push(
     MaterialPageRoute<void>(
@@ -35,6 +37,7 @@ void showFullscreenGallery(
         initialIndex: initialIndex,
         onIndexChanged: onIndexChanged,
         showFaces: showFaces,
+        showAlbumLink: showAlbumLink,
       ),
     ),
   );
@@ -49,12 +52,17 @@ class FullscreenGallery extends ConsumerStatefulWidget {
   /// checked, where the frames are the point.
   final bool showFaces;
 
+  /// Whether there is a button that opens the photo on screen in its album.
+  /// Only where the photos come from many albums, such as a person's page.
+  final bool showAlbumLink;
+
   const FullscreenGallery({
     super.key,
     required this.media,
     required this.initialIndex,
     this.onIndexChanged,
     this.showFaces = false,
+    this.showAlbumLink = false,
   });
 
   @override
@@ -244,6 +252,38 @@ class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
     );
   }
 
+  /// The button that leaves for the album of the photo on screen. Waits for
+  /// the photo's details, which name the album; the page asks for them
+  /// anyway, for the full image, so they are usually there already.
+  Widget _albumButton(BuildContext context) {
+    final item = widget.media[_index];
+    final album = ref
+        .watch(mediaDetailsProvider(item.id))
+        .valueOrNull
+        ?.album;
+
+    return IconButton(
+      icon: const Icon(Icons.photo_album_outlined),
+      disabledColor: Colors.white38,
+      tooltip: AppLocalizations.of(context).galleryShowInAlbum,
+      onPressed: album == null
+          ? null
+          : () => Navigator.of(context).pushReplacement(
+              // In place of the gallery, so Back from the album returns to
+              // the page the gallery was opened from rather than to a photo
+              // that is open again in the album already.
+              MaterialPageRoute<void>(
+                builder: (_) => AlbumScreen(
+                  albumId: album.id,
+                  title: album.title,
+                  openMediaId: item.id,
+                  showFaces: _showFaces,
+                ),
+              ),
+            ),
+    );
+  }
+
   KeyEventResult _onKey(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
       return KeyEventResult.ignored;
@@ -343,6 +383,7 @@ class _FullscreenGalleryState extends ConsumerState<FullscreenGallery> {
                   ),
                 if (_showFaces && widget.media[_index].type != MediaType.video)
                   VerifyPhotoFacesButton(mediaId: widget.media[_index].id),
+                if (widget.showAlbumLink) _albumButton(context),
                 IconButton(
                   icon: const Icon(Icons.info_outline),
                   tooltip: AppLocalizations.of(context).galleryInfo,

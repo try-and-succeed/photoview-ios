@@ -510,6 +510,7 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
                   if (_busy)
                     const _BusyIndicator()
                   else ...[
+                    const MediaLayoutButton(),
                     IconButton(
                       icon: const Icon(Icons.edit_outlined),
                       tooltip: l10n.personName,
@@ -588,6 +589,9 @@ extension on _PersonScreenState {
           filter == PersonPhotoFilter.unverified ||
           filter == PersonPhotoFilter.review ||
           filter == PersonPhotoFilter.twice,
+      // A person's photos come from everywhere; the album says when and
+      // where a photo belongs, and holds the photos around it.
+      albumLinkInGallery: true,
       badgeFor: withStatus
           ? (item) {
               final photo = byId[item.id];

@@ -70,6 +70,15 @@ final searchLimitProvider = FutureProvider<SearchLimit>((ref) async {
   final client = ref.watch(clientProvider);
   final store = ref.watch(settingsStoreProvider);
 
+  // The server path calls the client directly rather than through
+  // `ref.guarded`, so it has to watch for an accepted certificate itself.
+  // Without this, a read that failed on a reissued certificate stayed failed
+  // for the rest of the session — and since the search awaits this provider,
+  // every search failed with it: the user accepted the certificate, the search
+  // ran again, met the stored failure, and asked about the certificate again,
+  // until signing out and in rebuilt the session.
+  ref.watch(tlsTrustGenerationProvider);
+
   if (onServer && client != null) {
     try {
       final preferences = await client.userPreferences();

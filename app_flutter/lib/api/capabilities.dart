@@ -35,6 +35,15 @@ enum Capability {
   /// plus those of its direct sub-directories that are not albums yet, each
   /// with everything below it. Existing sub-albums are left alone.
   scanAlbumNewSubAlbums,
+
+  /// `mergeSimilarUnlabeledFaceGroups`: proposals to join unnamed groups
+  /// without a confirmed face whose faces look alike, as a dry run or for
+  /// real.
+  mergeUnlabeledFaceGroups,
+
+  /// `setImageFacesNeedsReview`: sets or clears a face's review flag and
+  /// nothing else — not its confirmation, not its group.
+  faceNeedsReview,
 }
 
 /// What is known about one capability.
@@ -107,6 +116,15 @@ const _identifyingFields = <Capability, Set<String>>{
     'scanAlbum',
     'onlyNewSubAlbums',
   },
+  // With the confirming's field: the merge leaves out every group with a
+  // confirmed face, so it came after confirming, and a server without that
+  // is settled by the batched probe — a query — in its one round trip.
+  Capability.mergeUnlabeledFaceGroups: {
+    'verifiedFaceCount',
+    'mergeSimilarUnlabeledFaceGroups',
+  },
+  // Likewise: the flag it sets came with confirming.
+  Capability.faceNeedsReview: {'verifiedFaceCount', 'setImageFacesNeedsReview'},
 };
 
 /// An argument no server has, named in a probe that must never run.
@@ -119,14 +137,24 @@ const _identifyingFields = <Capability, Set<String>>{
 /// server did validate the field it sits on.
 const probeSentinel = 'photoviewProbeSentinel';
 
-/// Capabilities probed with a mutation, made safe by [probeSentinel]: their
-/// evidence is a refusal that names the sentinel and nothing of theirs, since
-/// such a probe never returns data.
-const _probedByMutation = {Capability.scanAlbumNewSubAlbums};
+/// Capabilities probed with a mutation, made safe by [probeSentinel], and the
+/// mutation each is probed on. Their evidence is a refusal of the sentinel on
+/// that mutation that names nothing of theirs, since such a probe never
+/// returns data.
+///
+/// The mutation counts: the refusal names the field it was refused on
+/// (`… on field "Mutation.scanAlbum"`), and only that capability's probe was
+/// validated by it. Taken as evidence for every capability of this kind, the
+/// probe of one would have reported the others as present.
+const _probedByMutation = {
+  Capability.scanAlbumNewSubAlbums: 'scanAlbum',
+  Capability.mergeUnlabeledFaceGroups: 'mergeSimilarUnlabeledFaceGroups',
+  Capability.faceNeedsReview: 'setImageFacesNeedsReview',
+};
 
 /// Whether [capability] is probed with a mutation rather than a query.
 bool probedByMutation(Capability capability) =>
-    _probedByMutation.contains(capability);
+    _probedByMutation.containsKey(capability);
 
 /// Capabilities that a rejection of [field] rules out.
 Set<Capability> capabilitiesNamedBy(String field) => {
@@ -219,6 +247,15 @@ String singleCapabilityProbeDocument(
   Capability.scanAlbumNewSubAlbums =>
     'mutation photoviewCapability { scanAlbum(albumId: "0", '
         'onlyNewSubAlbums: true, $probeSentinel: true) { success } }',
+  // Never runs either, and a dry run besides: even a server that skipped
+  // validation would only propose, not merge.
+  Capability.mergeUnlabeledFaceGroups =>
+    'mutation photoviewCapability { mergeSimilarUnlabeledFaceGroups('
+        'dryRun: true, $probeSentinel: true) { sourceFaceGroupIDs } }',
+  // Never runs either, and with no faces besides.
+  Capability.faceNeedsReview =>
+    'mutation photoviewCapability { setImageFacesNeedsReview('
+        'imageFaceIDs: [], needsReview: false, $probeSentinel: true) { id } }',
 };
 
 /// What the server said about every capability.
@@ -264,13 +301,16 @@ Map<Capability, CapabilityState> readProbe({
   List<String> errorMessages = const [],
 }) {
   final result = <Capability, CapabilityState>{};
-  var sentinelRefused = false;
+  // The mutations the sentinel was refused on.
+  final sentinelRefusedOn = <String>{};
 
   for (final message in errorMessages) {
     final field = unsupportedFieldIn(message);
     if (field == null) continue;
     if (field == probeSentinel) {
-      sentinelRefused = true;
+      final on = _unknownArgument.firstMatch(message)?.group(2);
+      // "Mutation.scanAlbum" — the field after the type.
+      if (on != null) sentinelRefusedOn.add(on.split('.').last);
       continue;
     }
 
@@ -279,11 +319,11 @@ Map<Capability, CapabilityState> readProbe({
     }
   }
 
-  // The sentinel refused means its field was validated, and every argument
-  // the server lacks would have been refused alongside it.
-  if (sentinelRefused) {
-    for (final capability in _probedByMutation) {
-      result.putIfAbsent(capability, () => CapabilityState.supported);
+  // The sentinel refused on a mutation means that mutation was validated,
+  // and every argument the server lacks would have been refused alongside it.
+  for (final entry in _probedByMutation.entries) {
+    if (sentinelRefusedOn.contains(entry.value)) {
+      result.putIfAbsent(entry.key, () => CapabilityState.supported);
     }
   }
 
