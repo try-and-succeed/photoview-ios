@@ -73,6 +73,7 @@ class ReviewScreen extends ConsumerWidget {
                     sliver: MediaSliverGrid(
                       media: data.media,
                       showFacesInGallery: true,
+                      albumLinkInGallery: true,
                     ),
                   ),
                 ],

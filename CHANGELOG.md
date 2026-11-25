@@ -7,7 +7,7 @@ Every change raises `version:` in [`app_flutter/pubspec.yaml`](./app_flutter/pub
 — the name and the build number after the `+` — and gets an entry here. The app
 shows the running version under Settings › Info.
 
-## 1.4.0 (16) — 2026-11-24
+## 1.4.0 (17) — 2026-11-25
 
 ### Fixed
 
@@ -30,12 +30,13 @@ shows the running version under Settings › Info.
   albums, timeline, a person's page, the review list, places and search — and
   is kept on the device. Rows open and are picked like tiles; videos,
   favourites and the confirmed or to-review marks show as well.
-- **From a person's photo to its album.** A photo opened on a person's page
-  has an album button at the top: it opens the album the photo is in, with
+- **From a photo to its album.** A photo opened on a person's page, on the
+  review list, in the search results or on a place's photos has an album
+  button at the top: it opens the album the photo is in, with
   the same photo open there, so the photos taken around it are a swipe away.
   Framed faces stay framed. In a large album the pages are loaded until the
   photo turns up; if the album no longer holds it, a message says so. Back
-  from the album leads to the person's page.
+  from the album leads to the page the photo was opened from.
 
 ## 1.3.0 (12) — 2026-11-23
 

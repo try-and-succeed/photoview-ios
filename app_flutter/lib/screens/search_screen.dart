@@ -216,6 +216,7 @@ class _Results extends ConsumerWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   sliver: MediaSliverGrid(
                     media: data.media.take(media.shown).toList(),
+                    albumLinkInGallery: true,
                   ),
                 )
               else
